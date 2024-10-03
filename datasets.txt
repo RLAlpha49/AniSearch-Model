@@ -1,0 +1,6 @@
+Anime Dataset 2023(anime-dataset-2023.csv) - https://www.kaggle.com/datasets/dbdmobile/myanimelist-dataset
+Anime DataSet 2022(Anime.csv) - https://www.kaggle.com/datasets/vishalmane10/anime-dataset-2022
+Anime Database 2022(Anime-2022.csv) - https://www.kaggle.com/datasets/harits/anime-database-2022
+Anime Dataset(animes.csv) - https://www.kaggle.com/datasets/arnavvvvv/anime-dataset
+Anime DataSet(anime4500.csv) -https://www.kaggle.com/datasets/souradippal/anime-dataset
+anilist-anime-data(anime-20220927-raw.csv) - https://www.kaggle.com/datasets/barrettotte/anilistanimedata

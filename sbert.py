@@ -1,0 +1,142 @@
+# pylint: disable=E0401, E0611
+import os
+import time
+import platform
+import warnings
+import argparse
+import numpy as np
+from sentence_transformers import SentenceTransformer, models
+from tqdm import tqdm
+import torch
+from transformers import AutoModel
+import common
+
+warnings.filterwarnings(
+    "ignore", category=FutureWarning, module="transformers.tokenization_utils_base"
+)
+
+# Parse command-line arguments
+parser = argparse.ArgumentParser(
+    description="Generate SBERT embeddings for anime dataset."
+)
+parser.add_argument(
+    "--model",
+    type=str,
+    required=True,
+    help="The model name to use (e.g., 'all-mpnet-base-v1').",
+)
+args = parser.parse_args()
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+# Parameters
+MODEL_NAME = args.model
+if not MODEL_NAME.startswith("sentence-transformers/"):
+    MODEL_NAME = f"sentence-transformers/{MODEL_NAME}"
+
+if DEVICE == "cuda":
+    BATCH_SIZE = 256
+else:
+    BATCH_SIZE = 128
+
+# Load the merged dataset
+df = common.load_dataset("model/merged_anime_dataset.csv")
+
+# List of synopsis columns to process individually
+synopsis_columns = [
+    "Synopsis",
+    "Synopsis animes dataset",
+    "Synopsis anime_270 Dataset",
+    "Synopsis Anime-2022 Dataset",
+    "Synopsis Anime Dataset",
+    "Synopsis anime4500 Dataset",
+    "Synopsis anime-20220927-raw Dataset",
+    "Synopsis wykonos Dataset",
+]
+
+# Preprocess each synopsis column
+for col in synopsis_columns:
+    df[f"Processed_{col}"] = df[col].fillna("").apply(common.preprocess_text)
+
+# Load the underlying Hugging Face model to access config
+hf_model = AutoModel.from_pretrained(MODEL_NAME)
+
+word_embedding_model = models.Transformer(MODEL_NAME)
+pooling_model = models.Pooling(
+    word_embedding_model.get_word_embedding_dimension(),
+    pooling_mode_mean_tokens=True,
+    pooling_mode_cls_token=False,
+    pooling_mode_max_tokens=True,
+)
+
+# Load pre-trained SBERT model
+model = SentenceTransformer(
+    MODEL_NAME, device=DEVICE, modules=[word_embedding_model, pooling_model]
+)
+
+
+# Get SBERT embeddings for each synopsis column
+def get_sbert_embeddings(df, model, batch_size, column_name):
+    embeddings = []
+    for i in tqdm(
+        range(0, len(df), batch_size), desc=f"Generating Embeddings for {column_name}"
+    ):
+        batch_texts = df[column_name].iloc[i : i + batch_size].tolist()
+        batch_embeddings = model.encode(batch_texts, convert_to_numpy=True)
+        embeddings.append(batch_embeddings)
+    return np.vstack(embeddings)
+
+
+# Measure the time taken to generate embeddings for each column
+all_embeddings = {}
+start_time = time.time()
+for col in synopsis_columns:
+    processed_col = f"Processed_{col}"
+    embeddings = get_sbert_embeddings(df, model, BATCH_SIZE, processed_col)
+    all_embeddings[col] = embeddings
+end_time = time.time()
+embedding_generation_time = end_time - start_time
+
+# Create directory for model-specific embeddings
+model_dir = f"model/{MODEL_NAME.split('/')[-1]}"
+os.makedirs(model_dir, exist_ok=True)
+
+# Save the embeddings for each column
+for col, embeddings in all_embeddings.items():
+    np.save(f"{model_dir}/embeddings_{col.replace(' ', '_')}.npy", embeddings)
+
+# Save evaluation data
+additional_info = {
+    "dataset_info": {
+        "num_samples": len(df),
+        "preprocessing": "text normalization",
+        "source": ["model/merged_anime_dataset.csv"],
+    },
+    "model_info": {
+        "num_layers": hf_model.config.num_hidden_layers,
+        "hidden_size": hf_model.config.hidden_size,
+        "max_seq_length": word_embedding_model.max_seq_length,
+    },
+    "hardware_info": {
+        "device": DEVICE,
+        "gpu_model": torch.cuda.get_device_name(0) if DEVICE == "cuda" else "N/A",
+        "gpu_memory": (
+            torch.cuda.get_device_properties(0).total_memory
+            if DEVICE == "cuda"
+            else "N/A"
+        ),
+    },
+    "timing": {"embedding_generation_time": embedding_generation_time},
+    "environment": {
+        "python_version": platform.python_version(),
+        "torch_version": torch.__version__,
+        "transformers_version": SentenceTransformer._version,
+    },
+}
+
+common.save_evaluation_data(
+    model_name=MODEL_NAME,
+    batch_size=BATCH_SIZE,
+    num_embeddings=sum(len(emb) for emb in all_embeddings.values()),
+    additional_info=additional_info,
+)
