@@ -77,6 +77,18 @@ model = SentenceTransformer(
 
 # Get SBERT embeddings for each synopsis column
 def get_sbert_embeddings(df, model, batch_size, column_name):
+    """
+    Generate SBERT embeddings for a given DataFrame column using batched processing.
+    
+    Args:
+        df (pandas.DataFrame): The input DataFrame containing the text data.
+        model (SentenceTransformer): The SBERT model to use for generating embeddings.
+        batch_size (int): The number of texts to process in each batch.
+        column_name (str): The name of the DataFrame column containing the text data.
+    
+    Returns:
+        numpy.ndarray: A 2D array of embeddings, where each row corresponds to a text in the input DataFrame.
+    """
     embeddings = []
     for i in tqdm(
         range(0, len(df), batch_size), desc=f"Generating Embeddings for {column_name}"
