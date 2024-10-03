@@ -65,10 +65,10 @@ if anime_2022["ID"].duplicated().any():
 # Preprocess names for matching
 def preprocess_name(name):
     """Preprocesses a given name by converting it to a lowercase string and removing leading/trailing whitespace.
-    
+
     Args:
         name (Any): The input name to be preprocessed. Can be of any type that can be converted to a string.
-    
+
     Returns:
         str: The preprocessed name as a lowercase string with leading and trailing whitespace removed.
     """
@@ -99,18 +99,6 @@ anime_20220927_raw["title_native"] = anime_20220927_raw["title_native"].apply(
 wykonos_dataset_df["Name"] = wykonos_dataset_df["Name"].apply(preprocess_name)
 wykonos_dataset_df["Japanese_name"] = wykonos_dataset_df["Japanese_name"].apply(
     preprocess_name
-"""Adds additional synopsis information to a merged DataFrame from an additional DataFrame.
-
-Args:
-    merged_df (pd.DataFrame): The main DataFrame to update with additional synopsis.
-    additional_df (pd.DataFrame): The DataFrame containing additional synopsis information.
-    description_col (str): The name of the column in additional_df containing the synopsis.
-    name_columns (list): List of column names in additional_df to use for matching.
-    new_synopsis_col (str): The name of the new column to add to merged_df for the additional synopsis.
-
-Returns:
-    pd.DataFrame: The updated merged DataFrame with the new synopsis column.
-"""
 )
 
 
@@ -118,6 +106,18 @@ Returns:
 def add_additional_synopsis(
     merged_df, additional_df, description_col, name_columns, new_synopsis_col
 ):
+    """Adds additional synopsis information to a merged DataFrame from an additional DataFrame.
+
+    Args:
+        merged_df (pd.DataFrame): The main DataFrame to update with additional synopsis.
+        additional_df (pd.DataFrame): The DataFrame containing additional synopsis information.
+        description_col (str): The name of the column in additional_df containing the synopsis.
+        name_columns (list): List of column names in additional_df to use for matching.
+        new_synopsis_col (str): The name of the new column to add to merged_df for the additional synopsis.
+
+    Returns:
+        pd.DataFrame: The updated merged DataFrame with the new synopsis column.
+    """
     # Ensure the new synopsis column exists
     if new_synopsis_col not in merged_df.columns:
         merged_df[new_synopsis_col] = None
