@@ -1,3 +1,15 @@
+"""
+This script tests a Sentence-BERT (SBERT) model by comparing a new description
+against a merged anime dataset to find the most similar synopses.
+
+It performs the following operations:
+- Loads a pre-trained SBERT model specified by the user.
+- Preprocesses a new description for comparison.
+- Loads precomputed embeddings for various synopsis columns.
+- Calculates cosine similarities between the new description and existing synopses.
+- Outputs the top N most similar synopses.
+"""
+
 # pylint: disable=E0401, E0611, E1101
 import argparse
 import warnings

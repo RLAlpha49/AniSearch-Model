@@ -1,3 +1,14 @@
+"""
+This script generates Sentence-BERT (SBERT) embeddings for an anime dataset.
+
+It performs the following operations:
+- Loads a pre-trained SBERT model specified by the user.
+- Preprocesses text data from various synopsis columns in the dataset.
+- Generates embeddings for each synopsis using batched processing.
+- Saves the generated embeddings to disk for later use.
+- Records and saves evaluation data including model and hardware information.
+"""
+
 # pylint: disable=E0401, E0611
 import os
 import time

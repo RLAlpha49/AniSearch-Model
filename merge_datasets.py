@@ -1,3 +1,14 @@
+"""
+This script merges multiple anime datasets into a single dataset.
+
+It performs the following operations:
+- Loads various anime datasets from CSV files and the Hugging Face datasets library.
+- Preprocesses names for matching by converting them to lowercase and stripping whitespace.
+- Merges datasets based on common identifiers such as anime_id and uid.
+- Adds additional synopsis information from various sources.
+- Removes duplicates and saves the merged dataset to a CSV file.
+"""
+
 import pandas as pd
 from tqdm import tqdm
 from datasets import load_dataset
