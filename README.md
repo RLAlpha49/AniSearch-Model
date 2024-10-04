@@ -45,7 +45,7 @@ This project performs the following operations:
 
 ### Merging Datasets
 
-The repository already contains a merged dataset (`model/merged_anime_dataset`), but if you want to merge additional datasets, edit the `merge_datasets.py` file and run:
+The repository already contains a merged dataset (`model/merged_anime_dataset.csv`), but if you want to merge additional datasets, edit the `merge_datasets.py` file and run:
 
 ```bash
 python merge_datasets.py
@@ -55,13 +55,40 @@ This script will load various datasets, preprocess names for matching, merge the
 
 ### Generating Embeddings
 
-To generate SBERT embeddings for the anime dataset, run:
+To generate SBERT embeddings for the anime dataset, you can run the `sbert.py` script for a specific model or use the provided script to generate embeddings for all models listed in `models.txt`.
+
+#### For a Specific Model
 
 ```bash
 python sbert.py --model <model_name>
 ```
 
-Replace `<model-name>` with the desired SBERT model, e.g., `all-mpnet-base-v1`. This script will preprocess the text data, generate embeddings, and save them to disk.
+Replace `<model_name>` with the desired SBERT model, e.g., `all-mpnet-base-v1`. This script will preprocess the text data, generate embeddings, and save them to disk.
+
+#### For All Models
+
+You can use the provided scripts to generate embeddings for all models listed in `models.txt`.
+
+**Linux:**
+
+The `generate_models.sh` script is already created. To run the script, use the following commands:
+
+```bash
+chmod +x generate_models.sh
+./generate_models.sh
+```
+
+**Windows (Batch Script):**
+
+The `generate_models.bat` script is already created. Run the batch script by double-clicking it or executing it from the command prompt.
+
+**Windows (PowerShell Script):**
+
+The `generate_models.ps1` script is already created. To run the script, use the following command in PowerShell:
+
+```powershell
+.\generate_models.ps1
+```
 
 ### Testing Embeddings
 
@@ -71,7 +98,7 @@ To test the embeddings and find similar synopses, execute:
 python test.py --model <model_name>
 ```
 
-Replace `<model-name>` with the desired SBERT model, e.g., `all-mpnet-base-v1`. This script compares a new description against the dataset to find the most similar synopses using cosine similarity.
+Replace `<model_name>` with the desired SBERT model, e.g., `all-mpnet-base-v1`. This script compares a new description against the dataset to find the most similar synopses using cosine similarity.
 
 ## Project Structure
 
@@ -83,6 +110,10 @@ Replace `<model-name>` with the desired SBERT model, e.g., `all-mpnet-base-v1`. 
 - **model/**: Directory for storing models and embeddings.
 - **model/merged_anime_dataset.csv**: Stores the merged anime dataset.
 - **model/evaluation_results.json**: Stores evaluation data and results.
+- **models.txt**: List of SBERT models to be used.
+- **generate_models.sh**: Script to generate embeddings for all models (Linux).
+- **generate_models.bat**: Script to generate embeddings for all models (Windows Batch).
+- **generate_models.ps1**: Script to generate embeddings for all models (Windows PowerShell).
 
 ## Dependencies
 
