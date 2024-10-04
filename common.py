@@ -23,7 +23,7 @@ def load_dataset(file_path):
         pd.DataFrame: The loaded dataset with filled 'Synopsis' column.
     """
     df = pd.read_csv(file_path)
-    df["Synopsis"] = df["Synopsis"].fillna("")
+    df["synopsis"] = df["synopsis"].fillna("")
     return df
 
 

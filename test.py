@@ -55,7 +55,8 @@ df = pd.read_csv("model/merged_anime_dataset.csv")
 
 # List of synopsis columns to consider
 synopsis_columns = [
-    "Synopsis",
+    "synopsis",
+    "Synopsis anime_dataset_2023",
     "Synopsis animes dataset",
     "Synopsis anime_270 Dataset",
     "Synopsis Anime-2022 Dataset",
@@ -123,7 +124,7 @@ seen_anime_names = set()
 print("Top similar descriptions:")
 RANK = 1
 for idx, col in all_top_indices:
-    name = df.iloc[idx]["Name"]
+    name = df.iloc[idx]["title"]
     if name not in seen_anime_names:
         synopsis = df.iloc[idx][col]
         similarity = cosine_similarities_dict[col][idx]

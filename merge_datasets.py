@@ -14,11 +14,10 @@ from tqdm import tqdm
 from datasets import load_dataset
 
 # Load datasets
-anime_dataset_2023 = pd.read_csv(
-    "data/anime-dataset-2023.csv"
-)  # Base dataset, 24906 Rows
+myanimelist_dataset = pd.read_csv("data/Anime.csv")  # Base dataset, 24984 Rows
+anime_dataset_2023 = pd.read_csv("data/anime-dataset-2023.csv")  # 24906 Rows
 animes = pd.read_csv("data/animes.csv")  # 16217 Rows
-anime_additional = pd.read_csv("data/Anime.csv")  # 18495 Rows
+anime_additional = pd.read_csv("data/Anime_2022.csv")  # 18495 Rows
 anime_4500 = pd.read_csv("data/anime4500.csv")  # 4500 Rows
 anime_20220927_raw = pd.read_csv("data/anime-20220927-raw.csv")  # 16586 Rows
 anime_2022 = pd.read_csv("data/Anime-2022.csv")  # 21461 Rows
@@ -26,32 +25,45 @@ anime_data = pd.read_csv("data/Anime_data.csv")  # 2453 Rows
 anime2 = pd.read_csv("data/anime2.csv")  # 18495 Rows
 mal_anime = pd.read_csv("data/mal_anime.csv")  # 24262 Rows
 
-# Load the new datasets using the datasets library
-new_dataset = load_dataset("johnidouglas/anime_270", split="train")  # 269 Rows
-new_dataset_df = new_dataset.to_pandas()
+# Load using the datasets library
+anime_270 = load_dataset("johnidouglas/anime_270", split="train")  # 269 Rows
+anime_270_df = anime_270.to_pandas()
 
 wykonos_dataset = load_dataset("wykonos/anime", split="train")  # 18495
 wykonos_dataset_df = wykonos_dataset.to_pandas()
 
 # Drop specified columns from anime_dataset_2023
 columns_to_drop = [
-    "Status",
-    "Source",
-    "Duration",
-    "Rating",
-    "Rank",
-    "Popularity",
-    "Favorites",
-    "Scored By",
-    "Members",
-    "Premiered",
-    "Producers",
-    "Licensors",
-    "Studios",
+    "scored_by",
+    "status",
+    "source",
+    "members",
+    "favorites",
+    "episode_duration",
+    "total_duration",
+    "rating",
+    "sfw",
+    "approved",
+    "created_at",
+    "updated_at",
+    "real_start_date",
+    "real_end_date",
+    "broadcast_day",
+    "broadcast_time",
+    "studios",
+    "producers",
+    "licensors",
 ]
-anime_dataset_2023.drop(columns=columns_to_drop, inplace=True, errors="ignore")
+myanimelist_dataset.drop(columns=columns_to_drop, inplace=True, errors="ignore")
 
 # Check for duplicates in the keys and remove them, then save the cleaned data back to the files
+if myanimelist_dataset["anime_id"].duplicated().any():
+    print(
+        "Warning: Duplicate anime_id found in myanimelist_dataset. Removing duplicates."
+    )
+    myanimelist_dataset.drop_duplicates(subset="anime_id", inplace=True)
+    myanimelist_dataset.to_csv("data/Anime.csv", index=False)
+
 if anime_dataset_2023["anime_id"].duplicated().any():
     print(
         "Warning: Duplicate anime_id found in anime_dataset_2023. Removing duplicates."
@@ -97,6 +109,13 @@ def preprocess_name(name):
     return str(name).strip().lower()
 
 
+myanimelist_dataset["title"] = myanimelist_dataset["title"].apply(preprocess_name)
+myanimelist_dataset["title_english"] = myanimelist_dataset["title_english"].apply(
+    preprocess_name
+)
+myanimelist_dataset["title_japanese"] = myanimelist_dataset["title_japanese"].apply(
+    preprocess_name
+)
 anime_dataset_2023["Name"] = anime_dataset_2023["Name"].apply(preprocess_name)
 anime_dataset_2023["English name"] = anime_dataset_2023["English name"].apply(
     preprocess_name
@@ -144,35 +163,44 @@ def add_additional_synopsis(
     Returns:
         pd.DataFrame: The updated merged DataFrame with the new synopsis column.
     """
-    # Ensure the new synopsis column exists
     if new_synopsis_col not in merged.columns:
         merged[new_synopsis_col] = None
 
-    # Iterate over each row in the additional dataset with a progress bar
-    for _, row in tqdm(
-        additional_df.iterrows(),
-        total=additional_df.shape[0],
-        desc=f"Merging {new_synopsis_col}",
+    # Iterate over each row in the merged DataFrame with a progress bar
+    for idx, row in tqdm(
+        merged.iterrows(),
+        total=merged.shape[0],
+        desc=f"Adding additional synopses from {new_synopsis_col.replace('Synopsis ', '')}",
     ):
-        # Find matches using vectorized operations
-        matches = merged[
-            (merged["Name"].isin([row[col] for col in name_columns]))
-            | (merged["English name"].isin([row[col] for col in name_columns]))
-            | (merged["Other name"].isin([row[col] for col in name_columns]))
-        ]
+        # Check if any of the name columns in the merged DataFrame match
+        for merged_name_col in ["title", "title_english", "title_japanese"]:
+            for additional_name_col in name_columns:
+                # Check if the name in the merged DataFrame matches any name in additional DataFrame
+                if row[merged_name_col] in additional_df[additional_name_col].values:
+                    # Get the synopsis from the additional DataFrame
+                    synopsis = additional_df.loc[
+                        additional_df[additional_name_col] == row[merged_name_col],
+                        description_col,
+                    ]
 
-        # If matches are found, update the synopsis
-        if not matches.empty:
-            for match_idx in matches.index:
-                # Check if the synopsis is already present in any of the existing synopsis columns
-                existing_synopses = [
-                    merged.at[match_idx, col]
-                    for col in merged.columns
-                    if "Synopsis" in col and pd.notna(merged.at[match_idx, col])
-                ]
-                if row[description_col] not in existing_synopses:
-                    # Add the new synopsis to the new column if it's not a duplicate
-                    merged.at[match_idx, new_synopsis_col] = row[description_col]
+                    # If synopsis is a Series, take the first non-null value
+                    if isinstance(synopsis, pd.Series):
+                        synopsis = (
+                            synopsis.dropna().iloc[0]
+                            if not synopsis.dropna().empty
+                            else None
+                        )
+
+                    if pd.notna(synopsis):
+                        # Add the new synopsis if it's not a duplicate
+                        existing_synopses = [
+                            merged.at[idx, col]
+                            for col in merged.columns
+                            if "Synopsis" in col and pd.notna(merged.at[idx, col])
+                        ]
+                        if synopsis not in existing_synopses:
+                            merged.at[idx, new_synopsis_col] = synopsis
+                    break  # Stop checking other name columns if a match is found
 
     return merged
 
@@ -199,22 +227,39 @@ def remove_duplicate_synopses(merged_dataframe, synopsis_columns):
     return merged_dataframe
 
 
+# Merge datasets on anime_id
+final_merged_df = pd.merge(
+    myanimelist_dataset,
+    anime_dataset_2023[["anime_id", "Synopsis"]],
+    left_on="anime_id",
+    right_on="anime_id",
+    how="outer",
+)
+
+# Ensure the column is renamed correctly
+final_merged_df.rename(
+    columns={"Synopsis": "Synopsis anime_dataset_2023"}, inplace=True
+)
+
 # Merge datasets on anime_id and uid
 final_merged_df = pd.merge(
-    anime_dataset_2023,
+    final_merged_df,
     animes[["uid", "synopsis"]],
     left_on="anime_id",
     right_on="uid",
     how="outer",
+    suffixes=("", "_animes"),
 )
 
 final_merged_df.drop(columns=["uid"], inplace=True)
-final_merged_df.rename(columns={"synopsis": "Synopsis animes dataset"}, inplace=True)
+final_merged_df.rename(
+    columns={"synopsis_animes": "Synopsis animes dataset"}, inplace=True
+)
 
 # Merge the new dataset using MAL_ID
 final_merged_df = pd.merge(
     final_merged_df,
-    new_dataset_df[["MAL_ID", "sypnopsis"]],
+    anime_270_df[["MAL_ID", "sypnopsis"]],
     left_on="anime_id",
     right_on="MAL_ID",
     how="outer",
@@ -231,16 +276,16 @@ final_merged_df = pd.merge(
     left_on="anime_id",
     right_on="ID",
     how="outer",
-    suffixes=("", "_Anime2022"),
 )
 
 final_merged_df.rename(
-    columns={"Synopsis_Anime2022": "Synopsis Anime-2022 Dataset"}, inplace=True
+    columns={"Synopsis": "Synopsis Anime-2022 Dataset"}, inplace=True
 )
 final_merged_df.drop(columns=["ID"], inplace=True)
 
 # Remove duplicate synopses after ID-based merges
 synopsis_cols = [
+    "Synopsis anime_dataset_2023",
     "Synopsis animes dataset",
     "Synopsis anime_270 Dataset",
     "Synopsis Anime-2022 Dataset",

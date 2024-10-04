@@ -59,7 +59,8 @@ df = common.load_dataset("model/merged_anime_dataset.csv")
 
 # List of synopsis columns to process individually
 synopsis_columns = [
-    "Synopsis",
+    "synopsis",
+    "Synopsis anime_dataset_2023",
     "Synopsis animes dataset",
     "Synopsis anime_270 Dataset",
     "Synopsis Anime-2022 Dataset",
