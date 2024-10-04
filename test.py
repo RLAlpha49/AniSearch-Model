@@ -35,7 +35,10 @@ parser.add_argument(
 args = parser.parse_args()
 
 # New description
-NEW_DESCRIPTION = """The main character is a 37 year old man who is stabbed and dies, but is reborn as a slime in a different world."""
+NEW_DESCRIPTION = (
+    "The main character is a 37 year old man who is stabbed and dies, "
+    "but is reborn as a slime in a different world."
+)
 
 # Preprocess the new description
 processed_description = common.preprocess_text(NEW_DESCRIPTION)
@@ -77,7 +80,8 @@ for col in synopsis_columns:
     # Ensure the dimensions match
     if existing_embeddings.shape[1] != EMBEDDING_DIM:
         raise ValueError(
-            f"Incompatible dimension for embeddings in {col}: expected {EMBEDDING_DIM}, got {existing_embeddings.shape[1]}"
+            f"Incompatible dimension for embeddings in {col}: "
+            f"expected {EMBEDDING_DIM}, got {existing_embeddings.shape[1]}"
         )
 
     # Calculate cosine similarity
@@ -94,12 +98,12 @@ for col in synopsis_columns:
     cosine_similarities_dict[col] = cosine_similarities
 
 # Find and print the top N most similar descriptions across all columns
-num_similarities = 10
+NUM_SIMILARITIES = 10
 all_top_indices = []
 
 for col, cosine_similarities in cosine_similarities_dict.items():
     # Find the indices of the top N most similar descriptions in descending order
-    top_indices_unsorted = np.argsort(cosine_similarities)[-num_similarities:]
+    top_indices_unsorted = np.argsort(cosine_similarities)[-NUM_SIMILARITIES:]
     # Sort the top indices based on similarity scores in descending order
     top_indices = top_indices_unsorted[
         np.argsort(cosine_similarities[top_indices_unsorted])[::-1]
@@ -114,14 +118,14 @@ seen_anime_names = set()
 
 # Print the top similar descriptions, avoiding duplicates
 print("Top similar descriptions:")
-rank = 1
+RANK = 1
 for idx, col in all_top_indices:
     name = df.iloc[idx]["Name"]
     if name not in seen_anime_names:
         synopsis = df.iloc[idx][col]
         similarity = cosine_similarities_dict[col][idx]
-        print(f"\n{rank}: {name} - {synopsis} (Similarity: {similarity})")
+        print(f"\n{RANK}: {name} - {synopsis} (Similarity: {similarity})")
         seen_anime_names.add(name)
-        rank += 1
-        if rank > num_similarities:
+        RANK += 1
+        if RANK > NUM_SIMILARITIES:
             break

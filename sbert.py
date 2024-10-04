@@ -48,7 +48,9 @@ if not MODEL_NAME.startswith("sentence-transformers/"):
 if DEVICE == "cuda":
     BATCH_SIZE = 256
     if MODEL_NAME == "sentence-transformers/gtr-t5-xl":
-        BATCH_SIZE = 12  # Limited by GPU memory, must not go past Dedicated GPU memory (Will Freeze/Slow Down). Change as needed.
+        BATCH_SIZE = 12
+        # Limited by GPU memory, must not go past Dedicated GPU memory (Will Freeze/Slow Down).
+        # Change as needed.
 else:
     BATCH_SIZE = 128
 
@@ -89,27 +91,28 @@ model = SentenceTransformer(
 
 
 # Get SBERT embeddings for each synopsis column
-def get_sbert_embeddings(df, model, batch_size, column_name):
+def get_sbert_embeddings(dataframe, sbert_model, batch_size, column_name):
     """
     Generate SBERT embeddings for a given DataFrame column using batched processing.
 
     Args:
-        df (pandas.DataFrame): The input DataFrame containing the text data.
-        model (SentenceTransformer): The SBERT model to use for generating embeddings.
+        dataframe (pandas.DataFrame): The input DataFrame containing the text data.
+        sbert_model (SentenceTransformer): The SBERT model to use for generating embeddings.
         batch_size (int): The number of texts to process in each batch.
         column_name (str): The name of the DataFrame column containing the text data.
 
     Returns:
-        numpy.ndarray: A 2D array of embeddings, where each row corresponds to a text in the input DataFrame.
+        numpy.ndarray: A 2D array of embeddings, each row corresponds to a text in input DataFrame.
     """
-    embeddings = []
+    embeddings_list = []
     for i in tqdm(
-        range(0, len(df), batch_size), desc=f"Generating Embeddings for {column_name}"
+        range(0, len(dataframe), batch_size),
+        desc=f"Generating Embeddings for {column_name}",
     ):
-        batch_texts = df[column_name].iloc[i : i + batch_size].tolist()
-        batch_embeddings = model.encode(batch_texts, convert_to_numpy=True)
-        embeddings.append(batch_embeddings)
-    return np.vstack(embeddings)
+        batch_texts = dataframe[column_name].iloc[i : i + batch_size].tolist()
+        batch_embeddings = sbert_model.encode(batch_texts, convert_to_numpy=True)
+        embeddings_list.append(batch_embeddings)
+    return np.vstack(embeddings_list)
 
 
 # Measure the time taken to generate embeddings for each column
@@ -155,7 +158,7 @@ additional_info = {
     "environment": {
         "python_version": platform.python_version(),
         "torch_version": torch.__version__,
-        "transformers_version": SentenceTransformer._version,
+        "transformers_version": SentenceTransformer._version,  # pylint: disable=W0212
     },
 }
 
