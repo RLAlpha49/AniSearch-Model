@@ -117,6 +117,21 @@ python test.py --model <model_name>
 
 Replace `<model_name>` with the desired SBERT model, e.g., `all-mpnet-base-v1`. This script compares a new description against the dataset to find the most similar synopses using cosine similarity.
 
+### Running the Flask Application
+
+To run the Flask application, use the `run_server.py` script. This script automatically determines the operating system and uses the appropriate server:
+
+- On **Linux**, it uses Gunicorn.
+- On **Windows**, it uses Waitress.
+
+Run the script with:
+
+```bash
+python run_server.py
+```
+
+The application will be accessible at `http://0.0.0.0:5000/anisearchmodel`.
+
 ## Project Structure
 
 - **merge_datasets.py**: Merges multiple anime datasets.
