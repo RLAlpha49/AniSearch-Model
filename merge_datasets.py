@@ -22,6 +22,9 @@ anime_additional = pd.read_csv("data/Anime.csv")  # 18495 Rows
 anime_4500 = pd.read_csv("data/anime4500.csv")  # 4500 Rows
 anime_20220927_raw = pd.read_csv("data/anime-20220927-raw.csv")  # 16586 Rows
 anime_2022 = pd.read_csv("data/Anime-2022.csv")  # 21461 Rows
+anime_data = pd.read_csv("data/Anime_data.csv")  # 2453 Rows
+anime2 = pd.read_csv("data/anime2.csv")  # 18495 Rows
+mal_anime = pd.read_csv("data/mal_anime.csv")  # 24262 Rows
 
 # Load the new datasets using the datasets library
 new_dataset = load_dataset("johnidouglas/anime_270", split="train")  # 269 Rows
@@ -119,6 +122,10 @@ wykonos_dataset_df["Name"] = wykonos_dataset_df["Name"].apply(preprocess_name)
 wykonos_dataset_df["Japanese_name"] = wykonos_dataset_df["Japanese_name"].apply(
     preprocess_name
 )
+anime_data["Name"] = anime_data["Name"].apply(preprocess_name)
+anime2["Name"] = anime2["Name"].apply(preprocess_name)
+anime2["Japanese_name"] = anime2["Japanese_name"].apply(preprocess_name)
+mal_anime["title"] = mal_anime["title"].apply(preprocess_name)
 
 
 # Function to add additional synopses
@@ -271,6 +278,39 @@ final_merged_df = add_additional_synopsis(
     ["Name", "Japanese_name"],
     "Synopsis wykonos Dataset",
 )
+
+# Remove entries with "No synopsis yet - check back soon!" from the Description column in anime_data
+anime_data = anime_data[
+    anime_data["Description"] != "No synopsis yet - check back soon!"
+]
+
+# Update the merged dataset with additional synopses from Anime_data.csv
+final_merged_df = add_additional_synopsis(
+    final_merged_df,
+    anime_data,
+    "Description",
+    ["Name"],
+    "Synopsis Anime_data Dataset",
+)
+
+# Update the merged dataset with additional synopses from anime2.csv
+final_merged_df = add_additional_synopsis(
+    final_merged_df,
+    anime2,
+    "Description",
+    ["Name", "Japanese_name"],
+    "Synopsis anime2 Dataset",
+)
+
+# Update the merged dataset with additional synopses from mal_anime.csv
+final_merged_df = add_additional_synopsis(
+    final_merged_df,
+    mal_anime,
+    "synopsis",
+    ["title"],
+    "Synopsis mal_anime Dataset",
+)
+
 
 # Remove duplicates based on a subset of columns that should be unique
 final_merged_df.drop_duplicates(subset=["anime_id"], inplace=True)

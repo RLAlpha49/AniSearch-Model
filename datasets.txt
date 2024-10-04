@@ -6,3 +6,6 @@ Anime DataSet(anime4500.csv) -https://www.kaggle.com/datasets/souradippal/anime-
 anilist-anime-data(anime-20220927-raw.csv) - https://www.kaggle.com/datasets/barrettotte/anilistanimedata
 johnidouglas/anime_270 - https://huggingface.co/datasets/johnidouglas/anime_270
 wykonos/anime - https://huggingface.co/datasets/wykonos/anime
+anime_data.csv - https://www.kaggle.com/datasets/itsnobita/anime-details/data
+anime2.csv - https://www.kaggle.com/datasets/unibahmad/anime-dataset/data
+mal_anime.csv - https://www.kaggle.com/datasets/crxxom/all-animes-in-mal/data

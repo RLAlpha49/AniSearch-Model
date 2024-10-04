@@ -5,6 +5,7 @@ This project involves generating and analyzing Sentence-BERT (SBERT) embeddings 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Datasets Used](#datasets-used)
 - [Setup](#setup)
 - [Usage](#usage)
   - [Merging Datasets](#merging-datasets)
@@ -23,6 +24,22 @@ This project performs the following operations:
 - Merges datasets based on common identifiers.
 - Generates SBERT embeddings for anime synopses.
 - Calculates cosine similarities to find the most similar synopses.
+
+## Datasets Used
+
+The following datasets are used in this project:
+
+1. **Anime Dataset 2023** (`anime-dataset-2023.csv`): [Kaggle](https://www.kaggle.com/datasets/dbdmobile/myanimelist-dataset)
+2. **Anime DataSet 2022** (`Anime.csv`): [Kaggle](https://www.kaggle.com/datasets/vishalmane10/anime-dataset-2022)
+3. **Anime Database 2022** (`Anime-2022.csv`): [Kaggle](https://www.kaggle.com/datasets/harits/anime-database-2022)
+4. **Anime Dataset** (`animes.csv`): [Kaggle](https://www.kaggle.com/datasets/arnavvvvv/anime-dataset)
+5. **Anime DataSet** (`anime4500.csv`): [Kaggle](https://www.kaggle.com/datasets/souradippal/anime-dataset)
+6. **Anilist Anime Data** (`anime-20220927-raw.csv`): [Kaggle](https://www.kaggle.com/datasets/barrettotte/anilistanimedata)
+7. **Anime 270** (`johnidouglas/anime_270`): [Hugging Face](https://huggingface.co/datasets/johnidouglas/anime_270)
+8. **Wykonos Anime** (`wykonos/anime`): [Hugging Face](https://huggingface.co/datasets/wykonos/anime)
+9. **Anime Details** (`anime_data.csv`): [Kaggle](https://www.kaggle.com/datasets/itsnobita/anime-details/data)
+10. **Anime Dataset** (`anime2.csv`): [Kaggle](https://www.kaggle.com/datasets/unibahmad/anime-dataset/data)
+11. **MAL Anime** (`mal_anime.csv`): [Kaggle](https://www.kaggle.com/datasets/crxxom/all-animes-in-mal/data)
 
 ## Setup
 
