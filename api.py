@@ -199,4 +199,5 @@ def get_similarities():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, threaded=True)
+    debug_mode = os.getenv("FLASK_DEBUG", "False").lower() in ["true", "1"]
+    app.run(debug=debug_mode, threaded=True)
