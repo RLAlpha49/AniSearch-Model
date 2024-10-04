@@ -4,3 +4,5 @@ Anime Database 2022(Anime-2022.csv) - https://www.kaggle.com/datasets/harits/ani
 Anime Dataset(animes.csv) - https://www.kaggle.com/datasets/arnavvvvv/anime-dataset
 Anime DataSet(anime4500.csv) -https://www.kaggle.com/datasets/souradippal/anime-dataset
 anilist-anime-data(anime-20220927-raw.csv) - https://www.kaggle.com/datasets/barrettotte/anilistanimedata
+johnidouglas/anime_270 - https://huggingface.co/datasets/johnidouglas/anime_270
+wykonos/anime - https://huggingface.co/datasets/wykonos/anime

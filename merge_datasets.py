@@ -27,7 +27,7 @@ anime_2022 = pd.read_csv("data/Anime-2022.csv")  # 21461 Rows
 new_dataset = load_dataset("johnidouglas/anime_270", split="train")  # 269 Rows
 new_dataset_df = new_dataset.to_pandas()
 
-wykonos_dataset = load_dataset("wykonos/anime", split="train")
+wykonos_dataset = load_dataset("wykonos/anime", split="train")  # 18495
 wykonos_dataset_df = wykonos_dataset.to_pandas()
 
 # Drop specified columns from anime_dataset_2023
