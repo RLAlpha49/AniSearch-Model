@@ -18,7 +18,7 @@ import torch
 
 # Disable oneDNN for TensorFlow
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-from sentence_transformers import (  # pylint: disable=wrong-import-position
+from sentence_transformers import (  # pylint: disable=wrong-import-position  # noqa: E402
     SentenceTransformer,
     util,
 )

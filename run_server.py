@@ -8,6 +8,7 @@ using the appropriate server.
 
 The script uses the `subprocess.run` method to execute the server command.
 """
+
 import platform
 import subprocess
 
