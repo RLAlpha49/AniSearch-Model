@@ -47,6 +47,8 @@ if not MODEL_NAME.startswith("sentence-transformers/"):
 
 if DEVICE == "cuda":
     BATCH_SIZE = 256
+    if MODEL_NAME == "sentence-transformers/gtr-t5-xl":
+        BATCH_SIZE = 12  # Limited by GPU memory, must not go past Dedicated GPU memory (Will Freeze/Slow Down). Change as needed.
 else:
     BATCH_SIZE = 128
 
