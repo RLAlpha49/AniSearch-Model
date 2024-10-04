@@ -63,6 +63,9 @@ synopsis_columns = [
     "Synopsis anime4500 Dataset",
     "Synopsis anime-20220927-raw Dataset",
     "Synopsis wykonos Dataset",
+    "Synopsis Anime_data Dataset",
+    "Synopsis anime2 Dataset",
+    "Synopsis mal_anime Dataset",
 ]
 
 # Encode the new description
