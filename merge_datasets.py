@@ -41,6 +41,10 @@ columns_to_drop = [
     "Favorites",
     "Scored By",
     "Members",
+    "Premiered",
+    "Producers",
+    "Licensors",
+    "Studios",
 ]
 anime_dataset_2023.drop(columns=columns_to_drop, inplace=True, errors="ignore")
 
@@ -153,10 +157,39 @@ def add_additional_synopsis(
         # If matches are found, update the synopsis
         if not matches.empty:
             for match_idx in matches.index:
-                # Add the new synopsis to the new column
-                merged.at[match_idx, new_synopsis_col] = row[description_col]
+                # Check if the synopsis is already present in any of the existing synopsis columns
+                existing_synopses = [
+                    merged.at[match_idx, col]
+                    for col in merged.columns
+                    if "Synopsis" in col and pd.notna(merged.at[match_idx, col])
+                ]
+                if row[description_col] not in existing_synopses:
+                    # Add the new synopsis to the new column if it's not a duplicate
+                    merged.at[match_idx, new_synopsis_col] = row[description_col]
 
     return merged
+
+
+# Function to remove duplicate synopses after merging based on IDs
+def remove_duplicate_synopses(merged_df, synopsis_columns):
+    """
+    Removes duplicate synopses from the merged DataFrame.
+
+    Args:
+        merged_df (pd.DataFrame): The DataFrame containing merged data.
+        synopsis_columns (list): List of column names containing synopses.
+
+    Returns:
+        pd.DataFrame: The DataFrame with duplicate synopses removed.
+    """
+    for index, row in merged_df.iterrows():
+        unique_synopses = set()
+        for col in synopsis_columns:
+            if pd.notna(row[col]) and row[col] not in unique_synopses:
+                unique_synopses.add(row[col])
+            else:
+                merged_df.at[index, col] = None  # Remove duplicate synopsis
+    return merged_df
 
 
 # Merge datasets on anime_id and uid
@@ -165,7 +198,7 @@ merged_df = pd.merge(
     animes[["uid", "synopsis"]],
     left_on="anime_id",
     right_on="uid",
-    how="left",
+    how="outer",
 )
 
 merged_df.drop(columns=["uid"], inplace=True)
@@ -177,7 +210,7 @@ merged_df = pd.merge(
     new_dataset_df[["MAL_ID", "sypnopsis"]],
     left_on="anime_id",
     right_on="MAL_ID",
-    how="left",
+    how="outer",
 )
 merged_df.rename(columns={"sypnopsis": "Synopsis anime_270 Dataset"}, inplace=True)
 merged_df.drop(columns=["MAL_ID"], inplace=True)
@@ -188,7 +221,7 @@ merged_df = pd.merge(
     anime_2022[["ID", "Synopsis"]],
     left_on="anime_id",
     right_on="ID",
-    how="left",
+    how="outer",
     suffixes=("", "_Anime2022"),
 )
 
@@ -196,6 +229,14 @@ merged_df.rename(
     columns={"Synopsis_Anime2022": "Synopsis Anime-2022 Dataset"}, inplace=True
 )
 merged_df.drop(columns=["ID"], inplace=True)
+
+# Remove duplicate synopses after ID-based merges
+synopsis_columns = [
+    "Synopsis animes dataset",
+    "Synopsis anime_270 Dataset",
+    "Synopsis Anime-2022 Dataset",
+]
+merged_df = remove_duplicate_synopses(merged_df, synopsis_columns)
 
 # Update the merged dataset with additional synopses from Anime.csv
 merged_df = add_additional_synopsis(
