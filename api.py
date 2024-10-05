@@ -1,6 +1,6 @@
 """
-This module implements a Flask application that provides an API endpoint
-for finding the most similar anime descriptions based on a given model
+This module implements a Flask application that provides API endpoints
+for finding the most similar anime or manga descriptions based on a given model
 and description.
 
 The application uses Sentence Transformers to encode descriptions and
@@ -39,33 +39,39 @@ logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 
-# Load the merged dataset
-df = pd.read_csv("model/merged_anime_dataset.csv")
+# Load the merged datasets
+anime_df = pd.read_csv("model/merged_anime_dataset.csv")
+manga_df = pd.read_csv("model/merged_manga_dataset.csv")
 
-# List of synopsis columns to consider
-synopsis_columns = [
+# List of synopsis columns to consider for anime and manga
+anime_synopsis_columns = [
     "synopsis",
     "Synopsis anime_dataset_2023",
     "Synopsis animes dataset",
     "Synopsis anime_270 Dataset",
     "Synopsis Anime-2022 Dataset",
-    "Synopsis Anime Dataset",
     "Synopsis anime4500 Dataset",
-    "Synopsis anime-20220927-raw Dataset",
     "Synopsis wykonos Dataset",
     "Synopsis Anime_data Dataset",
     "Synopsis anime2 Dataset",
     "Synopsis mal_anime Dataset",
 ]
 
+manga_synopsis_columns = [
+    "synopsis",
+    "Synopsis jikan Dataset",
+    "Synopsis data Dataset",
+]
 
-def load_embeddings(model_name, col):
+
+def load_embeddings(model_name, col, dataset_type):
     """
     Load embeddings for a given model and column.
 
     Args:
         model_name (str): The name of the model used to generate embeddings.
         col (str): The column name for which embeddings are to be loaded.
+        dataset_type (str): The type of dataset ('anime' or 'manga').
 
     Returns:
         np.ndarray: A numpy array containing the embeddings for the specified column.
@@ -73,11 +79,13 @@ def load_embeddings(model_name, col):
     Raises:
         FileNotFoundError: If the embeddings file does not exist.
     """
-    embeddings_file = f"model/{model_name}/embeddings_{col.replace(' ', '_')}.npy"
+    embeddings_file = (
+        f"model/{dataset_type}/{model_name}/embeddings_{col.replace(' ', '_')}.npy"
+    )
     return np.load(embeddings_file)
 
 
-def calculate_cosine_similarities(model, model_name, new_embedding, col):
+def calculate_cosine_similarities(model, model_name, new_embedding, col, dataset_type):
     """
     Calculate cosine similarities between new embedding and existing embeddings for a given column.
 
@@ -85,6 +93,7 @@ def calculate_cosine_similarities(model, model_name, new_embedding, col):
         model (SentenceTransformer): The sentence transformer model used for encoding.
         new_embedding (np.ndarray): The embedding of the new description.
         col (str): The column name for which to calculate similarities.
+        dataset_type (str): The type of dataset ('anime' or 'manga').
 
     Returns:
         np.ndarray: A numpy array of cosine similarity scores.
@@ -93,7 +102,7 @@ def calculate_cosine_similarities(model, model_name, new_embedding, col):
         ValueError: If the dimensions of the existing embeddings do not match
                     the model's embedding dimension.
     """
-    existing_embeddings = load_embeddings(model_name, col)
+    existing_embeddings = load_embeddings(model_name, col, dataset_type)
     if existing_embeddings.shape[1] != model.get_sentence_embedding_dimension():
         raise ValueError(f"Incompatible dimension for embeddings in {col}")
     return (
@@ -132,8 +141,69 @@ def find_top_similarities(cosine_similarities_dict, num_similarities=10):
     return all_top_indices
 
 
-@app.route("/anisearchmodel", methods=["POST"])
-def get_similarities():
+def get_similarities(model_name, description, dataset_type):
+    """
+    Find and return the top N most similar descriptions for a given dataset type.
+
+    Args:
+        model_name (str): The name of the model to use.
+        description (str): The description to compare against the dataset.
+        dataset_type (str): The type of dataset ('anime' or 'manga').
+
+    Returns:
+        list: List of dictionaries containing top similar descriptions and their similarity scores.
+    """
+    # Select the appropriate dataset and synopsis columns
+    if dataset_type == "anime":
+        df = anime_df
+        synopsis_columns = anime_synopsis_columns
+    else:
+        df = manga_df
+        synopsis_columns = manga_synopsis_columns
+
+    # Load the SBERT model
+    model = SentenceTransformer(model_name)
+
+    # Encode the new description
+    processed_description = description.lower().strip()
+    new_pooled_embedding = model.encode([processed_description])
+
+    # Calculate cosine similarities for each synopsis column
+    cosine_similarities_dict = {
+        col: calculate_cosine_similarities(
+            model, model_name, new_pooled_embedding, col, dataset_type
+        )
+        for col in synopsis_columns
+    }
+
+    # Find and return the top N most similar descriptions
+    all_top_indices = find_top_similarities(cosine_similarities_dict)
+
+    seen_names = set()
+    results = []
+
+    for idx, col in all_top_indices:
+        name = df.iloc[idx]["title"]
+        if name not in seen_names:
+            synopsis = df.iloc[idx][col]
+            similarity = float(cosine_similarities_dict[col][idx])
+            results.append(
+                {
+                    "rank": len(results) + 1,
+                    "name": name,
+                    "synopsis": synopsis,
+                    "similarity": similarity,
+                }
+            )
+            seen_names.add(name)
+            if len(results) >= 10:
+                break
+
+    return results
+
+
+@app.route("/anisearchmodel/anime", methods=["POST"])
+def get_anime_similarities():
     """
     Handle POST requests to find and return the top N most similar anime descriptions.
 
@@ -151,50 +221,50 @@ def get_similarities():
 
     # Log the incoming request
     logging.info(
-        "Received request with model: %s and description: %s", model_name, description
+        "Received anime request with model: %s and description: %s",
+        model_name,
+        description,
     )
 
     if not model_name or not description:
         logging.error("Model name or description missing in the request.")
         return jsonify({"error": "Model name and description are required"}), 400
 
-    # Load the SBERT model
-    model = SentenceTransformer(model_name)
+    results = get_similarities(model_name, description, "anime")
+    logging.info("Returning %d anime results", len(results))
+    return jsonify(results)
 
-    # Encode the new description
-    processed_description = description.lower().strip()
-    new_pooled_embedding = model.encode([processed_description])
 
-    # Calculate cosine similarities for each synopsis column
-    cosine_similarities_dict = {
-        col: calculate_cosine_similarities(model, model_name, new_pooled_embedding, col)
-        for col in synopsis_columns
-    }
+@app.route("/anisearchmodel/manga", methods=["POST"])
+def get_manga_similarities():
+    """
+    Handle POST requests to find and return the top N most similar manga descriptions.
 
-    # Find and return the top N most similar descriptions
-    all_top_indices = find_top_similarities(cosine_similarities_dict)
+    Expects a JSON payload with 'model' and 'description' fields.
 
-    seen_anime_names = set()
-    results = []
+    Returns:
+        Response: A JSON response with the top similar manga descriptions and the similarity scores.
 
-    for idx, col in all_top_indices:
-        name = df.iloc[idx]["title"]
-        if name not in seen_anime_names:
-            synopsis = df.iloc[idx][col]
-            similarity = float(cosine_similarities_dict[col][idx])
-            results.append(
-                {
-                    "rank": len(results) + 1,
-                    "name": name,
-                    "synopsis": synopsis,
-                    "similarity": similarity,
-                }
-            )
-            seen_anime_names.add(name)
-            if len(results) >= 10:
-                break
+    Raises:
+        400 Bad Request: If the 'model' or 'description' fields are missing from the request.
+    """
+    data = request.json
+    model_name = data.get("model")
+    description = data.get("description")
 
-    logging.info("Returning %d results", len(results))
+    # Log the incoming request
+    logging.info(
+        "Received manga request with model: %s and description: %s",
+        model_name,
+        description,
+    )
+
+    if not model_name or not description:
+        logging.error("Model name or description missing in the request.")
+        return jsonify({"error": "Model name and description are required"}), 400
+
+    results = get_similarities(model_name, description, "manga")
+    logging.info("Returning %d manga results", len(results))
     return jsonify(results)
 
 
