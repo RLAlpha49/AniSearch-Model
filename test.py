@@ -11,17 +11,31 @@ It performs the following operations:
 """
 
 # pylint: disable=E0401, E0611, E1101
+import os
 import argparse
 import warnings
 import numpy as np
 import pandas as pd
-from sentence_transformers import SentenceTransformer, util
 import torch
 import common
 
+# Disable oneDNN for TensorFlow
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+from sentence_transformers import (  # pylint: disable=wrong-import-position, wrong-import-order  # noqa: E402
+    SentenceTransformer,
+    util,
+)
 
+
+# Suppress the specific FutureWarning and DeprecationWarning from transformers
 warnings.filterwarnings(
-    "ignore", category=FutureWarning, module="transformers.tokenization_utils_base"
+    "ignore",
+    category=FutureWarning,
+    message=r"`clean_up_tokenization_spaces` was not set. It will be set to `True` by default.",
+)
+warnings.filterwarnings(
+    "ignore",
+    category=DeprecationWarning,
 )
 
 # Parse command-line arguments

@@ -16,14 +16,36 @@ import platform
 import warnings
 import argparse
 import numpy as np
-from sentence_transformers import SentenceTransformer, models
 from tqdm import tqdm
 import torch
 from transformers import AutoModel
 import common
 
+# Disable oneDNN for TensorFlow
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+from sentence_transformers import (  # pylint: disable=wrong-import-position, wrong-import-order  # noqa: E402
+    SentenceTransformer,
+    models,
+)
+
+# Suppress specific warnings
 warnings.filterwarnings(
-    "ignore", category=FutureWarning, module="transformers.tokenization_utils_base"
+    "ignore",
+    category=FutureWarning,
+    message=r"`clean_up_tokenization_spaces` was not set. It will be set to `True` by default.",
+)
+warnings.filterwarnings(
+    "ignore",
+    category=DeprecationWarning,
+)
+warnings.filterwarnings(
+    "ignore",
+    category=UserWarning,
+    message=r"1Torch was not compiled with flash attention.",
+)
+warnings.filterwarnings(
+    "ignore",
+    message=r"The name tf.losses.sparse_softmax_cross_entropy is deprecated.",
 )
 
 # Parse command-line arguments
@@ -48,7 +70,7 @@ if not MODEL_NAME.startswith("sentence-transformers/"):
 if DEVICE == "cuda":
     BATCH_SIZE = 256
     if MODEL_NAME == "sentence-transformers/gtr-t5-xl":
-        BATCH_SIZE = 12
+        BATCH_SIZE = 8
         # Limited by GPU memory, must not go past Dedicated GPU memory (Will Freeze/Slow Down).
         # Change as needed.
 else:
