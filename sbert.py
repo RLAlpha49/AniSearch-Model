@@ -99,6 +99,11 @@ if DEVICE == "cuda":
         BATCH_SIZE = 8
         # Limited by GPU memory, must not go past Dedicated GPU memory (Will Freeze/Slow Down).
         # Change as needed.
+    if MODEL_NAME in [
+        "sentence-transformers/sentence-t5-xxl",
+    ]:
+        DEVICE = "cpu"
+        BATCH_SIZE = 2
 else:
     BATCH_SIZE = 128
 
@@ -180,14 +185,27 @@ def get_sbert_embeddings(dataframe, sbert_model, batch_size, column_name):
     ):
         batch_texts = dataframe[column_name].iloc[i : i + batch_size].tolist()
         if batch_texts:
-            batch_embeddings = sbert_model.encode(
-                batch_texts, convert_to_numpy=True, show_progress_bar=False
-            )
+            if (
+                MODEL_NAME == "sentence-transformers/sentence-t5-xxl"
+                and DEVICE == "cuda"
+            ):
+                # Use mixed precision for this specific model
+                with torch.no_grad():
+                    with torch.amp.autocast("cuda"):
+                        batch_embeddings = sbert_model.encode(
+                            batch_texts, convert_to_numpy=True, show_progress_bar=False
+                        )
+            else:
+                # Standard encoding for other models
+                with torch.no_grad():
+                    batch_embeddings = sbert_model.encode(
+                        batch_texts, convert_to_numpy=True, show_progress_bar=False
+                    )
             embeddings_list.append(batch_embeddings)
+    torch.cuda.empty_cache()
     if embeddings_list:
         return np.vstack(embeddings_list)
-    else:
-        return np.array([])
+    return np.array([])
 
 
 # Measure the time taken to generate embeddings for each column
