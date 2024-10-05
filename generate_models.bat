@@ -2,7 +2,7 @@
 setlocal
 
 set "start_model=%1"
-set "start_processing=false"
+set "start_processing=true"
 
 rem Define dataset types
 set "dataset_types=anime manga"

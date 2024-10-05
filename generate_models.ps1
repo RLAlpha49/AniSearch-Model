@@ -2,7 +2,7 @@ param(
     [string]$StartModel
 )
 
-$startProcessing = $false
+$startProcessing = $true
 
 # Define dataset types
 $datasetTypes = @("anime", "manga")

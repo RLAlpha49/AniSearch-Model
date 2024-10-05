@@ -2,7 +2,7 @@
 
 # Check if a starting model is provided
 start_model="$1"
-start_processing=false
+start_processing=true
 
 # Define dataset types
 dataset_types=("anime" "manga")
