@@ -1,12 +1,12 @@
 """
-This script generates Sentence-BERT (SBERT) embeddings for an anime dataset.
+This script generates Sentence-BERT (SBERT) embeddings for either an anime or manga dataset.
 
 It performs the following operations:
 - Loads a pre-trained SBERT model specified by the user.
-- Preprocesses text data from various synopsis columns in the dataset.
-- Generates embeddings for each synopsis using batched processing.
-- Saves the generated embeddings to disk for later use.
-- Records and saves evaluation data including model information.
+- Preprocesses text data from various synopsis or description columns in the dataset.
+- Generates embeddings for each synopsis or description using batched processing.
+- Saves the generated embeddings to disk under separate directories for anime and manga.
+- Records and saves evaluation data including model and hardware information.
 """
 
 # pylint: disable=E0401, E0611
@@ -47,60 +47,104 @@ warnings.filterwarnings(
     message=r"The name tf.losses.sparse_softmax_cross_entropy is deprecated.",
 )
 
-# Parse command-line arguments
-parser = argparse.ArgumentParser(
-    description="Generate SBERT embeddings for anime dataset."
-)
-parser.add_argument(
-    "--model",
-    type=str,
-    required=True,
-    help="The model name to use (e.g., 'all-mpnet-base-v1').",
-)
-args = parser.parse_args()
 
+# Parse command-line arguments
+def parse_args():
+    """
+    Parses command-line arguments for the SBERT embedding generation script.
+
+    Returns:
+        argparse.Namespace: An object containing the parsed command-line arguments.
+        Specifically, it includes:
+        - 'model': The name of the SBERT model to use.
+        - 'type': The type of dataset ('anime' or 'manga') for which to generate embeddings.
+    """
+    parser = argparse.ArgumentParser(
+        description="Generate SBERT embeddings for anime or manga dataset."
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        required=True,
+        help="The model name to use (e.g., 'all-mpnet-base-v1').",
+    )
+    parser.add_argument(
+        "--type",
+        type=str,
+        choices=["anime", "manga"],
+        required=True,
+        help="Type of dataset to generate embeddings for: 'anime' or 'manga'.",
+    )
+    return parser.parse_args()
+
+
+args = parse_args()
+
+# Determine device
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Parameters
 MODEL_NAME = args.model
+DATASET_TYPE = args.type
+
 if not MODEL_NAME.startswith("sentence-transformers/"):
     MODEL_NAME = f"sentence-transformers/{MODEL_NAME}"
 
 if DEVICE == "cuda":
-    BATCH_SIZE = 256
-    if MODEL_NAME == "sentence-transformers/gtr-t5-xl":
+    BATCH_SIZE = 512
+    if MODEL_NAME in [
+        "sentence-transformers/gtr-t5-xl",
+        "sentence-transformers/sentence-t5-xl",
+    ]:
         BATCH_SIZE = 8
         # Limited by GPU memory, must not go past Dedicated GPU memory (Will Freeze/Slow Down).
         # Change as needed.
 else:
     BATCH_SIZE = 128
 
+# Load the merged dataset based on type
+if DATASET_TYPE == "anime":
+    DATASET_PATH = "model/merged_anime_dataset.csv"
+    synopsis_columns = [
+        "synopsis",
+        "Synopsis anime_dataset_2023",
+        "Synopsis animes dataset",
+        "Synopsis anime_270 Dataset",
+        "Synopsis Anime-2022 Dataset",
+        "Synopsis anime4500 Dataset",
+        "Synopsis wykonos Dataset",
+        "Synopsis Anime_data Dataset",
+        "Synopsis anime2 Dataset",
+        "Synopsis mal_anime Dataset",
+    ]
+    embeddings_save_dir = f"model/anime/{MODEL_NAME.split('/')[-1]}"
+    EVALUATION_FILE = "model/evaluation_results_anime.json"
+elif DATASET_TYPE == "manga":
+    DATASET_PATH = "model/merged_manga_dataset.csv"
+    synopsis_columns = [
+        "synopsis",
+        "Synopsis jikan Dataset",
+        "Synopsis data Dataset",
+    ]
+    embeddings_save_dir = f"model/manga/{MODEL_NAME.split('/')[-1]}"
+    EVALUATION_FILE = "model/evaluation_results_manga.json"
+else:
+    raise ValueError("Invalid dataset type specified. Use 'anime' or 'manga'.")
+
+# Create directory for model-specific embeddings
+os.makedirs(embeddings_save_dir, exist_ok=True)
+
 # Load the merged dataset
-df = common.load_dataset("model/merged_anime_dataset.csv")
+df = common.load_dataset(DATASET_PATH)
 
-# List of synopsis columns to process individually
-synopsis_columns = [
-    "synopsis",
-    "Synopsis anime_dataset_2023",
-    "Synopsis animes dataset",
-    "Synopsis anime_270 Dataset",
-    "Synopsis Anime-2022 Dataset",
-    "Synopsis Anime Dataset",
-    "Synopsis anime4500 Dataset",
-    "Synopsis anime-20220927-raw Dataset",
-    "Synopsis wykonos Dataset",
-    "Synopsis Anime_data Dataset",
-    "Synopsis anime2 Dataset",
-    "Synopsis mal_anime Dataset",
-]
-
-# Preprocess each synopsis column
+# Preprocess each synopsis or description column
 for col in synopsis_columns:
     df[f"Processed_{col}"] = df[col].fillna("").apply(common.preprocess_text)
 
 # Load the underlying Hugging Face model to access config
 hf_model = AutoModel.from_pretrained(MODEL_NAME)
 
+# Initialize SBERT components
 word_embedding_model = models.Transformer(MODEL_NAME)
 pooling_model = models.Pooling(
     word_embedding_model.get_word_embedding_dimension(),
@@ -115,7 +159,7 @@ model = SentenceTransformer(
 )
 
 
-# Get SBERT embeddings for each synopsis column
+# Function to get SBERT embeddings
 def get_sbert_embeddings(dataframe, sbert_model, batch_size, column_name):
     """
     Generate SBERT embeddings for a given DataFrame column using batched processing.
@@ -135,9 +179,15 @@ def get_sbert_embeddings(dataframe, sbert_model, batch_size, column_name):
         desc=f"Generating Embeddings for {column_name}",
     ):
         batch_texts = dataframe[column_name].iloc[i : i + batch_size].tolist()
-        batch_embeddings = sbert_model.encode(batch_texts, convert_to_numpy=True)
-        embeddings_list.append(batch_embeddings)
-    return np.vstack(embeddings_list)
+        if batch_texts:
+            batch_embeddings = sbert_model.encode(
+                batch_texts, convert_to_numpy=True, show_progress_bar=False
+            )
+            embeddings_list.append(batch_embeddings)
+    if embeddings_list:
+        return np.vstack(embeddings_list)
+    else:
+        return np.array([])
 
 
 # Measure the time taken to generate embeddings for each column
@@ -150,32 +200,46 @@ for col in synopsis_columns:
 end_time = time.time()
 embedding_generation_time = end_time - start_time
 
-# Create directory for model-specific embeddings
-model_dir = f"model/{MODEL_NAME.split('/')[-1]}"
-os.makedirs(model_dir, exist_ok=True)
-
 # Save the embeddings for each column
 for col, embeddings in all_embeddings.items():
-    np.save(f"{model_dir}/embeddings_{col.replace(' ', '_')}.npy", embeddings)
+    if embeddings.size > 0:
+        save_path = os.path.join(
+            embeddings_save_dir, f"embeddings_{col.replace(' ', '_')}.npy"
+        )
+        np.save(save_path, embeddings)
+    else:
+        print(f"No embeddings generated for column: {col}")
 
-# Save evaluation data
+# Prepare evaluation data
 additional_info = {
     "dataset_info": {
         "num_samples": len(df),
         "preprocessing": "text normalization",
-        "source": ["model/merged_anime_dataset.csv"],
+        "source": [DATASET_PATH],
     },
     "model_info": {
         "num_layers": hf_model.config.num_hidden_layers,
         "hidden_size": hf_model.config.hidden_size,
-        "max_seq_length": word_embedding_model.max_seq_length,
+        "max_seq_length": (
+            word_embedding_model.max_seq_length
+            if hasattr(word_embedding_model, "max_seq_length")
+            else None
+        ),
     },
-    "timing": {"embedding_generation_time": embedding_generation_time}
+    "timing": {"embedding_generation_time": embedding_generation_time},
+    "type": DATASET_TYPE,
+    "device": DEVICE,
 }
 
+# Calculate total number of embeddings
+total_num_embeddings = sum(
+    emb.shape[0] for emb in all_embeddings.values() if emb.size > 0
+)
+
+# Save evaluation data
 common.save_evaluation_data(
     model_name=MODEL_NAME,
     batch_size=BATCH_SIZE,
-    num_embeddings=sum(len(emb) for emb in all_embeddings.values()),
+    num_embeddings=total_num_embeddings,
     additional_info=additional_info,
 )

@@ -18,4 +18,8 @@
 /model/sentence-t5-large
 /model/sentence-t5-xl
 /model/evaluation_results.json
+/model/evaluation_results_anime.json
+/model/evaluation_results_manga.json
+/model/anime/
+/model/manga/
 /__pycache__

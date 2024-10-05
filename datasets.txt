@@ -1,12 +1,15 @@
+Anime
 MyAnimeList Dataset(Anime.csv) - https://www.kaggle.com/datasets/andreuvallhernndez/myanimelist
 Anime Dataset 2023(anime-dataset-2023.csv) - https://www.kaggle.com/datasets/dbdmobile/myanimelist-dataset
-Anime DataSet 2022(Anime_2022.csv) - https://www.kaggle.com/datasets/vishalmane10/anime-dataset-2022
 Anime Database 2022(Anime-2022.csv) - https://www.kaggle.com/datasets/harits/anime-database-2022
 Anime Dataset(animes.csv) - https://www.kaggle.com/datasets/arnavvvvv/anime-dataset
 Anime DataSet(anime4500.csv) -https://www.kaggle.com/datasets/souradippal/anime-dataset
-anilist-anime-data(anime-20220927-raw.csv) - https://www.kaggle.com/datasets/barrettotte/anilistanimedata
 anime_data.csv(anime_data.csv) - https://www.kaggle.com/datasets/itsnobita/anime-details/data
 anime2.csv(anime2.csv) - https://www.kaggle.com/datasets/unibahmad/anime-dataset/data
 mal_anime.csv(mal_anime.csv) - https://www.kaggle.com/datasets/crxxom/all-animes-in-mal/data
 johnidouglas/anime_270 - https://huggingface.co/datasets/johnidouglas/anime_270
 wykonos/anime - https://huggingface.co/datasets/wykonos/anime
+Manga
+MyAnimeList Manga Dataset(Manga.csv) - https://www.kaggle.com/datasets/andreuvallhernndez/myanimelist?select=manga.csv
+MyAnimeList Jikan Database(jikan.csv) - https://www.kaggle.com/datasets/andreuvallhernndez/myanimelist-jikan?select=manga.csv
+Manga, Manhwa and Manhua Dataset(data.csv) - https://www.kaggle.com/datasets/victorsoeiro/manga-manhwa-and-manhua-dataset

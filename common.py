@@ -63,7 +63,7 @@ def save_evaluation_data(model_name, batch_size, num_embeddings, additional_info
             "model_name": model_name,
             "batch_size": batch_size,
             "num_embeddings": num_embeddings,
-        }
+        },
     }
 
     if additional_info:
