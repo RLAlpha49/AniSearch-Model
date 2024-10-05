@@ -4,10 +4,10 @@ and saving evaluation data for machine learning models.
 """
 
 # pylint: disable=E0401, E0611
+import os
 import re
 import json
 from datetime import datetime
-import platform
 import pandas as pd
 
 
@@ -63,17 +63,26 @@ def save_evaluation_data(model_name, batch_size, num_embeddings, additional_info
             "model_name": model_name,
             "batch_size": batch_size,
             "num_embeddings": num_embeddings,
-        },
-        "system_info": {
-            "platform": platform.system(),
-            "platform_version": platform.version(),
-            "processor": platform.processor(),
-        },
+        }
     }
 
     if additional_info:
         evaluation_data.update(additional_info)
 
-    with open("model/evaluation_results.json", "a", encoding="utf-8") as f:
-        f.write(",\n")
-        json.dump(evaluation_data, f, indent=4)
+    # Path to the JSON file
+    file_path = "model/evaluation_results.json"
+
+    # Check if the file exists and is not empty
+    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+        # Read the existing data
+        with open(file_path, "r+", encoding="utf-8") as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(f.tell() - 1, os.SEEK_SET)
+            f.truncate()
+            f.write(",\n")
+            json.dump(evaluation_data, f, indent=4)
+            f.write("\n]")
+    else:
+        # Create a new file with an array
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump([evaluation_data], f, indent=4)

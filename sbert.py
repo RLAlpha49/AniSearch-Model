@@ -6,13 +6,12 @@ It performs the following operations:
 - Preprocesses text data from various synopsis columns in the dataset.
 - Generates embeddings for each synopsis using batched processing.
 - Saves the generated embeddings to disk for later use.
-- Records and saves evaluation data including model and hardware information.
+- Records and saves evaluation data including model information.
 """
 
 # pylint: disable=E0401, E0611
 import os
 import time
-import platform
 import warnings
 import argparse
 import numpy as np
@@ -171,21 +170,7 @@ additional_info = {
         "hidden_size": hf_model.config.hidden_size,
         "max_seq_length": word_embedding_model.max_seq_length,
     },
-    "hardware_info": {
-        "device": DEVICE,
-        "gpu_model": torch.cuda.get_device_name(0) if DEVICE == "cuda" else "N/A",
-        "gpu_memory": (
-            torch.cuda.get_device_properties(0).total_memory
-            if DEVICE == "cuda"
-            else "N/A"
-        ),
-    },
-    "timing": {"embedding_generation_time": embedding_generation_time},
-    "environment": {
-        "python_version": platform.python_version(),
-        "torch_version": torch.__version__,
-        "transformers_version": SentenceTransformer._version,  # pylint: disable=W0212
-    },
+    "timing": {"embedding_generation_time": embedding_generation_time}
 }
 
 common.save_evaluation_data(
