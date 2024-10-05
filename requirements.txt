@@ -9,3 +9,5 @@ tqdm
 datasets
 gunicorn
 waitress
+flask
+tf-keras

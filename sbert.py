@@ -95,15 +95,13 @@ if DEVICE == "cuda":
     if MODEL_NAME in [
         "sentence-transformers/gtr-t5-xl",
         "sentence-transformers/sentence-t5-xl",
+        "sentence-transformers/sentence-t5-xxl"
     ]:
         BATCH_SIZE = 8
         # Limited by GPU memory, must not go past Dedicated GPU memory (Will Freeze/Slow Down).
         # Change as needed.
-    if MODEL_NAME in [
-        "sentence-transformers/sentence-t5-xxl",
-    ]:
-        DEVICE = "cpu"
-        BATCH_SIZE = 2
+        if MODEL_NAME == "sentence-transformers/sentence-t5-xxl":
+            DEVICE = "cpu"
 else:
     BATCH_SIZE = 128
 
