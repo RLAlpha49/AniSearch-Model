@@ -32,19 +32,22 @@ This project performs the following operations:
 
 ### Anime Datasets
 
-1. **Anime Dataset 2023** (`anime-dataset-2023.csv`): [Kaggle](https://www.kaggle.com/datasets/dbdmobile/myanimelist-dataset)
-2. **Animes** (`animes.csv`): Contains additional anime synopses and titles.
-3. **Anime 2022** (`Anime-2022.csv`): Another dataset with anime synopses and titles.
-4. **Anime 4500** (`anime4500.csv`): Provides further synopses for anime titles.
-5. **Wykonos Dataset**: Contains descriptions and Japanese names for anime.
-6. **Anime Data** (`Anime_data.csv`): Additional dataset with descriptions.
-7. **Anime2** (`anime2.csv`): Includes descriptions and Japanese names.
+1. **MyAnimeList Dataset** (`Anime.csv`): [Kaggle](https://www.kaggle.com/datasets/andreuvallhernndez/myanimelist)
+2. **Anime Dataset 2023** (`anime-dataset-2023.csv`): [Kaggle](https://www.kaggle.com/datasets/dbdmobile/myanimelist-dataset)
+3. **Anime Database 2022** (`Anime-2022.csv`): [Kaggle](https://www.kaggle.com/datasets/harits/anime-database-2022)
+4. **Anime Dataset** (`animes.csv`): [Kaggle](https://www.kaggle.com/datasets/arnavvvvv/anime-dataset)
+5. **Anime DataSet** (`anime4500.csv`): [Kaggle](https://www.kaggle.com/datasets/souradippal/anime-dataset)
+6. **Anime Data** (`anime_data.csv`): [Kaggle](https://www.kaggle.com/datasets/itsnobita/anime-details/data)
+7. **Anime2** (`anime2.csv`): [Kaggle](https://www.kaggle.com/datasets/unibahmad/anime-dataset/data)
+8. **MAL Anime** (`mal_anime.csv`): [Kaggle](https://www.kaggle.com/datasets/crxxom/all-animes-in-mal/data)
+9. **Anime 270**: [Hugging Face](https://huggingface.co/datasets/johnidouglas/anime_270)
+10. **Wykonos Anime**: [Hugging Face](https://huggingface.co/datasets/wykonos/anime)
 
 ### Manga Datasets
 
-1. **Manga Main** (`manga.csv`): The primary manga dataset.
-2. **Jikan** (`jikan.csv`): Merged via `mal_id` and `manga_id`.
-3. **Data** (`data.csv`): Merged via title.
+1. **MyAnimeList Manga Dataset** (`Manga.csv`): [Kaggle](https://www.kaggle.com/datasets/andreuvallhernndez/myanimelist?select=manga.csv)
+2. **MyAnimeList Jikan Database** (`jikan.csv`): [Kaggle](https://www.kaggle.com/datasets/andreuvallhernndez/myanimelist-jikan?select=manga.csv)
+3. **Manga, Manhwa and Manhua Dataset** (`data.csv`): [Kaggle](https://www.kaggle.com/datasets/victorsoeiro/manga-manhwa-and-manhua-dataset)
 
 ## Setup
 
