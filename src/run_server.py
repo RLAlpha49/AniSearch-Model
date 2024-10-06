@@ -29,15 +29,15 @@ def run_server():
         # Use Gunicorn on Linux
         print("Running on Linux. Starting Gunicorn server.")
         subprocess.run(
-            ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "api:app"], check=True
+            ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "src.api:app"], check=True
         )
     elif os_type == "Windows":
         # Use Waitress on Windows
         print("Running on Windows. Starting Waitress server.")
-        subprocess.run(["waitress-serve", "--port=5000", "api:app"], check=True)
+        subprocess.run(["waitress-serve", "--port=5000", "src.api:app"], check=True)
     else:
         print(f"Running on {os_type}. Using Flask's built-in server.")
-        subprocess.run(["python", "api.py"], check=True)
+        subprocess.run(["python", "src.api:app"], check=True)
 
 
 if __name__ == "__main__":
