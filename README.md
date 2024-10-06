@@ -10,7 +10,10 @@ This project involves generating and analyzing Sentence-BERT (SBERT) embeddings 
 - [Usage](#usage)
   - [Merging Datasets](#merging-datasets)
   - [Generating Embeddings](#generating-embeddings)
+    - [For a Specific Model](#for-a-specific-model)
+    - [Generating Embeddings for All Models](#generating-embeddings-for-all-models)
   - [Testing Embeddings](#testing-embeddings)
+  - [Running the Flask Application](#running-the-flask-application)
 - [Project Structure](#project-structure)
 - [Dependencies](#dependencies)
 - [Contributing](#contributing)
@@ -26,8 +29,6 @@ This project performs the following operations:
 - Calculates cosine similarities to find the most similar synopses or descriptions.
 
 ## Datasets Used
-
-The following datasets are used in this project:
 
 ### Anime Datasets
 
@@ -47,15 +48,56 @@ The following datasets are used in this project:
 
 ## Setup
 
-1. Clone the repository.
-2. Install the required dependencies using `pip install -r requirements.txt`.
-3. Ensure all datasets are placed in their respective directories under `data/anime/` and `data/manga/`.
+1. **Clone the repository**:
+
+   ```bash
+   git clone https://github.com/RLAlpha49/AniSearchModel.git
+   cd AniSearchModel
+   ```
+
+2. **Create and activate a virtual environment**:
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Linux/Mac
+   venv\Scripts\activate     # On Windows
+   ```
+
+3. **Ensure `setuptools` is installed**:
+
+   Before running the setup script, make sure `setuptools` is installed in your virtual environment. This is typically included with Python, but you can update it with:
+
+   ```bash
+   pip install --upgrade setuptools
+   ```
+
+4. **Install the package and dependencies**:
+
+   Use the `setup.py` script to install the package along with its dependencies. This will also handle the installation of PyTorch with CUDA support:
+
+   ```bash
+   python setup.py install
+   ```
+
+   This command will:
+   - Install all required Python packages listed in `install_requires`.
+   - Execute the `PostInstallCommand` to install PyTorch with CUDA support.
+
+5. **Verify the installation**:
+
+   After installation, you can verify that PyTorch is using CUDA by running:
+
+   ```bash
+   python -c "import torch; print(torch.cuda.is_available())"
+   ```
+
+   This should print `True` if CUDA is available and correctly configured.
 
 ## Usage
 
 ### Merging Datasets
 
-The repository already contains a the merged datasets, but if you want to merge additional datasets, edit the `merge_datasets.py` file and run:
+The repository already contains the merged datasets, but if you want to merge additional datasets, edit the `merge_datasets.py` file and run:
 
 ```bash
 python merge_datasets.py --type anime
@@ -64,7 +106,7 @@ python merge_datasets.py --type manga
 
 ### Generating Embeddings
 
-To generate SBERT embeddings for the anime dataset, you can run the `sbert.py` script for a specific model or use the provided script to generate embeddings for all models listed in `models.txt`.
+To generate SBERT embeddings for the anime and manga datasets, you can use the provided scripts.
 
 #### For a Specific Model
 
@@ -74,11 +116,11 @@ python sbert.py --model <model_name> --type <dataset_type>
 
 Replace `<model_name>` with the desired SBERT model, e.g., `all-mpnet-base-v1`. Replace `<dataset_type>` with `anime` or `manga`.
 
-## Generating Embeddings for All Models
+#### Generating Embeddings for All Models
 
-You can use the provided scripts to generate embeddings for all models listed in `models.txt`. These scripts will process both anime and manga datasets for each model.
+You can use the provided scripts to generate embeddings for all models listed in `models.txt`.
 
-### Linux
+##### Linux
 
 The `generate_models.sh` script is available for Linux users. To run the script, follow these steps:
 
@@ -91,47 +133,43 @@ The `generate_models.sh` script is available for Linux users. To run the script,
 2. Run the script:
 
    ```bash
-   ./generate_models.sh
+   ./scripts/generate_models.sh
    ```
 
-3. Optionally, you can specify a starting model to resume processing from a specific point:
+3. Optionally, specify a starting model:
 
    ```bash
-   ./generate_models.sh sentence-transformers/all-MiniLM-L6-v1
+   ./scripts/generate_models.sh sentence-transformers/all-MiniLM-L6-v1
    ```
 
 ### Windows (Batch Script)
-
-The `generate_models.bat` script is available for Windows users. You can run the batch script by either double-clicking it or executing it from the command prompt:
 
 1. Open Command Prompt and navigate to the directory containing the script.
 2. Run the script:
 
    ```cmd
-   generate_models.bat
+   scripts\generate_models.bat
    ```
 
 3. Optionally, specify a starting model:
 
    ```cmd
-   generate_models.bat sentence-transformers/all-MiniLM-L6-v1
+   scripts\generate_models.bat sentence-transformers/all-MiniLM-L6-v1
    ```
 
 ### Windows (PowerShell Script)
-
-The `generate_models.ps1` script is available for Windows users who prefer PowerShell. To run the script, use the following command in PowerShell:
 
 1. Open PowerShell and navigate to the directory containing the script.
 2. Run the script:
 
    ```powershell
-   .\generate_models.ps1
+   .\scripts\generate_models.ps1
    ```
 
 3. Optionally, specify a starting model:
 
    ```powershell
-   .\generate_models.ps1 -StartModel "sentence-transformers/all-MiniLM-L6-v1"
+   .\scripts\generate_models.ps1 -StartModel "sentence-transformers/all-MiniLM-L6-v1"
    ```
 
 ### Notes
@@ -139,17 +177,80 @@ The `generate_models.ps1` script is available for Windows users who prefer Power
 - The starting model parameter is optional. If not provided, the script will process all models from the beginning of the list.
 - For PowerShell, you may need to adjust the execution policy to allow script execution. You can do this by running `Set-ExecutionPolicy RemoteSigned` in an elevated PowerShell session.
 
-These scripts automate the process of generating embeddings for all models and datasets, making it easy to manage large-scale embedding generation tasks.
-
 ### Testing Embeddings
 
-To test the embeddings and find the most similar synopses, use the `test.py` script. Specify the model, dataset type, and the number of top results to retrieve.
+## Testing
+
+To ensure the reliability and correctness of the project, a comprehensive suite of tests has been implemented using `pytest`. The tests cover various components of the project, including:
+
+### Unit Tests
+
+- **`tests/test_model.py`**:
+  - **Purpose**: Tests the functionality of model loading, similarity calculations, and evaluation result saving.
+  - **Key Functions Tested**:
+    - `test_anime_model`: Verifies that the anime model loads correctly, calculates similarities, and saves evaluation results as expected.
+    - `test_manga_model`: Similar to `test_anime_model` but for the manga dataset.
+
+- **`tests/test_merge_datasets.py`**:
+  - **Purpose**: Validates the data preprocessing and merging functions, ensuring that names are correctly processed, synopses are cleaned, titles are consolidated, and duplicates are removed or handled appropriately.
+  - **Key Functions Tested**:
+    - `test_preprocess_name`: Ensures that names are preprocessed correctly by converting them to lowercase and stripping whitespace.
+    - `test_clean_synopsis`: Checks that unwanted phrases are removed from synopses.
+    - `test_consolidate_titles`: Verifies that multiple title columns are consolidated into a single 'title' column.
+    - `test_remove_duplicate_infos`: Confirms that duplicate synopses are handled correctly.
+    - `test_add_additional_info`: Tests the addition of additional synopsis information to the merged DataFrame.
+
+- **`tests/test_sbert.py`**:
+  - **Purpose**: Checks the SBERT embedding generation process, verifying that embeddings are correctly created and saved for both anime and manga datasets.
+  - **Key Functions Tested**:
+    - `run_sbert_command_and_verify`: Runs the SBERT command-line script and verifies that embeddings and evaluation results are generated as expected.
+    - Parameterized tests for different dataset types (`anime`, `manga`) and their corresponding expected embedding files.
+
+### API Tests
+
+- **`tests/test_api.py`**:
+  - **Purpose**: Tests the Flask API endpoints, ensuring that the `/anisearchmodel/manga` endpoint behaves as expected with valid inputs, handles missing fields gracefully, and correctly responds to internal server errors.
+  - **Key Functions Tested**:
+    - `test_get_manga_similarities_success`: Verifies successful retrieval of similarities with valid inputs.
+    - `test_get_manga_similarities_missing_model`: Checks the API's response when the model name is missing.
+    - `test_get_manga_similarities_missing_description`: Ensures appropriate handling when the description is missing.
+    - Tests for internal server errors by simulating exceptions during processing.
+
+### Test Configuration
+
+- **`tests/conftest.py`**:
+  - **Purpose**: Configures `pytest` options and fixtures, including command-line options for specifying the model name during tests.
+  - **Key Features**:
+    - Adds a command-line option `--model-name` to specify the model used in tests.
+    - Provides a fixture `model_name` that retrieves the model name from the command-line options.
+
+### Running the Tests
+
+To run all the tests, navigate to the project's root directory and execute:
 
 ```bash
-python test.py --model <model_name> --type <dataset_type> --top_n <number_of_results>
+pytest
 ```
 
-Replace `<model_name>` with the desired SBERT model, e.g., `all-mpnet-base-v1`. Replace `<dataset_type>` with `anime` or `manga`. Replace `<number_of_results>` with the number of top results to retrieve.
+### Running Specific Tests
+
+You can run specific tests or test modules. For example, to run only the API tests:
+
+```bash
+pytest tests/test_api.py
+```
+
+To run tests for a specific model, use:
+
+```bash
+pytest tests/test_sbert.py --model-name <model_name>
+```
+
+Replace `<model_name>` with the name of the model you want to test.
+
+### Note
+
+- `--model-name` can be used when running all tests or specific tests.
 
 ### Running the Flask Application
 
@@ -161,36 +262,80 @@ To run the Flask application, use the `run_server.py` script. This script automa
 Run the script with:
 
 ```bash
-python run_server.py
+python src/run_server.py
 ```
 
 The application will be accessible at `http://0.0.0.0:5000/anisearchmodel`.
 
 ## Project Structure
 
-- **merge_datasets.py**: Merges multiple anime datasets.
-- **sbert.py**: Generates SBERT embeddings for the dataset.
-- **test.py**: Tests the SBERT model by finding similar synopses.
-- **common.py**: Contains utility functions for loading datasets and preprocessing text.
-- **data/**: Directory for storing datasets.
-- **model/**: Directory for storing models and embeddings.
-- **model/merged_anime_dataset.csv**: Stores the merged anime dataset.
-- **model/evaluation_results.json**: Stores evaluation data and results.
-- **models.txt**: List of SBERT models to be used.
-- **generate_models.sh**: Script to generate embeddings for all models (Linux).
-- **generate_models.bat**: Script to generate embeddings for all models (Windows Batch).
-- **generate_models.ps1**: Script to generate embeddings for all models (Windows PowerShell).
+AniSearchModel/
+├── README.md
+├── .gitignore
+├── requirements.txt
+├── setup.py
+├── data/
+│ ├── anime/
+│ │ ├── anime-dataset-2023.csv
+│ │ ├── animes.csv
+│ │ ├── Anime-2022.csv
+│ │ ├── anime4500.csv
+│ │ ├── wykonos.csv
+│ │ ├── Anime_data.csv
+│ │ └── anime2.csv
+│ └── manga/
+│   ├── manga.csv
+│   ├── jikan.csv
+│   └── data.csv
+├── model/
+│ ├── anime/
+│ │ └── <model_name>
+│ └── manga/
+│   └── <model_name>
+├── scripts/
+│ ├── generate_models.sh
+│ ├── generate_models.bat
+│ └── generate_models.ps1
+├── src/
+│ ├── **init**.py
+│ ├── api.py
+│ ├── common.py
+│ ├── merge_datasets.py
+│ ├── run_server.py
+│ ├── sbert.py
+│ └── test.py
+├── tests/
+│ ├── **init**.py
+│ ├── test_api.py
+│ ├── test_sbert.py
+│ ├── test_merge_datasets.py
+│ ├── test_model.py
+│ └── conftest.py
+└── models.txt
 
 ## Dependencies
 
-- Python 3.6+
-- pandas
-- numpy
-- torch
-- transformers
-- sentence-transformers
-- tqdm
-- datasets
+- **Python 3.6+**
+- **Python Packages**:
+  - pandas
+  - numpy
+  - torch
+  - transformers
+  - sentence-transformers
+  - tqdm
+  - datasets
+  - flask
+  - flask-limiter
+  - waitress
+  - gunicorn
+  - pytest
+  - pytest-order
+
+Install all dependencies using:
+
+```bash
+python setup.py install
+```
 
 ## Contributing
 

@@ -100,6 +100,20 @@ def preprocess_name(name):
     return str(name).strip().lower()
 
 
+def find_additional_info(row, additional_df, description_col, name_columns):
+    """Finds additional info for a given row."""
+    for merged_name_col in ["title", "title_english", "title_japanese"]:
+        for additional_name_col in name_columns:
+            if row[merged_name_col] in additional_df[additional_name_col].values:
+                info = additional_df.loc[
+                    additional_df[additional_name_col] == row[merged_name_col],
+                    description_col,
+                ]
+                if isinstance(info, pd.Series):
+                    return info.dropna().iloc[0] if not info.dropna().empty else None
+    return None
+
+
 # Function to add additional synopses or descriptions
 def add_additional_info(
     merged, additional_df, description_col, name_columns, new_synopsis_col
@@ -119,24 +133,9 @@ def add_additional_info(
     if new_synopsis_col not in merged.columns:
         merged[new_synopsis_col] = None
 
-    def find_additional_info(row):
-        """Finds additional info for a given row."""
-        for merged_name_col in ["title", "title_english", "title_japanese"]:
-            for additional_name_col in name_columns:
-                if row[merged_name_col] in additional_df[additional_name_col].values:
-                    info = additional_df.loc[
-                        additional_df[additional_name_col] == row[merged_name_col],
-                        description_col,
-                    ]
-                    if isinstance(info, pd.Series):
-                        return (
-                            info.dropna().iloc[0] if not info.dropna().empty else None
-                        )
-        return None
-
     def update_row_with_info(idx, row):
         """Updates a row with additional info if not a duplicate."""
-        info = find_additional_info(row)
+        info = find_additional_info(row, additional_df, description_col, name_columns)
         if pd.notna(info):
             existing_infos = [
                 merged.at[idx, col]

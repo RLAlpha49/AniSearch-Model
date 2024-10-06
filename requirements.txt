@@ -11,3 +11,6 @@ gunicorn
 waitress
 flask
 tf-keras
+pytest
+pytest-order
+flask_limiter

@@ -8,6 +8,8 @@ calculate cosine similarities between them. It supports multiple synopsis
 columns from a dataset and returns the top N most similar descriptions.
 """
 
+# pylint: disable=import-error, global-variable-not-assigned, global-statement
+
 import os
 import warnings
 import logging
@@ -259,23 +261,28 @@ def get_anime_similarities():
     Raises:
         400 Bad Request: If the 'model' or 'description' fields are missing from the request.
     """
-    data = request.json
-    model_name = data.get("model")
-    description = data.get("description")
+    try:
+        data = request.json
+        model_name = data.get("model")
+        description = data.get("description")
 
-    logging.info(
-        "Received anime request with model: %s and description: %s",
-        model_name,
-        description,
-    )
+        logging.info(
+            "Received anime request with model: %s and description: %s",
+            model_name,
+            description,
+        )
 
-    if not model_name or not description:
-        logging.error("Model name or description missing in the request.")
-        return jsonify({"error": "Model name and description are required"}), 400
+        if not model_name or not description:
+            logging.error("Model name or description missing in the request.")
+            return jsonify({"error": "Model name and description are required"}), 400
 
-    results = get_similarities(model_name, description, "anime")
-    logging.info("Returning %d anime results", len(results))
-    return jsonify(results)
+        results = get_similarities(model_name, description, "anime")
+        logging.info("Returning %d anime results", len(results))
+        return jsonify(results)
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logging.error("Internal server error: %s", e)
+        return jsonify({"error": "Internal server error"}), 500
 
 
 @app.route("/anisearchmodel/manga", methods=["POST"])
@@ -292,23 +299,28 @@ def get_manga_similarities():
     Raises:
         400 Bad Request: If the 'model' or 'description' fields are missing from the request.
     """
-    data = request.json
-    model_name = data.get("model")
-    description = data.get("description")
+    try:
+        data = request.json
+        model_name = data.get("model")
+        description = data.get("description")
 
-    logging.info(
-        "Received manga request with model: %s and description: %s",
-        model_name,
-        description,
-    )
+        logging.info(
+            "Received manga request with model: %s and description: %s",
+            model_name,
+            description,
+        )
 
-    if not model_name or not description:
-        logging.error("Model name or description missing in the request.")
-        return jsonify({"error": "Model name and description are required"}), 400
+        if not model_name or not description:
+            logging.error("Model name or description missing in the request.")
+            return jsonify({"error": "Model name and description are required"}), 400
 
-    results = get_similarities(model_name, description, "manga")
-    logging.info("Returning %d manga results", len(results))
-    return jsonify(results)
+        results = get_similarities(model_name, description, "manga")
+        logging.info("Returning %d manga results", len(results))
+        return jsonify(results)
+
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logging.error("Internal server error: %s", e)
+        return jsonify({"error": "Internal server error"}), 500
 
 
 if __name__ == "__main__":
