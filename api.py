@@ -11,10 +11,15 @@ columns from a dataset and returns the top N most similar descriptions.
 import os
 import warnings
 import logging
+import gc
+import threading
+import time
 from flask import Flask, request, jsonify
 import numpy as np
 import pandas as pd
 import torch
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Disable oneDNN for TensorFlow
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -38,6 +43,41 @@ warnings.filterwarnings(
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+# Variable to track the last request time
+last_request_time = time.time()
+
+
+def periodic_memory_clear():
+    """
+    Periodically clears memory if the application has been inactive for a specified duration.
+
+    This function runs in a separate thread and checks the time since the last request.
+    If the time exceeds 60 seconds, it clears the GPU cache and performs garbage collection
+    to free up memory resources.
+
+    The function logs the start of the thread and each memory clearing event.
+    """
+    global last_request_time
+    logging.info("Starting the periodic memory clear thread.")
+    while True:
+        current_time = time.time()
+        if current_time - last_request_time > 60:
+            logging.info("Clearing memory due to inactivity.")
+            torch.cuda.empty_cache()
+            gc.collect()
+        time.sleep(60)
+
+
+threading.Thread(target=periodic_memory_clear, daemon=True).start()
+
+# Initialize the limiter
+limiter = Limiter(get_remote_address, app=app, default_limits=["1 per second"])
 
 # Load the merged datasets
 anime_df = pd.read_csv("model/merged_anime_dataset.csv")
@@ -153,6 +193,9 @@ def get_similarities(model_name, description, dataset_type):
     Returns:
         list: List of dictionaries containing top similar descriptions and their similarity scores.
     """
+    global last_request_time
+    last_request_time = time.time()  # Update last request time
+
     # Select the appropriate dataset and synopsis columns
     if dataset_type == "anime":
         df = anime_df
@@ -161,14 +204,10 @@ def get_similarities(model_name, description, dataset_type):
         df = manga_df
         synopsis_columns = manga_synopsis_columns
 
-    # Load the SBERT model
     model = SentenceTransformer(model_name)
-
-    # Encode the new description
     processed_description = description.lower().strip()
     new_pooled_embedding = model.encode([processed_description])
 
-    # Calculate cosine similarities for each synopsis column
     cosine_similarities_dict = {
         col: calculate_cosine_similarities(
             model, model_name, new_pooled_embedding, col, dataset_type
@@ -176,7 +215,6 @@ def get_similarities(model_name, description, dataset_type):
         for col in synopsis_columns
     }
 
-    # Find and return the top N most similar descriptions
     all_top_indices = find_top_similarities(cosine_similarities_dict)
 
     seen_names = set()
@@ -199,10 +237,16 @@ def get_similarities(model_name, description, dataset_type):
             if len(results) >= 10:
                 break
 
+    # Clear memory
+    del model, new_pooled_embedding, cosine_similarities_dict
+    torch.cuda.empty_cache()
+    gc.collect()
+
     return results
 
 
 @app.route("/anisearchmodel/anime", methods=["POST"])
+@limiter.limit("1 per second")
 def get_anime_similarities():
     """
     Handle POST requests to find and return the top N most similar anime descriptions.
@@ -219,7 +263,6 @@ def get_anime_similarities():
     model_name = data.get("model")
     description = data.get("description")
 
-    # Log the incoming request
     logging.info(
         "Received anime request with model: %s and description: %s",
         model_name,
@@ -236,6 +279,7 @@ def get_anime_similarities():
 
 
 @app.route("/anisearchmodel/manga", methods=["POST"])
+@limiter.limit("1 per second")
 def get_manga_similarities():
     """
     Handle POST requests to find and return the top N most similar manga descriptions.
@@ -252,7 +296,6 @@ def get_manga_similarities():
     model_name = data.get("model")
     description = data.get("description")
 
-    # Log the incoming request
     logging.info(
         "Received manga request with model: %s and description: %s",
         model_name,

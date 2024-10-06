@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Check if a starting model is provided
-start_model="$1"
-start_processing=true
+# Set default start model if not provided
+start_model="${1:-sentence-transformers/all-distilroberta-v1}"
+start_processing=false
 
 # Define dataset types
 dataset_types=("anime" "manga")

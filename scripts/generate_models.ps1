@@ -1,5 +1,5 @@
 param(
-    [string]$StartModel
+    [string]$StartModel = "sentence-transformers/all-distilroberta-v1"
 )
 
 $startProcessing = $false

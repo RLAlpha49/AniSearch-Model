@@ -1,8 +1,13 @@
 @echo off
 setlocal
 
-set "start_model=%1"
-set "start_processing=true"
+rem Set default start model if not provided
+if "%1"=="" (
+    set "start_model=sentence-transformers/all-distilroberta-v1"
+) else (
+    set "start_model=%1"
+)
+set "start_processing=false"
 
 rem Define dataset types
 set "dataset_types=anime manga"
