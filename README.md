@@ -272,49 +272,78 @@ The application will be accessible at `http://0.0.0.0:5000/anisearchmodel`.
 
 ## Project Structure
 
-AniSearchModel/
-├── README.md
+```text
+AniSearchModel
+├── .github
+│   └── workflows
+│       ├── codeql.yml
+│       └── ruff.yml
+├── data
+│   ├── anime
+│   │   ├── Anime_data.csv
+│   │   ├── Anime-2022.csv
+│   │   ├── anime-dataset-2023.csv
+│   │   ├── anime.csv
+│   │   ├── Anime2.csv
+│   │   ├── anime4500.csv
+│   │   ├── animes.csv
+│   │   └── mal_anime.csv
+│   └── manga
+│       ├── data.csv
+│       ├── jikan.csv
+│       └── manga.csv
+├── models
+│   ├── anime
+│   │   └── <model_name>
+│   │       ├── embeddings_Synopsis_anime_270_Dataset.npy
+│   │       ├── embeddings_Synopsis_Anime_data_Dataset.npy
+│   │       ├── embeddings_Synopsis_anime_dataset_2023.npy
+│   │       ├── embeddings_Synopsis_Anime-2022_Dataset.npy
+│   │       ├── embeddings_Synopsis_anime2_Dataset.npy
+│   │       ├── embeddings_Synopsis_anime4500_Dataset.npy
+│   │       ├── embeddings_Synopsis_animes_dataset.npy
+│   │       ├── embeddings_Synopsis_mal_anime_Dataset.npy
+│   │       ├── embeddings_Synopsis_wykonos_Dataset.npy
+│   │       └── embeddings_synopsis.npy
+│   ├── manga
+│   │   └── <model_name>
+│   │       ├── embeddings_Synopsis_data_Dataset.npy
+│   │       ├── embeddings_Synopsis_jikan_Dataset.npy
+│   │       └── embeddings_synopsis.npy
+│   ├── evaluation_results_anime.json
+│   ├── evaluation_results_manga.json
+│   ├── evaluation_results.json
+│   ├── merged_anime_dataset.csv
+│   └── merged_manga_dataset.csv
+├── scripts
+│   ├── generate_models.bat
+│   ├── generate_models.ps1
+│   └── generate_models.sh
+├── src
+│   ├── **init**.py
+│   ├── api.py
+│   ├── common.py
+│   ├── merge_datasets.py
+│   ├── run_server.py
+│   ├── sbert.py
+│   └── test.py
+├── tests
+│   ├── **init**.py
+│   ├── conftest.py
+│   ├── test_api.py
+│   ├── test_merge_datasets.py
+│   ├── test_model.py
+│   └── test_sbert.py
 ├── .gitignore
+├── architecture.txt
+├── datasets.txt
+├── LICENSE
+├── models.txt
+├── pytest.ini
+├── README.md
 ├── requirements.txt
-├── setup.py
-├── data/
-│ ├── anime/
-│ │ ├── anime-dataset-2023.csv
-│ │ ├── animes.csv
-│ │ ├── Anime-2022.csv
-│ │ ├── anime4500.csv
-│ │ ├── wykonos.csv
-│ │ ├── Anime_data.csv
-│ │ └── anime2.csv
-│ └── manga/
-│   ├── manga.csv
-│   ├── jikan.csv
-│   └── data.csv
-├── model/
-│ ├── anime/
-│ │ └── <model_name>
-│ └── manga/
-│   └── <model_name>
-├── scripts/
-│ ├── generate_models.sh
-│ ├── generate_models.bat
-│ └── generate_models.ps1
-├── src/
-│ ├── **init**.py
-│ ├── api.py
-│ ├── common.py
-│ ├── merge_datasets.py
-│ ├── run_server.py
-│ ├── sbert.py
-│ └── test.py
-├── tests/
-│ ├── **init**.py
-│ ├── test_api.py
-│ ├── test_sbert.py
-│ ├── test_merge_datasets.py
-│ ├── test_model.py
-│ └── conftest.py
-└── models.txt
+└── setup.py
+```
 
 ## Dependencies
 
