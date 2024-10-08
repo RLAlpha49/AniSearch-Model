@@ -150,9 +150,7 @@ def test_add_additional_info(mock_find_additional_info):
     )
 
     # Define a mock function to simulate find_additional_info behavior
-    def mock_find_info(
-        row, additional_df, description_col, name_columns
-    ):  # pylint: disable=W0613
+    def mock_find_info(row, additional_df, description_col, name_columns):  # pylint: disable=W0613
         if (
             pd.notna(row["title_english"])
             and row["title_english"].strip().lower() == "naruto"
@@ -213,9 +211,7 @@ def test_add_additional_info_no_match(mock_find_additional_info):
     )
 
     # Define a mock function to simulate find_additional_info behavior
-    def mock_find_info(
-        row, additional_df, description_col, name_columns
-    ):  # pylint: disable=W0613
+    def mock_find_info(row, additional_df, description_col, name_columns):  # pylint: disable=W0613
         if (
             pd.notna(row["title_english"])
             and row["title_english"].strip().lower() == "naruto"
@@ -283,9 +279,7 @@ def test_add_additional_info_partial_titles(mock_find_additional_info):
     )
 
     # Define a mock function to simulate find_additional_info behavior
-    def mock_find_info(
-        row, additional_df, description_col, name_columns
-    ):  # pylint: disable=W0613
+    def mock_find_info(row, additional_df, description_col, name_columns):  # pylint: disable=W0613
         if (
             pd.notna(row["title_english"])
             and row["title_english"].strip().lower() == "naruto"
@@ -351,9 +345,7 @@ def test_add_additional_info_all_titles_na(mock_find_additional_info):
     )
 
     # Define a mock function to simulate find_additional_info behavior
-    def mock_find_info(
-        row, additional_df, description_col, name_columns
-    ):  # pylint: disable=W0613
+    def mock_find_info(row, additional_df, description_col, name_columns):  # pylint: disable=W0613
         if (
             pd.notna(row["title_english"])
             and row["title_english"].strip().lower() == "bleach"
@@ -409,9 +401,7 @@ def test_add_additional_info_whitespace_case(mock_find_additional_info):
     )
 
     # Define a mock function to simulate find_additional_info behavior
-    def mock_find_info(
-        row, additional_df, description_col, name_columns
-    ):  # pylint: disable=W0613
+    def mock_find_info(row, additional_df, description_col, name_columns):  # pylint: disable=W0613
         if (
             pd.notna(row["title_english"])
             and row["title_english"].strip().lower() == "naruto"
