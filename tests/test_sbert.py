@@ -101,7 +101,7 @@ def run_sbert_command_and_verify(model_name, dataset_type, expected_files):
         ),
     ],
 )
-@pytest.mark.order(7)
+@pytest.mark.order(10)
 def test_run_sbert_command_line(model_name, dataset_type, expected_files):
     """
     Test the SBERT command line script by running it with the specified model name

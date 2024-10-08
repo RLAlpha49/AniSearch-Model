@@ -28,7 +28,7 @@ def new_description():
     )
 
 
-@pytest.mark.order(8)
+@pytest.mark.order(11)
 def test_anime_model(new_description, model_name):  # pylint: disable=redefined-outer-name
     """
     Test the anime model by loading the model and embeddings, calculating similarities,
@@ -76,7 +76,7 @@ def test_anime_model(new_description, model_name):  # pylint: disable=redefined-
     assert len(evaluation_data[-1]["top_similarities"]) == top_n
 
 
-@pytest.mark.order(9)
+@pytest.mark.order(12)
 def test_manga_model(new_description, model_name):  # pylint: disable=redefined-outer-name
     """
     Test the manga model by loading the model and embeddings, calculating similarities,

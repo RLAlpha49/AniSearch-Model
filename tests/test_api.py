@@ -7,8 +7,8 @@ correctly. The tests use a mock for the get_similarities function to simulate
 different scenarios.
 """
 
-from unittest.mock import patch
 import time
+from unittest.mock import patch
 import pytest
 from src.api import app
 
@@ -23,7 +23,7 @@ def client():
         yield client
 
 
-@pytest.mark.order(10)
+@pytest.mark.order(13)
 def test_get_manga_similarities_success(client, model_name):  # pylint: disable=W0621
     """
     Test the /anisearchmodel/manga endpoint with valid input.
@@ -40,8 +40,8 @@ def test_get_manga_similarities_success(client, model_name):  # pylint: disable=
     # Mock the get_similarities function
     with patch("src.api.get_similarities") as mock_get_similarities:
         mock_get_similarities.return_value = [
-            {"description": "A slime with unique powers.", "score": 0.95},
-            {"description": "Reincarnation in a fantasy world.", "score": 0.90},
+            {"name": "A slime with unique powers.", "similarity": 0.95},
+            {"name": "Reincarnation in a fantasy world.", "similarity": 0.90},
         ]
 
         response = client.post("/anisearchmodel/manga", json=payload)
@@ -49,47 +49,44 @@ def test_get_manga_similarities_success(client, model_name):  # pylint: disable=
         data = response.get_json()
         assert isinstance(data, list)
         assert len(data) == 2
-        assert data[0]["score"] == 0.95
+        assert data[0]["similarity"] == 0.95
     time.sleep(1)
 
 
-@pytest.mark.order(11)
-def test_get_manga_similarities_missing_model(client):  # pylint: disable=W0621
+@pytest.mark.parametrize(
+    "payload, expected_error",
+    [
+        (
+            {"description": "A hero reincarnated as a slime."},
+            "Model name and description are required",
+        ),
+        (
+            {
+                "model": "invalid_model",
+                "description": "A hero reincarnated as a slime.",
+            },
+            "Invalid model name",
+        ),
+        ({"model": "valid_model"}, "Model name and description are required"),
+    ],
+)
+@pytest.mark.order(14)
+def test_get_manga_similarities_invalid_input(client, payload, expected_error):  # pylint: disable=W0621
     """
-    Test the /anisearchmodel/manga endpoint with a missing model.
+    Test the /anisearchmodel/manga endpoint with invalid inputs.
 
     Verifies that the endpoint returns a 400 status code and an error message
-    when the model is not provided in the request payload.
+    when the input is invalid.
     """
-    payload = {"description": "A hero reincarnated as a slime."}
-
     response = client.post("/anisearchmodel/manga", json=payload)
     assert response.status_code == 400
     data = response.get_json()
     assert "error" in data
-    assert data["error"] == "Model name and description are required"
+    assert data["error"] == expected_error
     time.sleep(1)
 
 
-@pytest.mark.order(12)
-def test_get_manga_similarities_missing_description(client, model_name):  # pylint: disable=W0621
-    """
-    Test the /anisearchmodel/manga endpoint with a missing description.
-
-    Verifies that the endpoint returns a 400 status code and an error message
-    when the description is not provided in the request payload.
-    """
-    payload = {"model": model_name}
-
-    response = client.post("/anisearchmodel/manga", json=payload)
-    assert response.status_code == 400
-    data = response.get_json()
-    assert "error" in data
-    assert data["error"] == "Model name and description are required"
-    time.sleep(1)
-
-
-@pytest.mark.order(13)
+@pytest.mark.order(15)
 def test_get_manga_similarities_internal_error(client, model_name):  # pylint: disable=W0621
     """
     Test the /anisearchmodel/manga endpoint for internal server errors.
