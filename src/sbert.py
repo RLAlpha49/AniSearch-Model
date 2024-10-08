@@ -107,7 +107,7 @@ def get_sbert_embeddings(
             ):
                 # Use mixed precision for this specific model
                 with torch.no_grad():
-                    with torch.amp.autocast("cuda"):
+                    with torch.amp.autocast("cuda"): # type: ignore
                         batch_embeddings = sbert_model.encode(
                             batch_texts, convert_to_numpy=True, show_progress_bar=False
                         )

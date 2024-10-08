@@ -17,6 +17,8 @@ AniSearchModel
 │       ├── data.csv
 │       ├── jikan.csv
 │       └── manga.csv
+├── logs
+│   └── <filename>.log.<#>
 ├── models
 │   ├── anime
 │   │   └── <model_name>

@@ -292,6 +292,8 @@ AniSearchModel
 │       ├── data.csv
 │       ├── jikan.csv
 │       └── manga.csv
+├── logs
+│   └── <filename>.log.<#>
 ├── models
 │   ├── anime
 │   │   └── <model_name>
@@ -320,7 +322,7 @@ AniSearchModel
 │   ├── generate_models.ps1
 │   └── generate_models.sh
 ├── src
-│   ├── **init**.py
+│   ├── __init__.py
 │   ├── api.py
 │   ├── common.py
 │   ├── merge_datasets.py
@@ -328,7 +330,7 @@ AniSearchModel
 │   ├── sbert.py
 │   └── test.py
 ├── tests
-│   ├── **init**.py
+│   ├── __init__.py
 │   ├── conftest.py
 │   ├── test_api.py
 │   ├── test_merge_datasets.py
