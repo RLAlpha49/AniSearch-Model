@@ -16,19 +16,17 @@ import logging
 import gc
 import threading
 import time
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, abort
 import numpy as np
 import pandas as pd
 import torch
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from sentence_transformers import SentenceTransformer, util
+from werkzeug.exceptions import HTTPException
 
 # Disable oneDNN for TensorFlow
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-from sentence_transformers import (  # pylint: disable=wrong-import-position  # noqa: E402
-    SentenceTransformer,
-    util,
-)
 
 # Suppress the specific FutureWarning and DeprecationWarning from transformers
 warnings.filterwarnings(
@@ -42,17 +40,29 @@ warnings.filterwarnings(
 )
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.FileHandler("app.log"), logging.StreamHandler()],
+)
 
 app = Flask(__name__)
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
 # Variable to track the last request time
 last_request_time = time.time()
+last_request_time_lock = threading.Lock()
+
+
+def update_last_request_time():
+    """
+    Updates the last request time to the current time.
+
+    This function acquires a lock to ensure thread safety and updates the
+    global variable `last_request_time` with the current time.
+    """
+    with last_request_time_lock:
+        global last_request_time
+        last_request_time = time.time()
 
 
 def periodic_memory_clear():
@@ -65,14 +75,14 @@ def periodic_memory_clear():
 
     The function logs the start of the thread and each memory clearing event.
     """
-    global last_request_time
     logging.info("Starting the periodic memory clear thread.")
     while True:
-        current_time = time.time()
-        if current_time - last_request_time > 60:
-            logging.info("Clearing memory due to inactivity.")
-            torch.cuda.empty_cache()
-            gc.collect()
+        with last_request_time_lock:
+            current_time = time.time()
+            if current_time - last_request_time > 60:
+                logging.info("Clearing memory due to inactivity.")
+                torch.cuda.empty_cache()
+                gc.collect()
         time.sleep(60)
 
 
@@ -104,6 +114,56 @@ manga_synopsis_columns = [
     "Synopsis jikan Dataset",
     "Synopsis data Dataset",
 ]
+
+allowed_models = [
+    "sentence-transformers/all-distilroberta-v1",
+    "sentence-transformers/all-MiniLM-L6-v1",
+    "sentence-transformers/all-MiniLM-L12-v1",
+    "sentence-transformers/all-MiniLM-L6-v2",
+    "sentence-transformers/all-MiniLM-L12-v2",
+    "sentence-transformers/all-mpnet-base-v1",
+    "sentence-transformers/all-mpnet-base-v2",
+    "sentence-transformers/all-roberta-large-v1",
+    "sentence-transformers/gtr-t5-base",
+    "sentence-transformers/gtr-t5-large",
+    "sentence-transformers/gtr-t5-xl",
+    "sentence-transformers/multi-qa-distilbert-dot-v1",
+    "sentence-transformers/multi-qa-mpnet-base-cos-v1",
+    "sentence-transformers/multi-qa-mpnet-base-dot-v1",
+    "sentence-transformers/paraphrase-distilroberta-base-v2",
+    "sentence-transformers/paraphrase-mpnet-base-v2",
+    "sentence-transformers/sentence-t5-base",
+    "sentence-transformers/sentence-t5-large",
+    "sentence-transformers/sentence-t5-xl",
+]
+
+
+def validate_input(data):
+    """
+    Validate the input data for the request.
+
+    Args:
+        data (dict): The input data containing model name and description.
+
+    Raises:
+        werkzeug.exceptions.HTTPException: If the model name or description is missing,
+                                           if the description is too long,
+                                           or if the model name is invalid.
+    """
+    model_name = data.get("model")
+    description = data.get("description")
+
+    if not model_name or not description:
+        logging.error("Model name or description missing in the request.")
+        abort(400, description="Model name and description are required")
+
+    if len(description) > 1000:
+        logging.error("Description too long.")
+        abort(400, description="Description is too long")
+
+    if model_name not in allowed_models:
+        logging.error("Invalid model name.")
+        abort(400, description="Invalid model name")
 
 
 def load_embeddings(model_name, col, dataset_type):
@@ -195,8 +255,11 @@ def get_similarities(model_name, description, dataset_type):
     Returns:
         list: List of dictionaries containing top similar descriptions and their similarity scores.
     """
-    global last_request_time
-    last_request_time = time.time()  # Update last request time
+    update_last_request_time()
+
+    # Validate model name
+    if model_name not in allowed_models:
+        raise ValueError("Invalid model name")
 
     # Select the appropriate dataset and synopsis columns
     if dataset_type == "anime":
@@ -263,6 +326,9 @@ def get_anime_similarities():
     """
     try:
         data = request.json
+        if data is None:
+            raise ValueError("Request payload is missing or not in JSON format")
+        validate_input(data)
         model_name = data.get("model")
         description = data.get("description")
 
@@ -272,20 +338,19 @@ def get_anime_similarities():
             description,
         )
 
-        if not model_name or not description:
-            logging.error("Model name or description missing in the request.")
-            return jsonify({"error": "Model name and description are required"}), 400
-
         results = get_similarities(model_name, description, "anime")
         logging.info("Returning %d anime results", len(results))
         return jsonify(results)
 
+    except ValueError as e:
+        logging.error("Validation error: %s", e)
+        return jsonify({"error": str(e)}), 400
     except Exception as e:  # pylint: disable=broad-exception-caught
         logging.error("Internal server error: %s", e)
         return jsonify({"error": "Internal server error"}), 500
 
 
-@app.route("/anisearchmodel/manga", methods=["POST"])
+@app.route("/anisearchmodel/manga", methods=["POST"])  # type: ignore
 @limiter.limit("1 per second")
 def get_manga_similarities():
     """
@@ -301,6 +366,9 @@ def get_manga_similarities():
     """
     try:
         data = request.json
+        if data is None:
+            raise ValueError("Request payload is missing or not in JSON format")
+        validate_input(data)
         model_name = data.get("model")
         description = data.get("description")
 
@@ -310,14 +378,13 @@ def get_manga_similarities():
             description,
         )
 
-        if not model_name or not description:
-            logging.error("Model name or description missing in the request.")
-            return jsonify({"error": "Model name and description are required"}), 400
-
         results = get_similarities(model_name, description, "manga")
         logging.info("Returning %d manga results", len(results))
         return jsonify(results)
 
+    except HTTPException as e:
+        logging.error("HTTP error: %s", e)
+        return jsonify({"error": e.description}), e.code
     except Exception as e:  # pylint: disable=broad-exception-caught
         logging.error("Internal server error: %s", e)
         return jsonify({"error": "Internal server error"}), 500
