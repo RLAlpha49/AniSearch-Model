@@ -10,12 +10,14 @@ columns from a dataset and returns the top N most similar descriptions.
 
 # pylint: disable=import-error, global-variable-not-assigned, global-statement
 
+from logging.handlers import RotatingFileHandler
 import os
 import warnings
 import logging
 import gc
 import threading
 import time
+import sys
 from flask import Flask, request, jsonify, abort
 import numpy as np
 import pandas as pd
@@ -39,11 +41,34 @@ warnings.filterwarnings(
     category=DeprecationWarning,
 )
 
-# Configure logging
+FILE_LOGGING_LEVEL = logging.DEBUG
+CONSOLE_LOGGING_LEVEL = logging.INFO
+
+# Create logs directory if not available and configure RotatingFileHandler with UTF-8 encoding
+if not os.path.exists("./logs"):
+    os.makedirs("./logs")
+
+file_handler = RotatingFileHandler(
+    "./logs/api.log",
+    maxBytes=10 * 1024 * 1024,  # 10 MB
+    backupCount=10,
+    encoding="utf-8",
+)
+file_handler.setLevel(FILE_LOGGING_LEVEL)
+file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+file_handler.setFormatter(file_formatter)
+
+# Configure StreamHandler with UTF-8 encoding
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setLevel(CONSOLE_LOGGING_LEVEL)
+stream_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+stream_handler.setFormatter(stream_formatter)
+
+# Initialize logging with both handlers
 logging.basicConfig(
-    level=logging.INFO,
+    level=FILE_LOGGING_LEVEL,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("app.log"), logging.StreamHandler()],
+    handlers=[file_handler, stream_handler],
 )
 
 app = Flask(__name__)
