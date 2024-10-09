@@ -369,7 +369,7 @@ def get_anime_similarities():
 
     except ValueError as e:
         logging.error("Validation error: %s", e)
-        return jsonify({"error": str(e)}), 400
+        return jsonify({"error": "Bad Request"}), 400
     except Exception as e:  # pylint: disable=broad-exception-caught
         logging.error("Internal server error: %s", e)
         return jsonify({"error": "Internal server error"}), 500
