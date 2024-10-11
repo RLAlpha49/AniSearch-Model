@@ -89,6 +89,13 @@ def update_last_request_time():
         global last_request_time
         last_request_time = time.time()
 
+def clear_memory():
+    """
+    Clears the GPU cache and performs garbage collection to free up memory resources.
+    """
+    torch.cuda.empty_cache()
+    gc.collect()
+
 
 def periodic_memory_clear():
     """
@@ -106,8 +113,7 @@ def periodic_memory_clear():
             current_time = time.time()
             if current_time - last_request_time > 60:
                 logging.info("Clearing memory due to inactivity.")
-                torch.cuda.empty_cache()
-                gc.collect()
+                clear_memory()
         time.sleep(60)
 
 
@@ -229,6 +235,7 @@ def calculate_cosine_similarities(model, model_name, new_embedding, col, dataset
         ValueError: If the dimensions of the existing embeddings do not match
                     the model's embedding dimension.
     """
+    model_name = model_name.replace("sentence-transformers/", "")
     existing_embeddings = load_embeddings(model_name, col, dataset_type)
     if existing_embeddings.shape[1] != model.get_sentence_embedding_dimension():
         raise ValueError(f"Incompatible dimension for embeddings in {col}")
@@ -313,24 +320,23 @@ def get_similarities(model_name, description, dataset_type):
     for idx, col in all_top_indices:
         name = df.iloc[idx]["title"]
         if name not in seen_names:
-            synopsis = df.iloc[idx][col]
-            similarity = float(cosine_similarities_dict[col][idx])
-            results.append(
-                {
-                    "rank": len(results) + 1,
-                    "name": name,
-                    "synopsis": synopsis,
-                    "similarity": similarity,
-                }
-            )
+            row_data = df.iloc[idx].to_dict()  # Convert the entire row to a dictionary
+            # Keep only the relevant synopsis column
+            relevant_synopsis = df.iloc[idx][col]
+            row_data = {k: v for k, v in row_data.items() if k not in synopsis_columns or k == col}
+            row_data.update({
+                "rank": len(results) + 1,
+                "similarity": float(cosine_similarities_dict[col][idx]),
+                "synopsis": relevant_synopsis  # Ensure the correct synopsis is included
+            })
+            results.append(row_data)
             seen_names.add(name)
             if len(results) >= 10:
                 break
 
     # Clear memory
     del model, new_pooled_embedding, cosine_similarities_dict
-    torch.cuda.empty_cache()
-    gc.collect()
+    clear_memory()
 
     return results
 
@@ -350,6 +356,7 @@ def get_anime_similarities():
         400 Bad Request: If the 'model' or 'description' fields are missing from the request.
     """
     try:
+        clear_memory()
         data = request.json
         if data is None:
             raise ValueError("Request payload is missing or not in JSON format")
@@ -365,6 +372,7 @@ def get_anime_similarities():
 
         results = get_similarities(model_name, description, "anime")
         logging.info("Returning %d anime results", len(results))
+        clear_memory()
         return jsonify(results)
 
     except ValueError as e:
@@ -390,6 +398,7 @@ def get_manga_similarities():
         400 Bad Request: If the 'model' or 'description' fields are missing from the request.
     """
     try:
+        clear_memory()
         data = request.json
         if data is None:
             raise ValueError("Request payload is missing or not in JSON format")
@@ -405,6 +414,7 @@ def get_manga_similarities():
 
         results = get_similarities(model_name, description, "manga")
         logging.info("Returning %d manga results", len(results))
+        clear_memory()
         return jsonify(results)
 
     except HTTPException as e:

@@ -10,6 +10,7 @@ It performs the following operations:
 """
 
 # pylint: disable=E0401, E0611
+import sys
 import os
 import time
 import warnings
@@ -18,7 +19,11 @@ import numpy as np
 from tqdm import tqdm
 import torch
 from transformers import AutoModel
-from src import common
+
+# Add the project root to the Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from src import common  # pylint: disable=wrong-import-position
 
 # Disable oneDNN for TensorFlow
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
