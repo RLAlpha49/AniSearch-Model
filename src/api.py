@@ -287,7 +287,11 @@ def find_top_similarities(
 
 
 def get_similarities(
-    model_name: str, description: str, dataset_type: str
+    model_name: str,
+    description: str,
+    dataset_type: str,
+    page: int = 1,
+    results_per_page: int = 10,
 ) -> List[Dict[str, Any]]:
     """
     Find and return the top N most similar descriptions for a given dataset type.
@@ -296,6 +300,8 @@ def get_similarities(
         model_name (str): The name of the model to use.
         description (str): The description to compare against the dataset.
         dataset_type (str): The type of dataset ('anime' or 'manga').
+        page (int, optional): The page number of results to return. Defaults to 1.
+        results_per_page (int, optional): The number of results per page. Defaults to 10.
 
     Returns:
         list: List of dictionaries containing top similar descriptions and their similarity scores.
@@ -325,7 +331,9 @@ def get_similarities(
         for col in synopsis_columns
     }
 
-    all_top_indices = find_top_similarities(cosine_similarities_dict)
+    all_top_indices = find_top_similarities(
+        cosine_similarities_dict, num_similarities=page * results_per_page
+    )
 
     seen_names = set()
     results: List[Dict[str, Any]] = []
@@ -350,14 +358,18 @@ def get_similarities(
             )
             results.append(row_data)
             seen_names.add(name)
-            if len(results) >= 10:
+            if len(results) >= page * results_per_page:
                 break
 
     # Clear memory
     del model, new_pooled_embedding, cosine_similarities_dict
     clear_memory()
 
-    return results
+    # Calculate start and end indices for pagination
+    start_index = (page - 1) * results_per_page
+    end_index = start_index + results_per_page
+
+    return results[start_index:end_index]
 
 
 @app.route("/anisearchmodel/anime", methods=["POST"])
@@ -366,7 +378,7 @@ def get_anime_similarities() -> Response:
     """
     Handle POST requests to find and return the top N most similar anime descriptions.
 
-    Expects a JSON payload with 'model' and 'description' fields.
+    Expects a JSON payload with 'model', 'description', 'page', and 'resultsPerPage' fields.
 
     Returns:
         Response: A JSON response with the top similar anime descriptions and the similarity scores.
@@ -382,14 +394,20 @@ def get_anime_similarities() -> Response:
         validate_input(data)
         model_name = data.get("model")
         description = data.get("description")
+        page = data.get("page", 1)
+        results_per_page = data.get("resultsPerPage", 10)
 
         logging.info(
-            "Received anime request with model: %s and description: %s",
+            "Received anime request with model: %s, description: %s, page: %d, resultsPerPage: %d",
             model_name,
             description,
+            page,
+            results_per_page,
         )
 
-        results = get_similarities(model_name, description, "anime")
+        results = get_similarities(
+            model_name, description, "anime", page, results_per_page
+        )
         logging.info("Returning %d anime results", len(results))
         clear_memory()
         return jsonify(results)
@@ -408,7 +426,7 @@ def get_manga_similarities() -> Response:
     """
     Handle POST requests to find and return the top N most similar manga descriptions.
 
-    Expects a JSON payload with 'model' and 'description' fields.
+    Expects a JSON payload with 'model', 'description', 'page', and 'resultsPerPage' fields.
 
     Returns:
         Response: A JSON response with the top similar manga descriptions and the similarity scores.
@@ -424,14 +442,20 @@ def get_manga_similarities() -> Response:
         validate_input(data)
         model_name = data.get("model")
         description = data.get("description")
+        page = data.get("page", 1)
+        results_per_page = data.get("resultsPerPage", 10)
 
         logging.info(
-            "Received manga request with model: %s and description: %s",
+            "Received manga request with model: %s, description: %s, page: %d, resultsPerPage: %d",
             model_name,
             description,
+            page,
+            results_per_page,
         )
 
-        results = get_similarities(model_name, description, "manga")
+        results = get_similarities(
+            model_name, description, "manga", page, results_per_page
+        )
         logging.info("Returning %d manga results", len(results))
         clear_memory()
         return jsonify(results)
