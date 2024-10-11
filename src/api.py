@@ -18,7 +18,8 @@ import gc
 import threading
 import time
 import sys
-from flask import Flask, request, jsonify, abort
+from typing import Any, List, Dict, Tuple
+from flask import Flask, request, jsonify, abort, Response, make_response
 import numpy as np
 import pandas as pd
 import torch
@@ -78,7 +79,7 @@ last_request_time = time.time()
 last_request_time_lock = threading.Lock()
 
 
-def update_last_request_time():
+def update_last_request_time() -> None:
     """
     Updates the last request time to the current time.
 
@@ -89,7 +90,8 @@ def update_last_request_time():
         global last_request_time
         last_request_time = time.time()
 
-def clear_memory():
+
+def clear_memory() -> None:
     """
     Clears the GPU cache and performs garbage collection to free up memory resources.
     """
@@ -97,7 +99,7 @@ def clear_memory():
     gc.collect()
 
 
-def periodic_memory_clear():
+def periodic_memory_clear() -> None:
     """
     Periodically clears memory if the application has been inactive for a specified duration.
 
@@ -169,7 +171,7 @@ allowed_models = [
 ]
 
 
-def validate_input(data):
+def validate_input(data: Dict[str, Any]) -> None:
     """
     Validate the input data for the request.
 
@@ -197,7 +199,7 @@ def validate_input(data):
         abort(400, description="Invalid model name")
 
 
-def load_embeddings(model_name, col, dataset_type):
+def load_embeddings(model_name: str, col: str, dataset_type: str) -> np.ndarray:
     """
     Load embeddings for a given model and column.
 
@@ -218,7 +220,13 @@ def load_embeddings(model_name, col, dataset_type):
     return np.load(embeddings_file)
 
 
-def calculate_cosine_similarities(model, model_name, new_embedding, col, dataset_type):
+def calculate_cosine_similarities(
+    model: SentenceTransformer,
+    model_name: str,
+    new_embedding: np.ndarray,
+    col: str,
+    dataset_type: str,
+) -> np.ndarray:
     """
     Calculate cosine similarities between new embedding and existing embeddings for a given column.
 
@@ -249,7 +257,9 @@ def calculate_cosine_similarities(model, model_name, new_embedding, col, dataset
     )
 
 
-def find_top_similarities(cosine_similarities_dict, num_similarities=10):
+def find_top_similarities(
+    cosine_similarities_dict: Dict[str, np.ndarray], num_similarities: int = 10
+) -> List[Tuple[int, str]]:
     """
     Find the top N most similar descriptions across all columns based on cosine similarity scores.
 
@@ -270,12 +280,15 @@ def find_top_similarities(cosine_similarities_dict, num_similarities=10):
         ]
         all_top_indices.extend([(idx, col) for idx in top_indices])
     all_top_indices.sort(
-        key=lambda x: cosine_similarities_dict[x[1]][x[0]], reverse=True
-    )
+        key=lambda x: cosine_similarities_dict[x[1]][x[0]],  # type: ignore
+        reverse=True,
+    )  # type: ignore
     return all_top_indices
 
 
-def get_similarities(model_name, description, dataset_type):
+def get_similarities(
+    model_name: str, description: str, dataset_type: str
+) -> List[Dict[str, Any]]:
     """
     Find and return the top N most similar descriptions for a given dataset type.
 
@@ -315,7 +328,7 @@ def get_similarities(model_name, description, dataset_type):
     all_top_indices = find_top_similarities(cosine_similarities_dict)
 
     seen_names = set()
-    results = []
+    results: List[Dict[str, Any]] = []
 
     for idx, col in all_top_indices:
         name = df.iloc[idx]["title"]
@@ -323,12 +336,18 @@ def get_similarities(model_name, description, dataset_type):
             row_data = df.iloc[idx].to_dict()  # Convert the entire row to a dictionary
             # Keep only the relevant synopsis column
             relevant_synopsis = df.iloc[idx][col]
-            row_data = {k: v for k, v in row_data.items() if k not in synopsis_columns or k == col}
-            row_data.update({
-                "rank": len(results) + 1,
-                "similarity": float(cosine_similarities_dict[col][idx]),
-                "synopsis": relevant_synopsis  # Ensure the correct synopsis is included
-            })
+            row_data = {
+                k: v
+                for k, v in row_data.items()
+                if k not in synopsis_columns or k == col
+            }
+            row_data.update(
+                {
+                    "rank": len(results) + 1,
+                    "similarity": float(cosine_similarities_dict[col][idx]),
+                    "synopsis": relevant_synopsis,  # Ensure the correct synopsis is included
+                }
+            )
             results.append(row_data)
             seen_names.add(name)
             if len(results) >= 10:
@@ -343,7 +362,7 @@ def get_similarities(model_name, description, dataset_type):
 
 @app.route("/anisearchmodel/anime", methods=["POST"])
 @limiter.limit("1 per second")
-def get_anime_similarities():
+def get_anime_similarities() -> Response:
     """
     Handle POST requests to find and return the top N most similar anime descriptions.
 
@@ -377,15 +396,15 @@ def get_anime_similarities():
 
     except ValueError as e:
         logging.error("Validation error: %s", e)
-        return jsonify({"error": "Bad Request"}), 400
+        return make_response(jsonify({"error": "Bad Request"}), 400)
     except Exception as e:  # pylint: disable=broad-exception-caught
         logging.error("Internal server error: %s", e)
-        return jsonify({"error": "Internal server error"}), 500
+        return make_response(jsonify({"error": "Internal server error"}), 500)
 
 
 @app.route("/anisearchmodel/manga", methods=["POST"])  # type: ignore
 @limiter.limit("1 per second")
-def get_manga_similarities():
+def get_manga_similarities() -> Response:
     """
     Handle POST requests to find and return the top N most similar manga descriptions.
 
@@ -419,10 +438,10 @@ def get_manga_similarities():
 
     except HTTPException as e:
         logging.error("HTTP error: %s", e)
-        return jsonify({"error": e.description}), e.code
+        return make_response(jsonify({"error": e.description}), e.code)
     except Exception as e:  # pylint: disable=broad-exception-caught
         logging.error("Internal server error: %s", e)
-        return jsonify({"error": "Internal server error"}), 500
+        return make_response(jsonify({"error": "Internal server error"}), 500)
 
 
 if __name__ == "__main__":

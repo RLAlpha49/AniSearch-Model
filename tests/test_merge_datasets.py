@@ -9,6 +9,7 @@ The tests cover:
 - Addition of additional synopsis information to the merged DataFrame.
 """
 
+from typing import Union
 from unittest.mock import patch
 import pytest
 import pandas as pd
@@ -22,7 +23,7 @@ from src.merge_datasets import (
 
 
 @pytest.mark.order(1)
-def test_preprocess_name():
+def test_preprocess_name() -> None:
     """
     Test the preprocess_name function to ensure it correctly preprocesses names
     by converting them to lowercase and stripping whitespace.
@@ -36,7 +37,7 @@ def test_preprocess_name():
 
 
 @pytest.mark.order(2)
-def test_clean_synopsis():
+def test_clean_synopsis() -> None:
     """
     Test the clean_synopsis function to ensure it correctly cleans the synopsis column
     by removing unwanted phrases.
@@ -60,7 +61,7 @@ def test_clean_synopsis():
 
 
 @pytest.mark.order(3)
-def test_consolidate_titles():
+def test_consolidate_titles() -> None:
     """
     Test the consolidate_titles function to ensure it correctly consolidates multiple title columns
     into a single 'title' column.
@@ -85,7 +86,7 @@ def test_consolidate_titles():
 
 
 @pytest.mark.order(4)
-def test_remove_duplicate_infos():
+def test_remove_duplicate_infos() -> None:
     """
     Test the remove_duplicate_infos function to ensure it correctly removes duplicate synopses
     across specified columns.
@@ -122,7 +123,7 @@ def test_remove_duplicate_infos():
 
 @pytest.mark.order(5)
 @patch("src.merge_datasets.find_additional_info")
-def test_add_additional_info(mock_find_additional_info):
+def test_add_additional_info(mock_find_additional_info: patch) -> None:  # type: ignore
     """
     Test the add_additional_info function to ensure it correctly adds additional synopsis
     information to the merged DataFrame when at least one title is present.
@@ -150,7 +151,12 @@ def test_add_additional_info(mock_find_additional_info):
     )
 
     # Define a mock function to simulate find_additional_info behavior
-    def mock_find_info(row, additional_df, description_col, name_columns):  # pylint: disable=W0613
+    def mock_find_info(
+        row: pd.Series,
+        additional_df: pd.DataFrame,  # pylint: disable=W0613
+        description_col: str,  # pylint: disable=W0613
+        name_columns: list,  # pylint: disable=W0613
+    ) -> Union[str, None]:
         if (
             pd.notna(row["title_english"])
             and row["title_english"].strip().lower() == "naruto"
@@ -183,7 +189,7 @@ def test_add_additional_info(mock_find_additional_info):
 
 @pytest.mark.order(6)
 @patch("src.merge_datasets.find_additional_info")
-def test_add_additional_info_no_match(mock_find_additional_info):
+def test_add_additional_info_no_match(mock_find_additional_info: patch) -> None:  # type: ignore
     """
     Test the add_additional_info function when there are no matching additional info entries
     for some rows in the merged DataFrame, considering multiple title columns.
@@ -211,7 +217,12 @@ def test_add_additional_info_no_match(mock_find_additional_info):
     )
 
     # Define a mock function to simulate find_additional_info behavior
-    def mock_find_info(row, additional_df, description_col, name_columns):  # pylint: disable=W0613
+    def mock_find_info(
+        row: pd.Series,
+        additional_df: pd.DataFrame,  # pylint: disable=W0613
+        description_col: str,  # pylint: disable=W0613
+        name_columns: list,  # pylint: disable=W0613
+    ) -> Union[str, None]:
         if (
             pd.notna(row["title_english"])
             and row["title_english"].strip().lower() == "naruto"
@@ -250,7 +261,7 @@ def test_add_additional_info_no_match(mock_find_additional_info):
 
 @pytest.mark.order(7)
 @patch("src.merge_datasets.find_additional_info")
-def test_add_additional_info_partial_titles(mock_find_additional_info):
+def test_add_additional_info_partial_titles(mock_find_additional_info: patch) -> None:  # type: ignore
     """
     Test the add_additional_info function to ensure it correctly adds synopses
     when some title columns are NA but at least one title is present.
@@ -279,7 +290,12 @@ def test_add_additional_info_partial_titles(mock_find_additional_info):
     )
 
     # Define a mock function to simulate find_additional_info behavior
-    def mock_find_info(row, additional_df, description_col, name_columns):  # pylint: disable=W0613
+    def mock_find_info(
+        row: pd.Series,
+        additional_df: pd.DataFrame,  # pylint: disable=W0613
+        description_col: str,  # pylint: disable=W0613
+        name_columns: list,  # pylint: disable=W0613
+    ) -> Union[str, None]:
         if (
             pd.notna(row["title_english"])
             and row["title_english"].strip().lower() == "naruto"
@@ -321,7 +337,7 @@ def test_add_additional_info_partial_titles(mock_find_additional_info):
 
 @pytest.mark.order(8)
 @patch("src.merge_datasets.find_additional_info")
-def test_add_additional_info_all_titles_na(mock_find_additional_info):
+def test_add_additional_info_all_titles_na(mock_find_additional_info: patch) -> None:  # type: ignore
     """
     Test the add_additional_info function to ensure it skips rows where all title columns are NA.
     """
@@ -345,7 +361,12 @@ def test_add_additional_info_all_titles_na(mock_find_additional_info):
     )
 
     # Define a mock function to simulate find_additional_info behavior
-    def mock_find_info(row, additional_df, description_col, name_columns):  # pylint: disable=W0613
+    def mock_find_info(
+        row: pd.Series,
+        additional_df: pd.DataFrame,  # pylint: disable=W0613
+        description_col: str,  # pylint: disable=W0613
+        name_columns: list,  # pylint: disable=W0613
+    ) -> Union[str, None]:
         if (
             pd.notna(row["title_english"])
             and row["title_english"].strip().lower() == "bleach"
@@ -373,7 +394,7 @@ def test_add_additional_info_all_titles_na(mock_find_additional_info):
 
 @pytest.mark.order(9)
 @patch("src.merge_datasets.find_additional_info")
-def test_add_additional_info_whitespace_case(mock_find_additional_info):
+def test_add_additional_info_whitespace_case(mock_find_additional_info: patch) -> None:  # type: ignore
     """
     Test the add_additional_info function to ensure it correctly handles titles with
     leading/trailing whitespaces and different cases.
@@ -401,7 +422,12 @@ def test_add_additional_info_whitespace_case(mock_find_additional_info):
     )
 
     # Define a mock function to simulate find_additional_info behavior
-    def mock_find_info(row, additional_df, description_col, name_columns):  # pylint: disable=W0613
+    def mock_find_info(
+        row: pd.Series,
+        additional_df: pd.DataFrame,  # pylint: disable=W0613
+        description_col: str,  # pylint: disable=W0613
+        name_columns: list,  # pylint: disable=W0613
+    ) -> Union[str, None]:
         if (
             pd.notna(row["title_english"])
             and row["title_english"].strip().lower() == "naruto"

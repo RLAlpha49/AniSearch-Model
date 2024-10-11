@@ -14,6 +14,7 @@ import argparse
 import logging
 from logging.handlers import RotatingFileHandler
 import sys
+from typing import Any, Optional
 import pandas as pd
 from tqdm import tqdm
 from datasets import load_dataset
@@ -50,7 +51,7 @@ logging.basicConfig(
 
 
 # Parse command-line arguments
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """
     Parses command-line arguments for the dataset merging script.
 
@@ -73,7 +74,7 @@ def parse_args():
 
 
 # Function to clean synopses
-def clean_synopsis(df, synopsis_col, unwanted_phrase):
+def clean_synopsis(df: pd.DataFrame, synopsis_col: str, unwanted_phrase: str) -> None:
     """
     Sets the synopsis to empty string if it contains an unwanted phrase.
 
@@ -89,7 +90,7 @@ def clean_synopsis(df, synopsis_col, unwanted_phrase):
 
 
 # Function to consolidate titles into a single 'title' column
-def consolidate_titles(df, title_columns):
+def consolidate_titles(df: pd.DataFrame, title_columns: list) -> pd.Series:
     """
     Consolidates multiple title columns into a single 'title' column.
 
@@ -129,7 +130,7 @@ def consolidate_titles(df, title_columns):
 
 
 # Preprocess names by converting to lowercase and stripping whitespace
-def preprocess_name(name):
+def preprocess_name(name: Any) -> str:
     """
     Preprocesses a given name by converting it to a lowercase string and removing
     leading/trailing whitespace.
@@ -147,7 +148,12 @@ def preprocess_name(name):
     return str(name).strip().lower()
 
 
-def find_additional_info(row, additional_df, description_col, name_columns):
+def find_additional_info(
+    row: pd.Series,
+    additional_df: pd.DataFrame,
+    description_col: str,
+    name_columns: list,
+) -> Optional[str]:
     """
     Finds additional information for a given row based on matching names.
 
@@ -189,8 +195,12 @@ def find_additional_info(row, additional_df, description_col, name_columns):
 
 # Function to add additional synopses or descriptions
 def add_additional_info(
-    merged, additional_df, description_col, name_columns, new_synopsis_col
-):
+    merged: pd.DataFrame,
+    additional_df: pd.DataFrame,
+    description_col: str,
+    name_columns: list[str],
+    new_synopsis_col: str,
+) -> pd.DataFrame:
     """
     Adds additional synopsis information to a merged DataFrame from an additional DataFrame.
 
@@ -234,7 +244,7 @@ def add_additional_info(
 
 
 # Function to remove duplicate information from specified columns
-def remove_duplicate_infos(df, info_cols):
+def remove_duplicate_infos(df: pd.DataFrame, info_cols: list[str]) -> pd.DataFrame:
     """
     Removes duplicate information across specified synopsis columns,
     keeping the first non-null value.
@@ -262,7 +272,7 @@ def remove_duplicate_infos(df, info_cols):
 
 
 # Function to merge anime datasets
-def merge_anime_datasets():
+def merge_anime_datasets() -> pd.DataFrame:
     """
     Merges multiple anime datasets into a single DataFrame.
 
@@ -273,26 +283,30 @@ def merge_anime_datasets():
     try:
         # Load datasets
         logging.info("Loading anime datasets from CSV files.")
-        myanimelist_dataset = pd.read_csv("data/anime/Anime.csv")  # Base dataset
-        anime_dataset_2023 = pd.read_csv("data/anime/anime-dataset-2023.csv")
-        animes = pd.read_csv("data/anime/animes.csv")
-        anime_4500 = pd.read_csv("data/anime/anime4500.csv")
-        anime_2022 = pd.read_csv("data/anime/Anime-2022.csv")
-        anime_data = pd.read_csv("data/anime/Anime_data.csv")
-        anime2 = pd.read_csv("data/anime/anime2.csv")
-        mal_anime = pd.read_csv("data/anime/mal_anime.csv")
+        myanimelist_dataset: pd.DataFrame = pd.read_csv(
+            "data/anime/Anime.csv"
+        )  # Base dataset
+        anime_dataset_2023: pd.DataFrame = pd.read_csv(
+            "data/anime/anime-dataset-2023.csv"
+        )
+        animes: pd.DataFrame = pd.read_csv("data/anime/animes.csv")
+        anime_4500: pd.DataFrame = pd.read_csv("data/anime/anime4500.csv")
+        anime_2022: pd.DataFrame = pd.read_csv("data/anime/Anime-2022.csv")
+        anime_data: pd.DataFrame = pd.read_csv("data/anime/Anime_data.csv")
+        anime2: pd.DataFrame = pd.read_csv("data/anime/anime2.csv")
+        mal_anime: pd.DataFrame = pd.read_csv("data/anime/mal_anime.csv")
 
         # Load using the datasets library
         logging.info("Loading 'anime_270' dataset from Hugging Face datasets.")
         anime_270 = load_dataset("johnidouglas/anime_270", split="train")  # 269 Rows
-        anime_270_df = anime_270.to_pandas()  # type: ignore
+        anime_270_df: pd.DataFrame = anime_270.to_pandas()  # type: ignore
 
         logging.info("Loading 'wykonos/anime' dataset from Hugging Face datasets.")
         wykonos_dataset = load_dataset("wykonos/anime", split="train")  # 18495 Rows
-        wykonos_dataset_df = wykonos_dataset.to_pandas()  # type: ignore
+        wykonos_dataset_df: pd.DataFrame = wykonos_dataset.to_pandas()  # type: ignore
 
         # Drop specified columns from myanimelist_dataset
-        columns_to_drop = [
+        columns_to_drop: list[str] = [
             "scored_by",
             "status",
             "source",
@@ -317,7 +331,7 @@ def merge_anime_datasets():
         myanimelist_dataset.drop(columns=columns_to_drop, inplace=True, errors="ignore")
 
         # Check for duplicates in the keys and remove them
-        duplicate_checks = [
+        duplicate_checks: list[tuple[str, pd.DataFrame, str]] = [
             ("anime_id", myanimelist_dataset, "myanimelist_dataset"),
             ("anime_id", anime_dataset_2023, "anime_dataset_2023"),
             ("uid", animes, "animes"),
@@ -335,7 +349,7 @@ def merge_anime_datasets():
 
         # Preprocess names for matching
         logging.info("Preprocessing names for matching.")
-        preprocess_columns = {
+        preprocess_columns: dict[str, list[str]] = {
             "myanimelist_dataset": ["title", "title_english", "title_japanese"],
             "anime_dataset_2023": ["Name", "English name", "Other name"],
             "anime_4500": ["Title"],
@@ -346,7 +360,7 @@ def merge_anime_datasets():
         }
 
         for df_name, cols in preprocess_columns.items():
-            df = locals()[df_name]
+            df: pd.DataFrame = locals()[df_name]
             for col in cols:
                 if col in df.columns:
                     logging.info("Preprocessing column '%s' in '%s'.", col, df_name)
@@ -369,7 +383,7 @@ def merge_anime_datasets():
 
         # Merge datasets on 'anime_id'
         logging.info("Merging 'myanimelist_dataset' with 'anime_dataset_2023'.")
-        final_merged_df = pd.merge(
+        final_merged_df: pd.DataFrame = pd.merge(
             myanimelist_dataset,
             anime_dataset_2023[["anime_id", "Synopsis", "Name"]].rename(
                 columns={"Name": "title_anime_dataset_2023"}
@@ -431,7 +445,7 @@ def merge_anime_datasets():
 
         # Consolidate all title columns into a single 'title' column
         logging.info("Consolidating all title columns into a single 'title' column.")
-        title_columns = [
+        title_columns: list[str] = [
             "title_anime_dataset_2023",
             "title_animes",
             "title_anime_270",
@@ -482,7 +496,7 @@ def merge_anime_datasets():
         )
 
         # Remove duplicate synopses
-        synopsis_cols = [
+        synopsis_cols: list[str] = [
             "Synopsis anime_dataset_2023",
             "Synopsis animes dataset",
             "Synopsis anime_270 Dataset",
@@ -504,8 +518,8 @@ def merge_anime_datasets():
         logging.info(
             "Saving the merged anime dataset to 'model/merged_anime_dataset.csv'."
         )
-        chunk_size = 1000
-        total_chunks = (len(final_merged_df) // chunk_size) + 1
+        chunk_size: int = 1000
+        total_chunks: int = (len(final_merged_df) // chunk_size) + 1
 
         with open(
             "model/merged_anime_dataset.csv", "w", newline="", encoding="utf-8"
@@ -514,13 +528,14 @@ def merge_anime_datasets():
             final_merged_df.iloc[:0].to_csv(f, index=False)
             logging.info("Writing data in chunks of %d.", chunk_size)
             for i in tqdm(range(total_chunks), desc="Saving to CSV"):
-                start = i * chunk_size
-                end = start + chunk_size
+                start: int = i * chunk_size
+                end: int = start + chunk_size
                 final_merged_df.iloc[start:end].to_csv(f, header=False, index=False)
 
         logging.info(
             "Anime datasets merged and saved to 'model/merged_anime_dataset.csv'."
         )
+        return final_merged_df
     except Exception as e:
         logging.error(
             "An error occurred while merging anime datasets: %s", e, exc_info=True
@@ -529,7 +544,7 @@ def merge_anime_datasets():
 
 
 # Function to merge manga datasets
-def merge_manga_datasets():
+def merge_manga_datasets() -> pd.DataFrame:
     """
     Merges multiple manga datasets into a single DataFrame.
 
@@ -540,12 +555,12 @@ def merge_manga_datasets():
     try:
         # Load datasets
         logging.info("Loading manga datasets from CSV files.")
-        manga_main = pd.read_csv("data/manga/manga.csv")  # Base dataset
-        jikan = pd.read_csv("data/manga/jikan.csv")
-        data = pd.read_csv("data/manga/data.csv")
+        manga_main: pd.DataFrame = pd.read_csv("data/manga/manga.csv")  # Base dataset
+        jikan: pd.DataFrame = pd.read_csv("data/manga/jikan.csv")
+        data: pd.DataFrame = pd.read_csv("data/manga/data.csv")
 
         # Drop specified columns from manga_main if necessary
-        columns_to_drop = [
+        columns_to_drop: list[str] = [
             "scored_by",
             "members",
             "favorites",
@@ -562,7 +577,7 @@ def merge_manga_datasets():
         manga_main.drop(columns=columns_to_drop, inplace=True, errors="ignore")
 
         # Check for duplicates in the keys and remove them
-        duplicate_checks = [
+        duplicate_checks: list[tuple[str, pd.DataFrame, str]] = [
             ("manga_id", manga_main, "manga_main"),
             ("mal_id", jikan, "jikan"),
             ("title", data, "data"),
@@ -579,14 +594,14 @@ def merge_manga_datasets():
 
         # Preprocess names for matching
         logging.info("Preprocessing names for matching.")
-        preprocess_columns = {
+        preprocess_columns: dict[str, list[str]] = {
             "manga_main": ["title", "title_english", "title_japanese"],
             "jikan": ["title"],
             "data": ["title"],
         }
 
         for df_name, cols in preprocess_columns.items():
-            df = locals()[df_name]
+            df: pd.DataFrame = locals()[df_name]
             for col in cols:
                 if col in df.columns:
                     logging.info("Preprocessing column '%s' in '%s'.", col, df_name)
@@ -603,7 +618,7 @@ def merge_manga_datasets():
         logging.info(
             "Merging 'manga_main' with 'jikan' dataset on 'manga_id' and 'mal_id'."
         )
-        merged_df = pd.merge(
+        merged_df: pd.DataFrame = pd.merge(
             manga_main,
             jikan[["mal_id", "synopsis", "title"]].rename(
                 columns={"title": "title_jikan"}
@@ -630,7 +645,7 @@ def merge_manga_datasets():
         )
 
         # Remove duplicate synopses and descriptions
-        info_cols = [
+        info_cols: list[str] = [
             "Synopsis jikan Dataset",
             "Synopsis data Dataset",
         ]
@@ -645,8 +660,8 @@ def merge_manga_datasets():
         logging.info(
             "Saving the merged manga dataset to 'model/merged_manga_dataset.csv'."
         )
-        chunk_size = 1000
-        total_chunks = (len(merged_df) // chunk_size) + 1
+        chunk_size: int = 1000
+        total_chunks: int = (len(merged_df) // chunk_size) + 1
 
         with open(
             "model/merged_manga_dataset.csv", "w", newline="", encoding="utf-8"
@@ -655,13 +670,14 @@ def merge_manga_datasets():
             merged_df.iloc[:0].to_csv(f, index=False)
             logging.info("Writing data in chunks of %d.", chunk_size)
             for i in tqdm(range(total_chunks), desc="Saving to CSV"):
-                start = i * chunk_size
-                end = start + chunk_size
+                start: int = i * chunk_size
+                end: int = start + chunk_size
                 merged_df.iloc[start:end].to_csv(f, header=False, index=False)
 
         logging.info(
             "Manga datasets merged and saved to 'model/merged_manga_dataset.csv'."
         )
+        return merged_df
     except Exception as e:
         logging.error(
             "An error occurred while merging manga datasets: %s", e, exc_info=True
@@ -669,7 +685,7 @@ def merge_manga_datasets():
         raise
 
 
-def main():
+def main() -> None:
     """
     Main function to parse command-line arguments and merge datasets.
 
@@ -678,7 +694,7 @@ def main():
     datasets. If an invalid type is specified, it logs an error message.
     """
     args = parse_args()
-    dataset_type = args.type
+    dataset_type: str = args.type
     logging.info("Dataset type specified: '%s'.", dataset_type)
 
     if dataset_type == "anime":

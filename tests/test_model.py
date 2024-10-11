@@ -6,6 +6,7 @@ similarities are calculated, and evaluation results are saved properly.
 
 import os
 import json
+from typing import List, Dict
 import pytest
 from src.test import (
     load_model_and_embeddings,
@@ -15,7 +16,7 @@ from src.test import (
 
 
 @pytest.fixture
-def new_description():
+def new_description() -> str:
     """
     Fixture that provides a new description for testing.
 
@@ -29,7 +30,7 @@ def new_description():
 
 
 @pytest.mark.order(11)
-def test_anime_model(new_description, model_name):  # pylint: disable=redefined-outer-name
+def test_anime_model(new_description: str, model_name: str) -> None:  # pylint: disable=redefined-outer-name
     """
     Test the anime model by loading the model and embeddings, calculating similarities,
     and saving the evaluation results. The test ensures that the top results have the
@@ -45,7 +46,7 @@ def test_anime_model(new_description, model_name):  # pylint: disable=redefined-
     model, df, synopsis_columns, embeddings_save_dir = load_model_and_embeddings(
         model_name, dataset_type
     )
-    top_results = calculate_similarities(
+    top_results: List[Dict[str, float]] = calculate_similarities(
         model, df, synopsis_columns, embeddings_save_dir, new_description, top_n
     )
 
@@ -77,7 +78,7 @@ def test_anime_model(new_description, model_name):  # pylint: disable=redefined-
 
 
 @pytest.mark.order(12)
-def test_manga_model(new_description, model_name):  # pylint: disable=redefined-outer-name
+def test_manga_model(new_description: str, model_name: str) -> None:  # pylint: disable=redefined-outer-name
     """
     Test the manga model by loading the model and embeddings, calculating similarities,
     and saving the evaluation results. The test ensures that the top results have the
@@ -93,7 +94,7 @@ def test_manga_model(new_description, model_name):  # pylint: disable=redefined-
     model, df, synopsis_columns, embeddings_save_dir = load_model_and_embeddings(
         model_name, dataset_type
     )
-    top_results = calculate_similarities(
+    top_results: List[Dict[str, float]] = calculate_similarities(
         model, df, synopsis_columns, embeddings_save_dir, new_description, top_n
     )
 

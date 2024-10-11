@@ -13,7 +13,7 @@ import platform
 import subprocess
 
 
-def run_server():
+def run_server() -> None:
     """
     Determine the operating system and start the Flask application using the appropriate server.
 
@@ -23,7 +23,7 @@ def run_server():
 
     This function uses the `subprocess.run` method to execute the server command.
     """
-    os_type = platform.system()
+    os_type: str = platform.system()
 
     if os_type == "Linux":
         # Use Gunicorn on Linux

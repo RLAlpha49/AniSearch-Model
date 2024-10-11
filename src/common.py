@@ -8,11 +8,12 @@ import os
 import re
 import json
 from datetime import datetime
+from typing import Optional, Dict, Any
 import pandas as pd
 
 
 # Load the dataset
-def load_dataset(file_path):
+def load_dataset(file_path: str) -> pd.DataFrame:
     """
     Load dataset from a CSV file and fill missing values in the 'Synopsis' column.
 
@@ -28,7 +29,7 @@ def load_dataset(file_path):
 
 
 # Basic text preprocessing
-def preprocess_text(text):
+def preprocess_text(text: Optional[str]) -> str:
     """
     Preprocess the input text by converting it to lowercase and removing extra spaces.
 
@@ -47,7 +48,12 @@ def preprocess_text(text):
 
 
 # Save evaluation data
-def save_evaluation_data(model_name, batch_size, num_embeddings, additional_info=None):
+def save_evaluation_data(
+    model_name: str,
+    batch_size: int,
+    num_embeddings: int,
+    additional_info: Optional[Dict[str, Any]] = None,
+) -> None:
     """
     Save evaluation data including timestamp and model parameters to a JSON file.
 

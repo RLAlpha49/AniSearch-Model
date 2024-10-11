@@ -15,13 +15,15 @@ import os
 import time
 import warnings
 import argparse
+from typing import Dict, Any
+import pandas as pd
 import numpy as np
 from tqdm import tqdm
 import torch
 from transformers import AutoModel
 
 # Add the project root to the Python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src import common  # pylint: disable=wrong-import-position
 
@@ -54,7 +56,7 @@ warnings.filterwarnings(
 
 
 # Parse command-line arguments
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """
     Parses command-line arguments for the SBERT embedding generation script.
 
@@ -85,8 +87,13 @@ def parse_args():
 
 # Function to get SBERT embeddings
 def get_sbert_embeddings(
-    dataframe, sbert_model, batch_size, column_name, model_name, device
-):
+    dataframe: pd.DataFrame,
+    sbert_model: SentenceTransformer,
+    batch_size: int,
+    column_name: str,
+    model_name: str,
+    device: str,
+) -> np.ndarray:
     """
     Generate SBERT embeddings for a given DataFrame column using batched processing.
 
@@ -95,6 +102,8 @@ def get_sbert_embeddings(
         sbert_model (SentenceTransformer): The SBERT model to use for generating embeddings.
         batch_size (int): The number of texts to process in each batch.
         column_name (str): The name of the DataFrame column containing the text data.
+        model_name (str): The name of the model being used.
+        device (str): The device to use for computation ('cpu' or 'cuda').
 
     Returns:
         numpy.ndarray: A 2D array of embeddings, each row corresponds to a text in input DataFrame.
@@ -130,7 +139,7 @@ def get_sbert_embeddings(
 
 
 # Run by test_
-def main():
+def main() -> None:
     """
     Main function to execute the embedding generation process.
     """
@@ -217,7 +226,7 @@ def main():
     )
 
     # Measure the time taken to generate embeddings for each column
-    all_embeddings = {}
+    all_embeddings: Dict[str, np.ndarray] = {}
     start_time = time.time()
     for col in synopsis_columns:
         processed_col = f"Processed_{col}"
@@ -239,7 +248,7 @@ def main():
             print(f"No embeddings generated for column: {col}")
 
     # Prepare evaluation data
-    additional_info = {
+    additional_info: Dict[str, Any] = {
         "dataset_info": {
             "num_samples": len(df),
             "preprocessing": "text normalization",

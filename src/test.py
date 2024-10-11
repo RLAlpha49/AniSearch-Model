@@ -18,7 +18,9 @@ import os
 import warnings
 import json
 from datetime import datetime
+from typing import List, Tuple, Dict, Any
 import numpy as np
+import pandas as pd
 import torch
 from sentence_transformers import SentenceTransformer, util
 from src import common
@@ -47,7 +49,9 @@ warnings.filterwarnings(
 )
 
 
-def load_model_and_embeddings(model_name, dataset_type):
+def load_model_and_embeddings(
+    model_name: str, dataset_type: str
+) -> Tuple[SentenceTransformer, pd.DataFrame, List[str], str]:
     """
     Load the model and embeddings for a given dataset type.
 
@@ -97,8 +101,13 @@ def load_model_and_embeddings(model_name, dataset_type):
 
 
 def calculate_similarities(
-    model, df, synopsis_columns, embeddings_save_dir, new_description, top_n=10
-):
+    model: SentenceTransformer,
+    df: pd.DataFrame,
+    synopsis_columns: List[str],
+    embeddings_save_dir: str,
+    new_description: str,
+    top_n: int = 10,
+) -> List[Dict[str, Any]]:
     """
     Calculate the cosine similarities between a new description and existing embeddings.
 
@@ -158,7 +167,7 @@ def calculate_similarities(
     )
 
     seen_names = set()
-    top_results = []
+    top_results: List[Dict[str, Any]] = []
     for idx, col in all_top_indices:
         if len(top_results) >= top_n:
             break
@@ -182,8 +191,12 @@ def calculate_similarities(
 
 
 def save_evaluation_results(
-    evaluation_file, model_name, dataset_type, new_description, top_results
-):
+    evaluation_file: str,
+    model_name: str,
+    dataset_type: str,
+    new_description: str,
+    top_results: List[Dict[str, Any]],
+) -> str:
     """
     Save the evaluation results to a JSON file.
 

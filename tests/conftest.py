@@ -6,9 +6,11 @@ to retrieve the model name from the command line options.
 """
 
 import pytest
+from _pytest.config.argparsing import Parser
+from _pytest.fixtures import FixtureRequest
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: Parser) -> None:
     """
     Add a command line option to specify the model name for tests.
 
@@ -24,7 +26,7 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture
-def model_name(request):
+def model_name(request: FixtureRequest) -> str:
     """
     Fixture to retrieve the model name from the command line options.
 
@@ -34,4 +36,4 @@ def model_name(request):
     Returns:
         str: The model name specified in the command line options.
     """
-    return request.config.getoption("--model")
+    return str(request.config.getoption("--model"))

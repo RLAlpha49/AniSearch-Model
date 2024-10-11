@@ -10,11 +10,14 @@ import subprocess
 import sys
 import os
 import json
+from typing import List
 import numpy as np
 import pytest
 
 
-def run_sbert_command_and_verify(model_name, dataset_type, expected_files):
+def run_sbert_command_and_verify(
+    model_name: str, dataset_type: str, expected_files: List[str]
+) -> None:
     """
     Run the SBERT command-line script and verify the generated embeddings and
     evaluation results.
@@ -22,7 +25,7 @@ def run_sbert_command_and_verify(model_name, dataset_type, expected_files):
     Args:
         model_name (str): The name of the model to be used.
         dataset_type (str): The type of dataset ('anime' or 'manga').
-        expected_files (list): List of expected embedding file names.
+        expected_files (List[str]): List of expected embedding file names.
 
     Raises:
         AssertionError: If the script fails, embeddings files are not created,
@@ -102,7 +105,9 @@ def run_sbert_command_and_verify(model_name, dataset_type, expected_files):
     ],
 )
 @pytest.mark.order(10)
-def test_run_sbert_command_line(model_name, dataset_type, expected_files):
+def test_run_sbert_command_line(
+    model_name: str, dataset_type: str, expected_files: List[str]
+) -> None:
     """
     Test the SBERT command line script by running it with the specified model name
     and dataset type. Verify that the expected embedding files are created and the
@@ -111,6 +116,6 @@ def test_run_sbert_command_line(model_name, dataset_type, expected_files):
     Args:
         model_name (str): The name of the model to be tested.
         dataset_type (str): The type of dataset ('anime' or 'manga').
-        expected_files (list): List of expected embedding file names.
+        expected_files (List[str]): List of expected embedding file names.
     """
     run_sbert_command_and_verify(model_name, dataset_type, expected_files)

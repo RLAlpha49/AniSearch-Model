@@ -9,12 +9,14 @@ different scenarios.
 
 import time
 from unittest.mock import patch
+from typing import Generator
 import pytest
+from flask.testing import FlaskClient
 from src.api import app
 
 
 @pytest.fixture
-def client():
+def client() -> Generator[FlaskClient, None, None]:
     """
     Fixture to create a test client for the Flask application.
     """
@@ -24,7 +26,7 @@ def client():
 
 
 @pytest.mark.order(13)
-def test_get_manga_similarities_success(client, model_name):  # pylint: disable=W0621
+def test_get_manga_similarities_success(client: FlaskClient, model_name: str) -> None:  # pylint: disable=W0621
     """
     Test the /anisearchmodel/manga endpoint with valid input.
 
@@ -71,7 +73,11 @@ def test_get_manga_similarities_success(client, model_name):  # pylint: disable=
     ],
 )
 @pytest.mark.order(14)
-def test_get_manga_similarities_invalid_input(client, payload, expected_error):  # pylint: disable=W0621
+def test_get_manga_similarities_invalid_input(
+    client: FlaskClient,  # pylint: disable=W0621
+    payload: dict,
+    expected_error: str,
+) -> None:
     """
     Test the /anisearchmodel/manga endpoint with invalid inputs.
 
@@ -87,7 +93,10 @@ def test_get_manga_similarities_invalid_input(client, payload, expected_error): 
 
 
 @pytest.mark.order(15)
-def test_get_manga_similarities_internal_error(client, model_name):  # pylint: disable=W0621
+def test_get_manga_similarities_internal_error(
+    client: FlaskClient,  # pylint: disable=W0621
+    model_name: str,
+) -> None:
     """
     Test the /anisearchmodel/manga endpoint for internal server errors.
 
