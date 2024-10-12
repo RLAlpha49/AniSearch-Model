@@ -29,6 +29,13 @@ from flask_limiter.util import get_remote_address
 from sentence_transformers import SentenceTransformer, util
 from werkzeug.exceptions import HTTPException
 
+# Determine the device to use based on the environment variable
+device = (
+    "cuda"
+    if os.getenv("DEVICE", "cpu") == "cuda" and torch.cuda.is_available()
+    else "cpu"
+)
+
 # Disable oneDNN for TensorFlow
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
@@ -249,10 +256,10 @@ def calculate_cosine_similarities(
     existing_embeddings = load_embeddings(model_name, col, dataset_type)
     if existing_embeddings.shape[1] != model.get_sentence_embedding_dimension():
         raise ValueError(f"Incompatible dimension for embeddings in {col}")
+    new_embedding_tensor = torch.tensor(new_embedding).to(device)
+    existing_embeddings_tensor = torch.tensor(existing_embeddings).to(device)
     return (
-        util.pytorch_cos_sim(
-            torch.tensor(new_embedding), torch.tensor(existing_embeddings)
-        )
+        util.pytorch_cos_sim(new_embedding_tensor, existing_embeddings_tensor)
         .flatten()
         .cpu()
         .numpy()
@@ -472,4 +479,4 @@ def get_manga_similarities() -> Response:
 
 if __name__ == "__main__":
     debug_mode = os.getenv("FLASK_DEBUG", "False").lower() in ["true", "1"]
-    app.run(debug=debug_mode, threaded=True)
+    app.run(debug=debug_mode, threaded=True, port=21493)

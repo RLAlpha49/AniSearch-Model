@@ -257,7 +257,7 @@ Replace `<model_name>` with the name of the model you want to test.
 
 ### Running the Flask Application
 
-To run the Flask application, use the `run_server.py` script. This script automatically determines the operating system and uses the appropriate server:
+To run the Flask application, use the `run_server.py` script. This script automatically determines the operating system and uses the appropriate server. You can also specify whether to use CUDA or CPU for processing:
 
 - On **Linux**, it uses Gunicorn.
 - On **Windows**, it uses Waitress.
@@ -265,8 +265,10 @@ To run the Flask application, use the `run_server.py` script. This script automa
 Run the script with:
 
 ```bash
-python src/run_server.py
+python src/run_server.py [cuda|cpu]
 ```
+
+Replace `[cuda|cpu]` with your desired device. If no device is specified, it defaults to `cpu`.
 
 The application will be accessible at `http://0.0.0.0:5000/anisearchmodel`.
 
