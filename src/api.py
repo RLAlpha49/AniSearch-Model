@@ -20,6 +20,7 @@ import time
 import sys
 from typing import Any, List, Dict, Tuple
 from flask import Flask, request, jsonify, abort, Response, make_response
+from flask_cors import CORS
 import numpy as np
 import pandas as pd
 import torch
@@ -73,6 +74,7 @@ logging.basicConfig(
 )
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "https://anisearch.alpha49.com"}})
 
 # Variable to track the last request time
 last_request_time = time.time()
