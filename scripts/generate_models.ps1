@@ -15,7 +15,7 @@ Get-Content models.txt | ForEach-Object {
     if ($startProcessing) {
         foreach ($datasetType in $datasetTypes) {
             Write-Host "Generating embeddings for model: $_ on dataset: $datasetType"
-            python sbert.py --model "$_" --type "$datasetType"
+            python ./src/sbert.py --model "$_" --type "$datasetType"
         }
     }
 }

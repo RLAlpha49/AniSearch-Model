@@ -19,7 +19,7 @@ for /f "delims=" %%m in (models.txt) do (
     if "%start_processing%"=="true" (
         for %%d in (%dataset_types%) do (
             echo Generating embeddings for model: %%m on dataset: %%d
-            python sbert.py --model "%%m" --type "%%d"
+            python ./src/sbert.py --model "%%m" --type "%%d"
         )
     )
 )

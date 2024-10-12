@@ -16,7 +16,7 @@ while IFS= read -r model; do
     if [ "$start_processing" = true ]; then
         for dataset_type in "${dataset_types[@]}"; do
             echo "Generating embeddings for model: $model on dataset: $dataset_type"
-            python sbert.py --model "$model" --type "$dataset_type"
+            python ./src/sbert.py --model "$model" --type "$dataset_type"
         done
     fi
 done < models.txt
