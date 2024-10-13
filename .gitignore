@@ -2,6 +2,7 @@
 /__pycache__
 **/__pycache__
 /venv
+/venv_linux
 /model/anime/*
 /model/manga/*
 /model/evaluation_results.json

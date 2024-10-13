@@ -10,7 +10,6 @@ columns from a dataset and returns the top N most similar descriptions.
 
 # pylint: disable=import-error, global-variable-not-assigned, global-statement
 
-from logging.handlers import RotatingFileHandler
 import os
 import warnings
 import logging
@@ -19,6 +18,7 @@ import threading
 import time
 import sys
 from typing import Any, List, Dict, Tuple
+from concurrent_log_handler import ConcurrentRotatingFileHandler
 from flask import Flask, request, jsonify, abort, Response, make_response
 from flask_cors import CORS
 import numpy as np
@@ -57,7 +57,7 @@ CONSOLE_LOGGING_LEVEL = logging.INFO
 if not os.path.exists("./logs"):
     os.makedirs("./logs")
 
-file_handler = RotatingFileHandler(
+file_handler = ConcurrentRotatingFileHandler(
     "./logs/api.log",
     maxBytes=10 * 1024 * 1024,  # 10 MB
     backupCount=10,
@@ -329,7 +329,7 @@ def get_similarities(
         df = manga_df
         synopsis_columns = manga_synopsis_columns
 
-    model = SentenceTransformer(model_name)
+    model = SentenceTransformer(model_name, device=device)
     processed_description = description.lower().strip()
     new_pooled_embedding = model.encode([processed_description])
 

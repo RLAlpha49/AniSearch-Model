@@ -14,3 +14,5 @@ tf-keras
 pytest
 pytest-order
 flask_limiter
+flask_cors
+concurrent-log-handler
