@@ -81,7 +81,7 @@ logging.basicConfig(
 )
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "https://anisearch.alpha49.com"}})
+CORS(app, resources={r"/*": {"origins": ["https://anisearch.alpha49.com", "http://localhost:3000"]}})
 
 # Variable to track the last request time
 last_request_time = time.time()
