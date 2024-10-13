@@ -9,3 +9,5 @@
 /model/evaluation_results_manga.json
 /src/AniSearchModel.egg-info/
 /logs
+model/manga.zip
+model/anime.zip

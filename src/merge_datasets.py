@@ -308,10 +308,11 @@ def merge_anime_datasets() -> pd.DataFrame:
         # Drop specified columns from myanimelist_dataset
         columns_to_drop: list[str] = [
             "scored_by",
-            "status",
             "source",
             "members",
             "favorites",
+            "start_date",
+            "end_date",
             "episode_duration",
             "total_duration",
             "rating",
@@ -564,6 +565,7 @@ def merge_manga_datasets() -> pd.DataFrame:
             "scored_by",
             "members",
             "favorites",
+            "end_date",
             "sfw",
             "approved",
             "created_at",
