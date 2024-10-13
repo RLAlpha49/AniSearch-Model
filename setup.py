@@ -44,6 +44,8 @@ setup(
         "pytest",
         "pytest-order",
         "flask_limiter",
+        "flask_cors",
+        "concurrent-log-handler",
     ],
     cmdclass={
         "install": PostInstallCommand,

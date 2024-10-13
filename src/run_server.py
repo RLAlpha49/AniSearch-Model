@@ -1,3 +1,12 @@
+"""
+This module determines the operating system and starts the Flask application
+using the appropriate server.
+- On Linux, it uses Gunicorn with 4 worker processes.
+- On Windows, it uses Waitress.
+- On other operating systems, it defaults to using Flask's built-in server.
+The script uses the `subprocess.run` method to execute the server command.
+"""
+
 import platform
 import subprocess
 import sys

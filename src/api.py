@@ -113,7 +113,7 @@ def periodic_memory_clear() -> None:
     Periodically clears memory if the application has been inactive for a specified duration.
 
     This function runs in a separate thread and checks the time since the last request.
-    If the time exceeds 60 seconds, it clears the GPU cache and performs garbage collection
+    If the time exceeds 300 seconds, it clears the GPU cache and performs garbage collection
     to free up memory resources.
 
     The function logs the start of the thread and each memory clearing event.
@@ -122,10 +122,10 @@ def periodic_memory_clear() -> None:
     while True:
         with last_request_time_lock:
             current_time = time.time()
-            if current_time - last_request_time > 60:
+            if current_time - last_request_time > 300:
                 logging.info("Clearing memory due to inactivity.")
                 clear_memory()
-        time.sleep(60)
+        time.sleep(300)
 
 
 threading.Thread(target=periodic_memory_clear, daemon=True).start()
