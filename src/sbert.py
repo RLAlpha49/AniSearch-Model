@@ -167,9 +167,13 @@ def main() -> None:
             # Limited by GPU memory, must not go past Dedicated GPU memory (Will Freeze/Slow Down).
             # Change as needed.
             if model_name == "sentence-transformers/sentence-t5-xxl":
+                batch_size = 1
                 device = "cpu"
     else:
         batch_size = 128
+        if model_name == "sentence-transformers/sentence-t5-xxl":
+            batch_size = 1
+            device = "cpu"
 
     # Load the merged dataset based on type
     if dataset_type == "anime":
