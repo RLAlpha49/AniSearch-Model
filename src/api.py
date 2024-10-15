@@ -81,7 +81,12 @@ logging.basicConfig(
 )
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": ["https://anisearch.alpha49.com", "http://localhost:3000"]}})
+CORS(
+    app,
+    resources={
+        r"/*": {"origins": ["https://anisearch.alpha49.com", "http://localhost:3000"]}
+    },
+)
 
 # Variable to track the last request time
 last_request_time = time.time()
@@ -123,7 +128,7 @@ def periodic_memory_clear() -> None:
         with last_request_time_lock:
             current_time = time.time()
             if current_time - last_request_time > 300:
-                logging.info("Clearing memory due to inactivity.")
+                logging.debug("Clearing memory due to inactivity.")
                 clear_memory()
         time.sleep(300)
 
@@ -406,8 +411,11 @@ def get_anime_similarities() -> Response:
         page = data.get("page", 1)
         results_per_page = data.get("resultsPerPage", 10)
 
+        # Get the client's IP address
+        client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
         logging.info(
-            "Received anime request with model: %s, description: %s, page: %d, resultsPerPage: %d",
+            "Received anime request from IP: %s with model: %s, description: %s, page: %d, resultsPerPage: %d",
+            client_ip,
             model_name,
             description,
             page,
@@ -454,8 +462,12 @@ def get_manga_similarities() -> Response:
         page = data.get("page", 1)
         results_per_page = data.get("resultsPerPage", 10)
 
+        # Get the client's IP address
+        client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+
         logging.info(
-            "Received manga request with model: %s, description: %s, page: %d, resultsPerPage: %d",
+            "Received manga request from IP: %s with model: %s, description: %s, page: %d, resultsPerPage: %d",
+            client_ip,
             model_name,
             description,
             page,
