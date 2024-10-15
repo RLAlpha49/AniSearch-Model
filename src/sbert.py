@@ -230,26 +230,26 @@ def main() -> None:
     )
 
     # Measure the time taken to generate embeddings for each column
-    all_embeddings: Dict[str, np.ndarray] = {}
     start_time = time.time()
+    total_num_embeddings = 0
     for col in synopsis_columns:
         processed_col = f"Processed_{col}"
         embeddings = get_sbert_embeddings(
             df, model, batch_size, processed_col, model_name, device
         )
-        all_embeddings[col] = embeddings
-    end_time = time.time()
-    embedding_generation_time = end_time - start_time
 
-    # Save the embeddings for each column
-    for col, embeddings in all_embeddings.items():
+        # Save the embeddings for the current column
         if embeddings.size > 0:
             save_path = os.path.join(
                 embeddings_save_dir, f"embeddings_{col.replace(' ', '_')}.npy"
             )
             np.save(save_path, embeddings)
+            total_num_embeddings += embeddings.shape[0]
         else:
             print(f"No embeddings generated for column: {col}")
+
+    end_time = time.time()
+    embedding_generation_time = end_time - start_time
 
     # Prepare evaluation data
     additional_info: Dict[str, Any] = {
@@ -271,11 +271,6 @@ def main() -> None:
         "type": dataset_type,
         "device": device,
     }
-
-    # Calculate total number of embeddings
-    total_num_embeddings = sum(
-        emb.shape[0] for emb in all_embeddings.values() if emb.size > 0
-    )
 
     # Save evaluation data
     common.save_evaluation_data(
