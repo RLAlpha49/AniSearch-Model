@@ -283,9 +283,7 @@ def merge_anime_datasets() -> pd.DataFrame:
     try:
         # Load datasets
         logging.info("Loading anime datasets from CSV files.")
-        myanimelist_dataset: pd.DataFrame = pd.read_csv(
-            "data/anime/Anime.csv"
-        )  # Base dataset
+        myanimelist_dataset: pd.DataFrame = pd.read_csv("data/anime/Anime.csv")
         anime_dataset_2023: pd.DataFrame = pd.read_csv(
             "data/anime/anime-dataset-2023.csv"
         )
@@ -298,11 +296,11 @@ def merge_anime_datasets() -> pd.DataFrame:
 
         # Load using the datasets library
         logging.info("Loading 'anime_270' dataset from Hugging Face datasets.")
-        anime_270 = load_dataset("johnidouglas/anime_270", split="train")  # 269 Rows
+        anime_270 = load_dataset("johnidouglas/anime_270", split="train")
         anime_270_df: pd.DataFrame = anime_270.to_pandas()  # type: ignore
 
         logging.info("Loading 'wykonos/anime' dataset from Hugging Face datasets.")
-        wykonos_dataset = load_dataset("wykonos/anime", split="train")  # 18495 Rows
+        wykonos_dataset = load_dataset("wykonos/anime", split="train")
         wykonos_dataset_df: pd.DataFrame = wykonos_dataset.to_pandas()  # type: ignore
 
         # Drop specified columns from myanimelist_dataset
@@ -381,6 +379,12 @@ def merge_anime_datasets() -> pd.DataFrame:
             "synopsis",
             "No synopsis information has been added to this title.",
         )
+        clean_synopsis(
+            animes, "synopsis", "No synopsis has been added for this series yet."
+        )
+        clean_synopsis(myanimelist_dataset, "synopsis", "Music video for the song")
+        clean_synopsis(anime_dataset_2023, "Synopsis", "Music video for the song")
+        clean_synopsis(mal_anime, "synopsis", "Music video for the song")
 
         # Merge datasets on 'anime_id'
         logging.info("Merging 'myanimelist_dataset' with 'anime_dataset_2023'.")
@@ -417,7 +421,7 @@ def merge_anime_datasets() -> pd.DataFrame:
         logging.info("Merging with 'anime_270_df' dataset on 'MAL_ID'.")
         final_merged_df = pd.merge(
             final_merged_df,
-            anime_270_df[["MAL_ID", "sypnopsis", "Name"]].rename(  # type: ignore
+            anime_270_df[["MAL_ID", "sypnopsis", "Name"]].rename(
                 columns={"Name": "title_anime_270"}
             ),
             left_on="anime_id",
@@ -498,6 +502,7 @@ def merge_anime_datasets() -> pd.DataFrame:
 
         # Remove duplicate synopses
         synopsis_cols: list[str] = [
+            "synopsis",
             "Synopsis anime_dataset_2023",
             "Synopsis animes dataset",
             "Synopsis anime_270 Dataset",
@@ -515,6 +520,19 @@ def merge_anime_datasets() -> pd.DataFrame:
         logging.info("Removing duplicates based on 'anime_id'.")
         final_merged_df.drop_duplicates(subset=["anime_id"], inplace=True)
 
+        # Remove rows with all empty or NaN synopsis columns
+        logging.info("Removing rows with all empty or NaN synopsis columns.")
+        initial_row_count = len(final_merged_df)
+        final_merged_df = final_merged_df[
+            final_merged_df[synopsis_cols].apply(
+                lambda x: x.str.strip().replace("", pd.NA).notna().any(), axis=1
+            )
+        ]
+        removed_rows = initial_row_count - len(final_merged_df)
+        logging.info(
+            "Removed %d rows with all empty or NaN synopsis columns.", removed_rows
+        )
+
         # Save the updated merged dataset with a progress bar
         logging.info(
             "Saving the merged anime dataset to 'model/merged_anime_dataset.csv'."
@@ -527,7 +545,6 @@ def merge_anime_datasets() -> pd.DataFrame:
         ) as f:
             # Write the header
             final_merged_df.iloc[:0].to_csv(f, index=False)
-            logging.info("Writing data in chunks of %d.", chunk_size)
             for i in tqdm(range(total_chunks), desc="Saving to CSV"):
                 start: int = i * chunk_size
                 end: int = start + chunk_size
@@ -611,10 +628,12 @@ def merge_manga_datasets() -> pd.DataFrame:
 
         # Clean synopses in specific datasets
         logging.info("Cleaning synopses in specific datasets.")
+        clean_synopsis(manga_main, "synopsis", "No synopsis")
         clean_synopsis(
             data, "description", "This entry currently doesn't have a synopsis."
         )
         clean_synopsis(jikan, "synopsis", "Looking for information on the")
+        clean_synopsis(jikan, "synopsis", "No synopsis")
 
         # Merge main dataset with jikan on 'manga_id' and 'mal_id'
         logging.info(
@@ -648,6 +667,7 @@ def merge_manga_datasets() -> pd.DataFrame:
 
         # Remove duplicate synopses and descriptions
         info_cols: list[str] = [
+            "synopsis",
             "Synopsis jikan Dataset",
             "Synopsis data Dataset",
         ]
@@ -657,6 +677,19 @@ def merge_manga_datasets() -> pd.DataFrame:
         # Remove duplicates based on 'manga_id'
         logging.info("Removing duplicates based on 'manga_id'.")
         merged_df.drop_duplicates(subset=["manga_id"], inplace=True)
+
+        # Remove rows with all empty or NaN synopsis columns
+        logging.info("Removing rows with all empty or NaN synopsis columns.")
+        initial_row_count = len(merged_df)
+        merged_df = merged_df[
+            merged_df[info_cols].apply(
+                lambda x: x.str.strip().replace("", pd.NA).notna().any(), axis=1
+            )
+        ]
+        removed_rows = initial_row_count - len(merged_df)
+        logging.info(
+            "Removed %d rows with all empty or NaN synopsis columns.", removed_rows
+        )
 
         # Save the updated merged dataset with a progress bar
         logging.info(
