@@ -182,6 +182,7 @@ allowed_models = [
     "sentence-transformers/sentence-t5-base",
     "sentence-transformers/sentence-t5-large",
     "sentence-transformers/sentence-t5-xl",
+    "toobi/anime",
 ]
 
 
@@ -258,6 +259,7 @@ def calculate_cosine_similarities(
                     the model's embedding dimension.
     """
     model_name = model_name.replace("sentence-transformers/", "")
+    model_name = model_name.replace("toobi/", "")
     existing_embeddings = load_embeddings(model_name, col, dataset_type)
     if existing_embeddings.shape[1] != model.get_sentence_embedding_dimension():
         raise ValueError(f"Incompatible dimension for embeddings in {col}")

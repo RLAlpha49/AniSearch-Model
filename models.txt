@@ -1,3 +1,4 @@
+toobi/anime
 sentence-transformers/all-distilroberta-v1
 sentence-transformers/all-MiniLM-L6-v1
 sentence-transformers/all-MiniLM-L12-v1

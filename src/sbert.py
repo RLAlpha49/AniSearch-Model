@@ -154,7 +154,8 @@ def main() -> None:
     dataset_type = args.type
 
     if not model_name.startswith("sentence-transformers/"):
-        model_name = f"sentence-transformers/{model_name}"
+        if model_name != "toobi/anime":
+            model_name = f"sentence-transformers/{model_name}"
 
     if device == "cuda":
         batch_size = 512
