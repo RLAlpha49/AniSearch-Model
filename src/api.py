@@ -182,7 +182,9 @@ allowed_models = [
     "sentence-transformers/sentence-t5-base",
     "sentence-transformers/sentence-t5-large",
     "sentence-transformers/sentence-t5-xl",
+    "sentence-transformers/sentence-t5-xxl",
     "toobi/anime",
+    "fine_tuned_sbert_anime_model",
 ]
 
 
@@ -337,7 +339,7 @@ def get_similarities(
         synopsis_columns = manga_synopsis_columns
 
     model = SentenceTransformer(model_name, device=device)
-    processed_description = description.lower().strip()
+    processed_description = description.strip()
     new_pooled_embedding = model.encode([processed_description])
 
     cosine_similarities_dict = {
@@ -356,10 +358,15 @@ def get_similarities(
 
     for idx, col in all_top_indices:
         name = df.iloc[idx]["title"]
+        relevant_synopsis = df.iloc[idx][col]
+
+        # Check if the relevant synopsis is valid
+        if pd.isna(relevant_synopsis) or relevant_synopsis.strip() == "":
+            continue
+
         if name not in seen_names:
             row_data = df.iloc[idx].to_dict()  # Convert the entire row to a dictionary
             # Keep only the relevant synopsis column
-            relevant_synopsis = df.iloc[idx][col]
             row_data = {
                 k: v
                 for k, v in row_data.items()
