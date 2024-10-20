@@ -19,6 +19,11 @@ import pandas as pd
 from tqdm import tqdm
 from datasets import load_dataset
 
+# Add the project root to the Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from src import common  # pylint: disable=wrong-import-position
+
 FILE_LOGGING_LEVEL = logging.DEBUG
 CONSOLE_LOGGING_LEVEL = logging.INFO
 
@@ -146,6 +151,23 @@ def preprocess_name(name: Any) -> str:
     if pd.isna(name):
         return ""
     return str(name).strip().lower()
+
+
+def preprocess_synopsis_columns(df: pd.DataFrame, synopsis_columns: list[str]) -> None:
+    """
+    Applies text preprocessing to each synopsis column in the DataFrame.
+
+    Args:
+        df (pd.DataFrame): The DataFrame containing synopsis columns.
+        synopsis_columns (list[str]): List of synopsis column names to preprocess.
+    """
+    logging.info("Preprocessing synopsis columns: %s", synopsis_columns)
+    for col in synopsis_columns:
+        if col in df.columns:
+            logging.info("Preprocessing column: %s", col)
+            df[col] = df[col].apply(common.preprocess_text)
+        else:
+            logging.warning("Synopsis column '%s' not found in DataFrame.", col)
 
 
 def find_additional_info(
@@ -500,7 +522,6 @@ def merge_anime_datasets() -> pd.DataFrame:
             "Synopsis mal_anime Dataset",
         )
 
-        # Remove duplicate synopses
         synopsis_cols: list[str] = [
             "synopsis",
             "Synopsis anime_dataset_2023",
@@ -513,6 +534,8 @@ def merge_anime_datasets() -> pd.DataFrame:
             "Synopsis anime2 Dataset",
             "Synopsis mal_anime Dataset",
         ]
+        preprocess_synopsis_columns(final_merged_df, synopsis_cols)
+
         logging.info("Removing duplicate synopses across columns: %s", synopsis_cols)
         final_merged_df = remove_duplicate_infos(final_merged_df, synopsis_cols)
 
@@ -665,12 +688,13 @@ def merge_manga_datasets() -> pd.DataFrame:
             "Synopsis data Dataset",
         )
 
-        # Remove duplicate synopses and descriptions
         info_cols: list[str] = [
             "synopsis",
             "Synopsis jikan Dataset",
             "Synopsis data Dataset",
         ]
+        preprocess_synopsis_columns(merged_df, info_cols)
+
         logging.info("Removing duplicate synopses and descriptions.")
         merged_df = remove_duplicate_infos(merged_df, info_cols)
 

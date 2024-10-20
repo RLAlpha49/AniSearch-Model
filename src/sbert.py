@@ -16,6 +16,7 @@ import time
 import warnings
 import argparse
 from typing import Dict, Any
+import gc
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
@@ -73,7 +74,7 @@ def parse_args() -> argparse.Namespace:
         "--model",
         type=str,
         required=True,
-        help="The model name to use (e.g., 'all-mpnet-base-v1').",
+        help="The model name to use (e.g., 'all-mpnet-base-v1' or path to fine-tuned model).",
     )
     parser.add_argument(
         "--type",
@@ -153,29 +154,6 @@ def main() -> None:
     model_name = args.model
     dataset_type = args.type
 
-    if not model_name.startswith("sentence-transformers/"):
-        if model_name != "toobi/anime":
-            model_name = f"sentence-transformers/{model_name}"
-
-    if device == "cuda":
-        batch_size = 512
-        if model_name in [
-            "sentence-transformers/gtr-t5-xl",
-            "sentence-transformers/sentence-t5-xl",
-            "sentence-transformers/sentence-t5-xxl",
-        ]:
-            batch_size = 8
-            # Limited by GPU memory, must not go past Dedicated GPU memory (Will Freeze/Slow Down).
-            # Change as needed.
-            if model_name == "sentence-transformers/sentence-t5-xxl":
-                batch_size = 1
-                device = "cpu"
-    else:
-        batch_size = 128
-        if model_name == "sentence-transformers/sentence-t5-xxl":
-            batch_size = 1
-            device = "cpu"
-
     # Load the merged dataset based on type
     if dataset_type == "anime":
         dataset_path = "model/merged_anime_dataset.csv"
@@ -203,9 +181,6 @@ def main() -> None:
     else:
         raise ValueError("Invalid dataset type specified. Use 'anime' or 'manga'.")
 
-    # Create directory for model-specific embeddings
-    os.makedirs(embeddings_save_dir, exist_ok=True)
-
     # Load the merged dataset
     df = common.load_dataset(dataset_path)
 
@@ -213,22 +188,107 @@ def main() -> None:
     for col in synopsis_columns:
         df[f"Processed_{col}"] = df[col].fillna("").apply(common.preprocess_text)
 
+    if device == "cuda":
+        batch_size = 448
+        if model_name in [
+            "sentence-transformers/gtr-t5-xl",
+            "sentence-transformers/sentence-t5-xl",
+            "sentence-transformers/sentence-t5-xxl",
+        ]:
+            batch_size = 8
+            # Limited by GPU memory, must not go past Dedicated GPU memory (Will Freeze/Slow Down).
+            # Change as needed.
+            if model_name == "sentence-transformers/sentence-t5-xxl":
+                batch_size = 1
+                device = "cpu"
+    else:
+        batch_size = 128
+        if model_name == "sentence-transformers/sentence-t5-xxl":
+            batch_size = 1
+            device = "cpu"
+
+    # Create directory for model-specific embeddings
+    os.makedirs(embeddings_save_dir, exist_ok=True)
+
     # Load the underlying Hugging Face model to access config
     hf_model = AutoModel.from_pretrained(model_name)
 
-    # Initialize SBERT components
-    word_embedding_model = models.Transformer(model_name)
-    pooling_model = models.Pooling(
-        word_embedding_model.get_word_embedding_dimension(),
-        pooling_mode_mean_tokens=True,
-        pooling_mode_cls_token=False,
-        pooling_mode_max_tokens=True,
-    )
+    # Check if the model is a path to a fine-tuned model
+    if os.path.exists(model_name):
+        # Load the fine-tuned model from the specified directory
+        model = SentenceTransformer(model_name, device=device)
+    else:
+        # Load a pre-trained model from Hugging Face
+        if not model_name.startswith("sentence-transformers/"):
+            if model_name != "toobi/anime":
+                model_name = f"sentence-transformers/{model_name}"
 
-    # Load pre-trained SBERT model
-    model = SentenceTransformer(
-        model_name, device=device, modules=[word_embedding_model, pooling_model]
-    )
+        # Define the maximum token counts for each model for both anime and manga
+        max_token_counts = {
+            "toobi/anime": {"anime": 929, "manga": 1003},
+            "sentence-transformers/all-distilroberta-v1": {"anime": 940, "manga": 1023},
+            "sentence-transformers/all-MiniLM-L6-v1": {"anime": 929, "manga": 1003},
+            "sentence-transformers/all-MiniLM-L12-v1": {"anime": 929, "manga": 1003},
+            "sentence-transformers/all-MiniLM-L6-v2": {"anime": 929, "manga": 1003},
+            "sentence-transformers/all-MiniLM-L12-v2": {"anime": 929, "manga": 1003},
+            "sentence-transformers/all-mpnet-base-v1": {"anime": 929, "manga": 1003},
+            "sentence-transformers/all-mpnet-base-v2": {"anime": 929, "manga": 1003},
+            "sentence-transformers/all-roberta-large-v1": {"anime": 940, "manga": 1023},
+            "sentence-transformers/gtr-t5-base": {"anime": 1061, "manga": 1128},
+            "sentence-transformers/gtr-t5-large": {"anime": 1061, "manga": 1128},
+            "sentence-transformers/gtr-t5-xl": {"anime": 1061, "manga": 1128},
+            "sentence-transformers/multi-qa-distilbert-dot-v1": {
+                "anime": 929,
+                "manga": 1003,
+            },
+            "sentence-transformers/multi-qa-mpnet-base-cos-v1": {
+                "anime": 929,
+                "manga": 1003,
+            },
+            "sentence-transformers/multi-qa-mpnet-base-dot-v1": {
+                "anime": 929,
+                "manga": 1003,
+            },
+            "sentence-transformers/paraphrase-distilroberta-base-v2": {
+                "anime": 940,
+                "manga": 1023,
+            },
+            "sentence-transformers/paraphrase-mpnet-base-v2": {
+                "anime": 929,
+                "manga": 1003,
+            },
+            "sentence-transformers/sentence-t5-base": {"anime": 1061, "manga": 1128},
+            "sentence-transformers/sentence-t5-large": {"anime": 1061, "manga": 1128},
+            "sentence-transformers/sentence-t5-xl": {"anime": 1061, "manga": 1128},
+            "sentence-transformers/sentence-t5-xxl": {"anime": 1061, "manga": 1128},
+        }
+
+        # Initialize SBERT components
+        word_embedding_model = models.Transformer(model_name)
+        # Set the max_seq_length for the current model based on the context
+        word_embedding_model.max_seq_length = max_token_counts.get(model_name, {}).get(
+            dataset_type, None
+        )  # Default to None if not found
+
+        pooling_model = models.Pooling(
+            word_embedding_model.get_word_embedding_dimension(),
+        )
+
+        # Load pre-trained SBERT model
+        model = SentenceTransformer(
+            model_name,
+            device=device,
+            modules=[word_embedding_model, pooling_model],
+        )
+
+        model[0].max_seq_length = max_token_counts.get(model_name, {}).get(  # type: ignore
+            dataset_type, 512
+        )
+        model[
+            1
+        ].word_embedding_dimension = word_embedding_model.get_word_embedding_dimension()  # type: ignore
+
+        print(model)
 
     # Measure the time taken to generate embeddings for each column
     start_time = time.time()
@@ -246,6 +306,12 @@ def main() -> None:
             )
             np.save(save_path, embeddings)
             total_num_embeddings += embeddings.shape[0]
+
+            # Clear memory
+            del embeddings
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
         else:
             print(f"No embeddings generated for column: {col}")
 

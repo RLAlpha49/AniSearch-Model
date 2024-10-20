@@ -184,6 +184,7 @@ allowed_models = [
     "sentence-transformers/sentence-t5-xl",
     "sentence-transformers/sentence-t5-xxl",
     "toobi/anime",
+    "sentence-transformers/fine_tuned_sbert_anime_model",
     "fine_tuned_sbert_anime_model",
 ]
 
@@ -416,6 +417,8 @@ def get_anime_similarities() -> Response:
             raise ValueError("Request payload is missing or not in JSON format")
         validate_input(data)
         model_name = data.get("model")
+        if model_name == "sentence-transformers/fine_tuned_sbert_anime_model":
+            model_name = "fine_tuned_sbert_anime_model"
         description = data.get("description")
         page = data.get("page", 1)
         results_per_page = data.get("resultsPerPage", 10)

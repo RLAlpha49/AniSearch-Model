@@ -12,3 +12,5 @@
 /logs
 model/manga.zip
 model/anime.zip
+/checkpoints
+model/fine_tuned_sbert_anime_model

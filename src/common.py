@@ -9,7 +9,15 @@ import re
 import json
 from datetime import datetime
 from typing import Optional, Dict, Any
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
 import pandas as pd
+import contractions
+from unidecode import unidecode
+
+# Initialize stopwords and lemmatizer
+stop_words = set(stopwords.words("english"))
+lemmatizer = WordNetLemmatizer()
 
 
 # Load the dataset
@@ -29,21 +37,53 @@ def load_dataset(file_path: str) -> pd.DataFrame:
 
 
 # Basic text preprocessing
-def preprocess_text(text: Optional[str]) -> str:
+def preprocess_text(text: Any) -> Any:
     """
-    Preprocess the input text by converting it to lowercase and removing extra spaces.
+    Preprocess the input text by converting it to lowercase, removing extra spaces,
+    and stripping specific unwanted patterns.
 
     Args:
-        text (str): The input text to preprocess.
+        text (Optional[str]): The input text to preprocess.
 
     Returns:
         str: The preprocessed text.
     """
     if text is None:
         return ""
-    text = text.lower()
-    text = re.sub(r"\s+", " ", text)  # Remove extra spaces
-    text = re.sub(r"[^a-zA-Z0-9\s]", "", text)  # Remove punctuation
+
+    try:
+        if isinstance(text, str):
+            text = text.strip()  # Strip whitespace
+            text = contractions.fix(text)  # Expand contractions
+            text = unidecode(text)  # Remove accents
+            text = re.sub(
+                r"\s+", " ", text
+            )  # Replace multiple spaces with a single space
+            # Remove wrapping quotes
+            if (text.startswith('"') and text.endswith('"')) or (
+                text.startswith("'") and text.endswith("'")
+            ):
+                text = text[1:-1]
+            text = re.sub(
+                r"http\S+|www\S+|https\S+", "", text, flags=re.MULTILINE
+            )  # Remove URLs
+            # Remove specific patterns
+            text = re.sub(r"\[Written by .*?\].*$", "", text, flags=re.IGNORECASE)
+            text = re.sub(
+                r"<br><br>\s*\(source:.*?\).*$", "", text, flags=re.IGNORECASE
+            )
+            text = re.sub(r"\(source:.*?\).*$", "", text, flags=re.IGNORECASE)
+            # Tokenize and remove stopwords
+            words = text.split()
+            words = [word for word in words if word not in stop_words]
+            # Apply lemmatization
+            words = [lemmatizer.lemmatize(word) for word in words]
+            text = " ".join(words)
+        else:
+            return text
+    except Exception:  # pylint: disable=broad-except
+        return text
+
     return text
 
 
