@@ -463,6 +463,9 @@ def create_pairs(
         positive_pairs = create_positive_pairs(
             df, synopses_columns, encoder_model, positive_pairs_file
         )
+        # Clear memory
+        gc.collect()
+        torch.cuda.empty_cache()
 
     # Generate partial positive pairs if not already saved
     partial_positive_pairs = []
@@ -480,6 +483,9 @@ def create_pairs(
             encoder_model,
             partial_positive_pairs_file,
         )
+        # Clear memory
+        gc.collect()
+        torch.cuda.empty_cache()
 
     # Generate negative pairs if not already saved
     negative_pairs = []
@@ -493,6 +499,9 @@ def create_pairs(
             encoder_model,
             negative_pairs_file,
         )
+        # Clear memory
+        gc.collect()
+        torch.cuda.empty_cache()
 
     return positive_pairs, partial_positive_pairs, negative_pairs
 
