@@ -107,7 +107,9 @@ def remove_numbered_list_synopsis(df: pd.DataFrame, synopsis_cols: list[str]) ->
         synopsis_cols (list[str]): The list of synopsis columns to clean.
     """
     logging.info("Removing numbered list synopses in columns: %s", synopsis_cols)
-    numbered_list_pattern = re.compile(r"(?s)^.*?(\d+[-\d]*[.)]\s+.+)+$", re.MULTILINE)
+    numbered_list_pattern = re.compile(
+        r"(?s)^.*?(\d+[-\d]*[.)]\s+.+?)(?:\n|$)", re.MULTILINE
+    )
 
     for col in synopsis_cols:
         logging.info("Removing numbered list synopses in column: %s", col)
@@ -414,7 +416,7 @@ def merge_anime_datasets() -> pd.DataFrame:
         }
 
         for df_name, cols in preprocess_columns.items():
-            df: pd.DataFrame = locals()[df_name]
+            df = locals()[df_name]
             for col in cols:
                 if col in df.columns:
                     logging.info("Preprocessing column '%s' in '%s'.", col, df_name)
@@ -676,14 +678,20 @@ def merge_manga_datasets() -> pd.DataFrame:
         logging.info("Dropping unnecessary columns from 'manga_main' dataset.")
         manga_main.drop(columns=columns_to_drop, inplace=True, errors="ignore")
 
-        # Remove row if 'genres' contains 'Hentai' or 'Boys Love'
-        manga_main = manga_main[
-            ~manga_main["genres"].apply(
-                lambda x: any(
-                    genre in ["Hentai", "Boys Love"] for genre in ast.literal_eval(x)
+        # Identify and remove rows with 'genres' containing 'Hentai' or 'Boys Love'
+        logging.info("Identifying IDs with 'Hentai' or 'Boys Love' genres.")
+        removed_ids = set(
+            manga_main[
+                manga_main["genres"].apply(
+                    lambda x: any(
+                        genre in ["Hentai", "Boys Love"]
+                        for genre in ast.literal_eval(x)
+                    )
                 )
-            )
-        ]
+            ]["manga_id"]
+        )
+        logging.info("Removing rows with 'Hentai' or 'Boys Love' genres.")
+        manga_main = manga_main[~manga_main["manga_id"].isin(removed_ids)]
 
         # Check for duplicates in the keys and remove them
         duplicate_checks: list[tuple[str, pd.DataFrame, str]] = [
@@ -710,7 +718,7 @@ def merge_manga_datasets() -> pd.DataFrame:
         }
 
         for df_name, cols in preprocess_columns.items():
-            df: pd.DataFrame = locals()[df_name]
+            df = locals()[df_name]
             for col in cols:
                 if col in df.columns:
                     logging.info("Preprocessing column '%s' in '%s'.", col, df_name)
@@ -731,9 +739,9 @@ def merge_manga_datasets() -> pd.DataFrame:
         )
         merged_df: pd.DataFrame = pd.merge(
             manga_main,
-            jikan[["mal_id", "synopsis", "title"]].rename(
-                columns={"title": "title_jikan"}
-            ),
+            jikan[~jikan["mal_id"].isin(removed_ids)][
+                ["mal_id", "synopsis", "title"]
+            ].rename(columns={"title": "title_jikan"}),
             left_on="manga_id",
             right_on="mal_id",
             how="outer",
@@ -749,7 +757,7 @@ def merge_manga_datasets() -> pd.DataFrame:
         logging.info("Merging with 'data' dataset on 'title'.")
         merged_df = add_additional_info(
             merged_df,
-            data,
+            data[~data["title"].isin(removed_ids)],
             "description",
             ["title"],
             "Synopsis data Dataset",
