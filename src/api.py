@@ -338,7 +338,7 @@ def get_similarities(
     else:
         df = manga_df
         synopsis_columns = manga_synopsis_columns
-    
+
     if model_name == "fine_tuned_sbert_anime_model":
         load_model_name = f"model/{model_name}"
     else:

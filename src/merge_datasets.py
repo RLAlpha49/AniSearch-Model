@@ -9,11 +9,13 @@ It performs the following operations based on the specified type (anime or manga
 - Removes duplicates and saves the merged dataset to a CSV file.
 """
 
+import ast
 import os
 import argparse
 import logging
 from logging.handlers import RotatingFileHandler
 import sys
+import re
 from typing import Any, Optional
 import pandas as pd
 from tqdm import tqdm
@@ -79,19 +81,39 @@ def parse_args() -> argparse.Namespace:
 
 
 # Function to clean synopses
-def clean_synopsis(df: pd.DataFrame, synopsis_col: str, unwanted_phrase: str) -> None:
+def clean_synopsis(df: pd.DataFrame, synopsis_col: str, unwanted_phrases: list) -> None:
     """
-    Sets the synopsis to empty string if it contains an unwanted phrase.
+    Sets the synopsis to an empty string if it contains any of the unwanted phrases.
 
     Args:
         df (pd.DataFrame): The DataFrame to clean.
         synopsis_col (str): The name of the synopsis column.
-        unwanted_phrase (str): The phrase indicating an invalid synopsis.
+        unwanted_phrases (list): A list of phrases indicating an invalid synopsis.
     """
     logging.info("Cleaning synopses in column: %s", synopsis_col)
     for index, row in df.iterrows():
-        if pd.notna(row[synopsis_col]) and unwanted_phrase in row[synopsis_col]:
-            df.at[index, synopsis_col] = ""
+        if pd.notna(row[synopsis_col]):
+            for phrase in unwanted_phrases:
+                if phrase in row[synopsis_col]:
+                    df.at[index, synopsis_col] = ""
+
+
+def remove_numbered_list_synopsis(df: pd.DataFrame, synopsis_cols: list[str]) -> None:
+    """
+    Removes synopses that are in a numbered list format from specified columns.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to clean.
+        synopsis_cols (list[str]): The list of synopsis columns to clean.
+    """
+    logging.info("Removing numbered list synopses in columns: %s", synopsis_cols)
+    numbered_list_pattern = re.compile(r"(?s)^.*?(\d+[-\d]*[.)]\s+.+)+$", re.MULTILINE)
+
+    for col in synopsis_cols:
+        logging.info("Removing numbered list synopses in column: %s", col)
+        df[col] = df[col].apply(
+            lambda x: "" if pd.notna(x) and numbered_list_pattern.match(x) else x
+        )
 
 
 # Function to consolidate titles into a single 'title' column
@@ -278,7 +300,6 @@ def remove_duplicate_infos(df: pd.DataFrame, info_cols: list[str]) -> pd.DataFra
     Returns:
         pd.DataFrame: The DataFrame with duplicates removed.
     """
-    logging.info("Removing duplicate synopses across columns: %s", info_cols)
     for index, row in df.iterrows():
         unique_infos = set()
         for col in info_cols:
@@ -351,6 +372,18 @@ def merge_anime_datasets() -> pd.DataFrame:
         logging.info("Dropping unnecessary columns from 'myanimelist_dataset'.")
         myanimelist_dataset.drop(columns=columns_to_drop, inplace=True, errors="ignore")
 
+        # Remove row if 'type' is 'Music'
+        myanimelist_dataset = myanimelist_dataset[
+            myanimelist_dataset["type"] != "music"
+        ]
+
+        # Remove row if 'demographics' contains 'Kids'
+        myanimelist_dataset = myanimelist_dataset[
+            ~myanimelist_dataset["demographics"].apply(
+                lambda x: any(genre in ["Kids"] for genre in ast.literal_eval(x))
+            )
+        ]
+
         # Check for duplicates in the keys and remove them
         duplicate_checks: list[tuple[str, pd.DataFrame, str]] = [
             ("anime_id", myanimelist_dataset, "myanimelist_dataset"),
@@ -389,24 +422,49 @@ def merge_anime_datasets() -> pd.DataFrame:
 
         # Clean synopses in specific datasets
         logging.info("Cleaning synopses in specific datasets.")
-        clean_synopsis(
-            anime_dataset_2023, "Synopsis", "No description available for this anime."
+        unwanted_phrases = sorted(
+            [
+                "A song",
+                "A music video",
+                "A new music video",
+                "A series animated music video",
+                "A short animation",
+                "A short film",
+                "A special music video",
+                "An animated music",
+                "An animated music video",
+                "An animation",
+                "An educational film",
+                "An independent music",
+                "An original song",
+                "Animated music video",
+                "Minna uta",
+                "Minna Uta",
+                "Music clip",
+                "Music video",
+                "No description available for this anime.",
+                "No synopsis has been added for this series yet.",
+                "No synopsis information has been added to this title.",
+                "No synopsis yet",
+                "Official music video",
+                "Short film",
+                "The animated film",
+                "The animated music video",
+                "The music video",
+                "The official music",
+                "This music video",
+                "Unknown",
+            ]
         )
-        clean_synopsis(anime_2022, "Synopsis", "Unknown")
-        clean_synopsis(wykonos_dataset_df, "Description", "No synopsis yet")
-        clean_synopsis(anime_data, "Description", "No synopsis yet")
-        clean_synopsis(anime2, "Description", "No synopsis yet")
-        clean_synopsis(
-            mal_anime,
-            "synopsis",
-            "No synopsis information has been added to this title.",
-        )
-        clean_synopsis(
-            animes, "synopsis", "No synopsis has been added for this series yet."
-        )
-        clean_synopsis(myanimelist_dataset, "synopsis", "Music video for the song")
-        clean_synopsis(anime_dataset_2023, "Synopsis", "Music video for the song")
-        clean_synopsis(mal_anime, "synopsis", "Music video for the song")
+
+        clean_synopsis(anime_dataset_2023, "Synopsis", unwanted_phrases)
+        clean_synopsis(anime_2022, "Synopsis", unwanted_phrases)
+        clean_synopsis(wykonos_dataset_df, "Description", unwanted_phrases)
+        clean_synopsis(anime_data, "Description", unwanted_phrases)
+        clean_synopsis(anime2, "Description", unwanted_phrases)
+        clean_synopsis(mal_anime, "synopsis", unwanted_phrases)
+        clean_synopsis(animes, "synopsis", unwanted_phrases)
+        clean_synopsis(myanimelist_dataset, "synopsis", unwanted_phrases)
 
         # Merge datasets on 'anime_id'
         logging.info("Merging 'myanimelist_dataset' with 'anime_dataset_2023'.")
@@ -618,6 +676,15 @@ def merge_manga_datasets() -> pd.DataFrame:
         logging.info("Dropping unnecessary columns from 'manga_main' dataset.")
         manga_main.drop(columns=columns_to_drop, inplace=True, errors="ignore")
 
+        # Remove row if 'genres' contains 'Hentai' or 'Boys Love'
+        manga_main = manga_main[
+            ~manga_main["genres"].apply(
+                lambda x: any(
+                    genre in ["Hentai", "Boys Love"] for genre in ast.literal_eval(x)
+                )
+            )
+        ]
+
         # Check for duplicates in the keys and remove them
         duplicate_checks: list[tuple[str, pd.DataFrame, str]] = [
             ("manga_id", manga_main, "manga_main"),
@@ -651,12 +718,12 @@ def merge_manga_datasets() -> pd.DataFrame:
 
         # Clean synopses in specific datasets
         logging.info("Cleaning synopses in specific datasets.")
-        clean_synopsis(manga_main, "synopsis", "No synopsis")
+        clean_synopsis(manga_main, "synopsis", ["No synopsis"])
         clean_synopsis(
-            data, "description", "This entry currently doesn't have a synopsis."
+            data, "description", ["This entry currently doesn't have a synopsis."]
         )
-        clean_synopsis(jikan, "synopsis", "Looking for information on the")
-        clean_synopsis(jikan, "synopsis", "No synopsis")
+        clean_synopsis(jikan, "synopsis", ["Looking for information on the"])
+        clean_synopsis(jikan, "synopsis", ["No synopsis"])
 
         # Merge main dataset with jikan on 'manga_id' and 'mal_id'
         logging.info(
@@ -694,6 +761,8 @@ def merge_manga_datasets() -> pd.DataFrame:
             "Synopsis data Dataset",
         ]
         preprocess_synopsis_columns(merged_df, info_cols)
+
+        remove_numbered_list_synopsis(merged_df, info_cols)
 
         logging.info("Removing duplicate synopses and descriptions.")
         merged_df = remove_duplicate_infos(merged_df, info_cols)

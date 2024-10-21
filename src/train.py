@@ -1,3 +1,11 @@
+"""
+This module contains functions and classes for training a SentenceTransformer model
+using positive, partial positive, and negative pairs of text data. It includes functions
+for generating these pairs, saving them to CSV files, and loading them for training.
+The main function parses command-line arguments and fine-tunes a pre-trained SentenceTransformer
+model on the provided dataset.
+"""
+
 import argparse
 import ast
 import os
@@ -5,24 +13,24 @@ import logging
 from functools import partial
 from multiprocessing import Pool, cpu_count
 import random
+import gc
 import pandas as pd
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
+from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
 import numpy as np
-from sklearn.metrics.pairwise import cosine_similarity
-import gc
 import torch
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
-import tensorflow as tf
+import tensorflow as tf  # pylint: disable=wrong-import-position
 
 # Set TensorFlow's logging level to ERROR
 tf.get_logger().setLevel(logging.ERROR)
 
-from sentence_transformers import SentenceTransformer, InputExample, losses, util  # pylint: disable=wrong-import-position
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator  # pylint: disable=wrong-import-position
+from sentence_transformers import SentenceTransformer, InputExample, losses, util  # pylint: disable=wrong-import-position # noqa: E402
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator  # pylint: disable=wrong-import-position # noqa: E402
 
 
 # List of genres and themes to help build negative pairs
@@ -123,12 +131,27 @@ category_to_embedding = {
 def calculate_semantic_similarity(
     genres_a, genres_b, themes_a, themes_b, genre_weight=0.35, theme_weight=0.65
 ):
+    """
+    Calculate the semantic similarity between two sets of genres and themes.
+
+    Args:
+        genres_a (set): Set of genres for the first item.
+        genres_b (set): Set of genres for the second item.
+        themes_a (set): Set of themes for the first item.
+        themes_b (set): Set of themes for the second item.
+        genre_weight (float): Weight for the genre similarity. Default is 0.35.
+        theme_weight (float): Weight for the theme similarity. Default is 0.65.
+
+    Returns:
+        float: The weighted semantic similarity score.
+    """
     # Calculate cosine similarity for genres
     try:
         if len(genres_a) > 0 and len(genres_b) > 0:
             genre_sim_values = [
                 cosine_similarity(
-                    [category_to_embedding[g1]], [category_to_embedding[g2]]
+                    [category_to_embedding[g1]],  # type: ignore
+                    [category_to_embedding[g2]],  # type: ignore
                 )[0][0]
                 for g1 in genres_a
                 for g2 in genres_b
@@ -146,7 +169,8 @@ def calculate_semantic_similarity(
         if len(themes_a) > 0 and len(themes_b) > 0:
             theme_sim_values = [
                 cosine_similarity(
-                    [category_to_embedding[t1]], [category_to_embedding[t2]]
+                    [category_to_embedding[t1]],  # type: ignore
+                    [category_to_embedding[t2]],  # type: ignore
                 )[0][0]
                 for t1 in themes_a
                 for t2 in themes_b
@@ -166,6 +190,13 @@ def calculate_semantic_similarity(
 
 # Save pairs to a CSV file
 def save_pairs_to_csv(pairs, filename):
+    """
+    Save pairs of texts and their labels to a CSV file.
+
+    Args:
+        pairs (list): List of InputExample pairs.
+        filename (str): Path to the CSV file where pairs will be saved.
+    """
     # Ensure the directory exists
     directory = os.path.dirname(filename)
     if directory and not os.path.exists(directory):
@@ -182,7 +213,19 @@ def save_pairs_to_csv(pairs, filename):
 
 
 # Function to create positive pairs
-def create_positive_pairs(df, synopses_columns, encoder_model, positive_pairs_file):
+def create_positive_pairs(df, synopses_columns, encoder_model, positive_pairs_file):  # pylint: disable=redefined-outer-name
+    """
+    Create positive pairs of synopses from the dataframe.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the data.
+        synopses_columns (list): List of columns containing synopses.
+        encoder_model (SentenceTransformer): Pre-trained Sentence Transformer model.
+        positive_pairs_file (str): Path to the file where positive pairs will be saved.
+
+    Returns:
+        list: List of positive InputExample pairs.
+    """
     positive_pairs = []
     for _, row in tqdm(df.iterrows(), desc="Creating positive pairs", total=len(df)):
         valid_synopses = [row[col] for col in synopses_columns if pd.notnull(row[col])]
@@ -221,82 +264,93 @@ def create_positive_pairs(df, synopses_columns, encoder_model, positive_pairs_fi
 def generate_partial_positive_pairs(
     i, df, synopses_columns, partial_threshold, max_partial_per_row, max_attempts=25
 ):
-    try:
-        row_a = df.iloc[i]
-        pairs = []
-        partial_count = 0
-        row_a_partial_count = 0
-        attempts = 0
-        row_indices = list(range(len(df)))
-        row_indices.remove(i)
-        used_indices = set()
+    """
+    Generate partial positive pairs for a single row in the dataframe.
 
-        while attempts < max_attempts and partial_count < max_partial_per_row:
-            available_indices = list(set(row_indices) - used_indices)
-            if not available_indices:
-                break
-            j = random.choice(available_indices)
-            used_indices.add(j)
-            row_b = df.iloc[j]
-            try:
-                genres_a = (
-                    set(ast.literal_eval(row_a["genres"]))
-                    if pd.notnull(row_a["genres"])
-                    else set()
-                )
-                genres_b = (
-                    set(ast.literal_eval(row_b["genres"]))
-                    if pd.notnull(row_b["genres"])
-                    else set()
-                )
+    Args:
+        i (int): Index of the row to process.
+        df (pd.DataFrame): DataFrame containing the data.
+        synopses_columns (list): List of columns containing synopses.
+        partial_threshold (float): Threshold for partial similarity.
+        max_partial_per_row (int): Maximum number of partial positive pairs per row.
+        max_attempts (int): Maximum number of attempts to find pairs. Default is 25.
 
-                themes_a = (
-                    set(ast.literal_eval(row_a["themes"]))
-                    if pd.notnull(row_a["themes"])
-                    else set()
-                )
-                themes_b = (
-                    set(ast.literal_eval(row_b["themes"]))
-                    if pd.notnull(row_b["themes"])
-                    else set()
-                )
+    Returns:
+        list: List of partial positive InputExample pairs.
+    """
+    row_a = df.iloc[i]
+    pairs = []
+    partial_count = 0
+    row_a_partial_count = 0
+    attempts = 0
+    row_indices = list(range(len(df)))
+    row_indices.remove(i)
+    used_indices = set()
 
-                # Calculate partial similarity based on genres and themes
-                similarity = calculate_semantic_similarity(
-                    genres_a, genres_b, themes_a, themes_b
-                )
+    while attempts < max_attempts and partial_count < max_partial_per_row:
+        available_indices = list(set(row_indices) - used_indices)
+        if not available_indices:
+            break
+        j = random.choice(available_indices)
+        used_indices.add(j)
+        row_b = df.iloc[j]
+        try:
+            genres_a = (
+                set(ast.literal_eval(row_a["genres"]))
+                if pd.notnull(row_a["genres"])
+                else set()
+            )
+            genres_b = (
+                set(ast.literal_eval(row_b["genres"]))
+                if pd.notnull(row_b["genres"])
+                else set()
+            )
 
-                if similarity >= partial_threshold + 0.01 and similarity <= 0.8:
-                    # If similarity is above a certain threshold, treat as a partial positive pair
-                    valid_synopses_a = [
-                        col for col in synopses_columns if pd.notnull(row_a[col])
-                    ]
-                    valid_synopses_b = [
-                        col for col in synopses_columns if pd.notnull(row_b[col])
-                    ]
+            themes_a = (
+                set(ast.literal_eval(row_a["themes"]))
+                if pd.notnull(row_a["themes"])
+                else set()
+            )
+            themes_b = (
+                set(ast.literal_eval(row_b["themes"]))
+                if pd.notnull(row_b["themes"])
+                else set()
+            )
 
-                    # Only create a pair if both entries have at least one valid synopsis
-                    if valid_synopses_a and valid_synopses_b:
-                        col_a = random.choice(valid_synopses_a)
-                        col_b = random.choice(valid_synopses_b)
+            # Calculate partial similarity based on genres and themes
+            similarity = calculate_semantic_similarity(
+                genres_a, genres_b, themes_a, themes_b
+            )
 
-                        pairs.append(
-                            InputExample(
-                                texts=[row_a[col_a], row_b[col_b]],
-                                label=similarity,
-                            )
-                        )  # Partial positive pair
-                        partial_count += 1
-                        row_a_partial_count += 1
+            if similarity >= partial_threshold + 0.01 and similarity <= 0.8:
+                # If similarity is above a certain threshold, treat as a partial positive pair
+                valid_synopses_a = [
+                    col for col in synopses_columns if pd.notnull(row_a[col])
+                ]
+                valid_synopses_b = [
+                    col for col in synopses_columns if pd.notnull(row_b[col])
+                ]
 
-                        if row_a_partial_count >= max_partial_per_row:
-                            break
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                print(e)
-                continue
-            attempts += 1
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        print(e)
+                # Only create a pair if both entries have at least one valid synopsis
+                if valid_synopses_a and valid_synopses_b:
+                    col_a = random.choice(valid_synopses_a)
+                    col_b = random.choice(valid_synopses_b)
+
+                    pairs.append(
+                        InputExample(
+                            texts=[row_a[col_a], row_b[col_b]],
+                            label=similarity,  # type: ignore
+                        )
+                    )  # Partial positive pair
+                    partial_count += 1
+                    row_a_partial_count += 1
+
+                    if row_a_partial_count >= max_partial_per_row:
+                        break
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            print(e)
+            continue
+        attempts += 1
 
     return pairs
 
@@ -305,77 +359,88 @@ def generate_partial_positive_pairs(
 def generate_negative_pairs(
     i, df, synopses_columns, partial_threshold, max_negative_per_row, max_attempts=25
 ):
-    try:
-        row_a = df.iloc[i]
-        pairs = []
-        negative_count = 0
-        row_a_negative_count = 0
-        attempts = 0
-        row_indices = list(range(len(df)))
-        row_indices.remove(i)
-        used_indices = set()
+    """
+    Generate negative pairs for a single row in the dataframe.
 
-        while attempts < max_attempts and negative_count < max_negative_per_row:
-            available_indices = list(set(row_indices) - used_indices)
-            if not available_indices:
-                break
-            j = random.choice(available_indices)
-            used_indices.add(j)
-            row_b = df.iloc[j]
-            try:
-                # Check for NaN values before parsing
-                genres_a = row_a["genres"]
-                genres_b = row_b["genres"]
-                themes_a = row_a["themes"]
-                themes_b = row_b["themes"]
+    Args:
+        i (int): Index of the row to process.
+        df (pd.DataFrame): DataFrame containing the data.
+        synopses_columns (list): List of columns containing synopses.
+        partial_threshold (float): Threshold for partial similarity.
+        max_negative_per_row (int): Maximum number of negative pairs per row.
+        max_attempts (int): Maximum number of attempts to find pairs. Default is 25.
 
-                if (
-                    pd.isna(genres_a)
-                    or pd.isna(genres_b)
-                    or pd.isna(themes_a)
-                    or pd.isna(themes_b)
-                ):
-                    continue  # Skip rows with NaN values
+    Returns:
+        list: List of negative InputExample pairs.
+    """
+    row_a = df.iloc[i]
+    pairs = []
+    negative_count = 0
+    row_a_negative_count = 0
+    attempts = 0
+    row_indices = list(range(len(df)))
+    row_indices.remove(i)
+    used_indices = set()
 
-                # Compute similarity
-                similarity = calculate_semantic_similarity(
-                    set(ast.literal_eval(genres_a)),
-                    set(ast.literal_eval(genres_b)),
-                    set(ast.literal_eval(themes_a)),
-                    set(ast.literal_eval(themes_b)),
-                )
+    while attempts < max_attempts and negative_count < max_negative_per_row:
+        available_indices = list(set(row_indices) - used_indices)
+        if not available_indices:
+            break
+        j = random.choice(available_indices)
+        used_indices.add(j)
+        row_b = df.iloc[j]
+        try:
+            # Check for NaN values before parsing
+            genres_a = row_a["genres"]
+            genres_b = row_b["genres"]
+            themes_a = row_a["themes"]
+            themes_b = row_b["themes"]
 
-                if similarity <= partial_threshold - 0.01 and similarity >= 0.2:
-                    # If similarity is below a certain threshold, treat as a negative pair
-                    valid_synopses_a = [
-                        col for col in synopses_columns if pd.notnull(row_a[col])
-                    ]
-                    valid_synopses_b = [
-                        col for col in synopses_columns if pd.notnull(row_b[col])
-                    ]
+            if (
+                pd.isna(genres_a)
+                or pd.isna(genres_b)
+                or pd.isna(themes_a)
+                or pd.isna(themes_b)
+            ):
+                continue  # Skip rows with NaN values
 
-                    # Only create a pair if both entries have at least one valid synopsis
-                    if valid_synopses_a and valid_synopses_b:
-                        col_a = random.choice(valid_synopses_a)
-                        col_b = random.choice(valid_synopses_b)
+            # Compute similarity
+            similarity = calculate_semantic_similarity(
+                set(ast.literal_eval(genres_a)),
+                set(ast.literal_eval(genres_b)),
+                set(ast.literal_eval(themes_a)),
+                set(ast.literal_eval(themes_b)),
+            )
 
-                        pairs.append(
-                            InputExample(
-                                texts=[row_a[col_a], row_b[col_b]],
-                                label=similarity,
-                            )
-                        )  # Partial or negative pair
-                        negative_count += 1
-                        row_a_negative_count += 1
+            if similarity <= partial_threshold - 0.01 and similarity >= 0.15:
+                # If similarity is below a certain threshold, treat as a negative pair
+                valid_synopses_a = [
+                    col for col in synopses_columns if pd.notnull(row_a[col])
+                ]
+                valid_synopses_b = [
+                    col for col in synopses_columns if pd.notnull(row_b[col])
+                ]
 
-                        if row_a_negative_count >= max_negative_per_row:
-                            break
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                print(e)
-                continue
-            attempts += 1
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        print(e)
+                # Only create a pair if both entries have at least one valid synopsis
+                if valid_synopses_a and valid_synopses_b:
+                    col_a = random.choice(valid_synopses_a)
+                    col_b = random.choice(valid_synopses_b)
+
+                    pairs.append(
+                        InputExample(
+                            texts=[row_a[col_a], row_b[col_b]],
+                            label=similarity,  # type: ignore
+                        )
+                    )  # Partial or negative pair
+                    negative_count += 1
+                    row_a_negative_count += 1
+
+                    if row_a_negative_count >= max_negative_per_row:
+                        break
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            print(e)
+            continue
+        attempts += 1
 
     return pairs
 
@@ -386,9 +451,21 @@ def create_partial_positive_pairs(
     synopses_columns,
     partial_threshold,
     max_partial_per_row,
-    encoder_model,
     partial_positive_pairs_file,
 ):
+    """
+    Create partial positive pairs from the dataframe.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the data.
+        synopses_columns (list): List of columns containing synopses.
+        partial_threshold (float): Threshold for partial similarity.
+        max_partial_per_row (int): Maximum number of partial positive pairs per row.
+        partial_positive_pairs_file (str): Path to where partial positive pairs will be saved.
+
+    Returns:
+        list: List of partial positive InputExample pairs.
+    """
     num_workers = max(cpu_count() - 2 - 4, 1)
     with Pool(processes=num_workers) as pool:
         partial_func = partial(
@@ -417,9 +494,21 @@ def create_negative_pairs(
     synopses_columns,
     partial_threshold,
     max_negative_per_row,
-    encoder_model,
     negative_pairs_file,
 ):
+    """
+    Create negative pairs from the dataframe.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the data.
+        synopses_columns (list): List of columns containing synopses.
+        partial_threshold (float): Threshold for partial similarity.
+        max_negative_per_row (int): Maximum number of negative pairs per row.
+        negative_pairs_file (str): Path to the file where negative pairs will be saved.
+
+    Returns:
+        list: List of negative InputExample pairs.
+    """
     num_workers = max(cpu_count() - 2 - 4, 1)
     with Pool(processes=num_workers) as pool:
         negative_func = partial(
@@ -452,10 +541,25 @@ def create_pairs(
     partial_positive_pairs_file=None,
     negative_pairs_file=None,
 ):
+    """
+    Create positive, partial positive, and negative pairs from the dataframe.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the data.
+        max_negative_pairs (int): Maximum number of negative pairs.
+        max_partial_positive_pairs (int): Maximum number of partial positive pairs.
+        partial_threshold (float): Threshold for partial similarity. Default is 0.5.
+        positive_pairs_file (str): Path to the file where positive pairs will be saved.
+        partial_positive_pairs_file (str): Path to where partial positive pairs will be saved.
+        negative_pairs_file (str): Path to the file where negative pairs will be saved.
+
+    Returns:
+        tuple: Lists of positive, partial positive, and negative InputExample pairs.
+    """
     synopses_columns = [col for col in df.columns if "synopsis" in col.lower()]
 
     # Load a pre-trained Sentence Transformer model for encoding
-    encoder_model = SentenceTransformer("sentence-t5-xl")
+    encoder_model = SentenceTransformer("sentence-t5-xl")  # pylint: disable=redefined-outer-name
 
     # Generate positive pairs if not already saved
     positive_pairs = []
@@ -480,7 +584,6 @@ def create_pairs(
             synopses_columns,
             partial_threshold,
             max_partial_per_row,
-            encoder_model,
             partial_positive_pairs_file,
         )
         # Clear memory
@@ -496,7 +599,6 @@ def create_pairs(
             synopses_columns,
             partial_threshold,
             max_negative_per_row,
-            encoder_model,
             negative_pairs_file,
         )
         # Clear memory
@@ -514,6 +616,19 @@ def get_pairs(
     max_negative_pairs,
     max_partial_positive_pairs,
 ):
+    """
+    Get positive, partial positive, and negative pairs from the dataframe.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the data.
+        use_saved_pairs (bool): Whether to use saved pairs.
+        saved_pairs_directory (str): Directory to save/load pairs.
+        max_negative_pairs (int): Maximum number of negative pairs.
+        max_partial_positive_pairs (int): Maximum number of partial positive pairs.
+
+    Returns:
+        list: Combined list of positive, partial positive, and negative InputExample pairs.
+    """
     positive_pairs_file = os.path.join(saved_pairs_directory, "positive_pairs.csv")
     partial_positive_pairs_file = os.path.join(
         saved_pairs_directory, "partial_positive_pairs.csv"
@@ -582,6 +697,9 @@ def get_pairs(
 
 
 def main():
+    """
+    Main function to train a SentenceTransformer model.
+    """
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Train a SentenceTransformer model.")
     parser.add_argument(
