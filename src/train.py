@@ -626,6 +626,24 @@ def main():
         default=2e-5,
         help="Learning rate for the optimizer. Default is 2e-5 (0.00002).",
     )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=3,
+        help="Batch size for training. Default is 3.",
+    )
+    parser.add_argument(
+        "--evaluations_per_epoch",
+        type=int,
+        default=20,
+        help="Number of evaluations per epoch. Default is 20.",
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=2,
+        help="Number of epochs for training. Default is 2.",
+    )
     args = parser.parse_args()
 
     # Load your dataset
@@ -650,7 +668,13 @@ def main():
 
     # Create a DataLoader
     print("Creating DataLoader")
-    train_dataloader = DataLoader(train_pairs, shuffle=True, batch_size=3)
+    train_dataloader = DataLoader(train_pairs, shuffle=True, batch_size=args.batch_size)
+
+    # Calculate the number of batches per epoch
+    num_batches_per_epoch = len(train_dataloader)
+
+    # Calculate evaluation steps
+    evaluation_steps = num_batches_per_epoch // args.evaluations_per_epoch
 
     # Prepare validation data for the evaluator
     val_sentences_1 = [pair.texts[0] for pair in val_pairs]
@@ -670,10 +694,10 @@ def main():
     model.fit(
         train_objectives=[(train_dataloader, train_loss)],
         evaluator=evaluator,
-        epochs=2,
-        evaluation_steps=1000,
+        epochs=args.epochs,
+        evaluation_steps=evaluation_steps,
         output_path=args.output_model_path,
-        warmup_steps=500,
+        warmup_steps=evaluation_steps // 2,
         optimizer_params={"lr": args.learning_rate},
     )
 
