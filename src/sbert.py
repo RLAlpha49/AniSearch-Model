@@ -28,12 +28,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src import common  # pylint: disable=wrong-import-position
 
-# Disable oneDNN for TensorFlow
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-from sentence_transformers import (  # pylint: disable=wrong-import-position, wrong-import-order  # noqa: E402
-    SentenceTransformer,
-    models,
-)
 
 # Suppress specific warnings
 warnings.filterwarnings(
@@ -53,6 +47,11 @@ warnings.filterwarnings(
 warnings.filterwarnings(
     "ignore",
     message=r"The name tf.losses.sparse_softmax_cross_entropy is deprecated.",
+)
+
+from sentence_transformers import (  # pylint: disable=wrong-import-position, wrong-import-order  # noqa: E402
+    SentenceTransformer,
+    models,
 )
 
 
@@ -211,6 +210,8 @@ def main() -> None:
     os.makedirs(embeddings_save_dir, exist_ok=True)
 
     # Load the underlying Hugging Face model to access config
+    if model_name == "fine_tuned_sbert_anime_model":
+        model_name = f"model/{model_name}"
     hf_model = AutoModel.from_pretrained(model_name)
 
     # Check if the model is a path to a fine-tuned model
@@ -223,72 +224,73 @@ def main() -> None:
             if model_name != "toobi/anime":
                 model_name = f"sentence-transformers/{model_name}"
 
-        # Define the maximum token counts for each model for both anime and manga
-        max_token_counts = {
-            "toobi/anime": {"anime": 929, "manga": 1003},
-            "sentence-transformers/all-distilroberta-v1": {"anime": 940, "manga": 1023},
-            "sentence-transformers/all-MiniLM-L6-v1": {"anime": 929, "manga": 1003},
-            "sentence-transformers/all-MiniLM-L12-v1": {"anime": 929, "manga": 1003},
-            "sentence-transformers/all-MiniLM-L6-v2": {"anime": 929, "manga": 1003},
-            "sentence-transformers/all-MiniLM-L12-v2": {"anime": 929, "manga": 1003},
-            "sentence-transformers/all-mpnet-base-v1": {"anime": 929, "manga": 1003},
-            "sentence-transformers/all-mpnet-base-v2": {"anime": 929, "manga": 1003},
-            "sentence-transformers/all-roberta-large-v1": {"anime": 940, "manga": 1023},
-            "sentence-transformers/gtr-t5-base": {"anime": 1061, "manga": 1128},
-            "sentence-transformers/gtr-t5-large": {"anime": 1061, "manga": 1128},
-            "sentence-transformers/gtr-t5-xl": {"anime": 1061, "manga": 1128},
-            "sentence-transformers/multi-qa-distilbert-dot-v1": {
-                "anime": 929,
-                "manga": 1003,
-            },
-            "sentence-transformers/multi-qa-mpnet-base-cos-v1": {
-                "anime": 929,
-                "manga": 1003,
-            },
-            "sentence-transformers/multi-qa-mpnet-base-dot-v1": {
-                "anime": 929,
-                "manga": 1003,
-            },
-            "sentence-transformers/paraphrase-distilroberta-base-v2": {
-                "anime": 940,
-                "manga": 1023,
-            },
-            "sentence-transformers/paraphrase-mpnet-base-v2": {
-                "anime": 929,
-                "manga": 1003,
-            },
-            "sentence-transformers/sentence-t5-base": {"anime": 1061, "manga": 1128},
-            "sentence-transformers/sentence-t5-large": {"anime": 1061, "manga": 1128},
-            "sentence-transformers/sentence-t5-xl": {"anime": 1061, "manga": 1128},
-            "sentence-transformers/sentence-t5-xxl": {"anime": 1061, "manga": 1128},
-        }
+    # Define the maximum token counts for each model for both anime and manga
+    max_token_counts = {
+        "toobi/anime": {"anime": 929, "manga": 1003},
+        "sentence-transformers/all-distilroberta-v1": {"anime": 940, "manga": 1023},
+        "sentence-transformers/all-MiniLM-L6-v1": {"anime": 929, "manga": 1003},
+        "sentence-transformers/all-MiniLM-L12-v1": {"anime": 929, "manga": 1003},
+        "sentence-transformers/all-MiniLM-L6-v2": {"anime": 929, "manga": 1003},
+        "sentence-transformers/all-MiniLM-L12-v2": {"anime": 929, "manga": 1003},
+        "sentence-transformers/all-mpnet-base-v1": {"anime": 929, "manga": 1003},
+        "sentence-transformers/all-mpnet-base-v2": {"anime": 929, "manga": 1003},
+        "sentence-transformers/all-roberta-large-v1": {"anime": 940, "manga": 1023},
+        "sentence-transformers/gtr-t5-base": {"anime": 1061, "manga": 1128},
+        "sentence-transformers/gtr-t5-large": {"anime": 1061, "manga": 1128},
+        "sentence-transformers/gtr-t5-xl": {"anime": 1061, "manga": 1128},
+        "sentence-transformers/multi-qa-distilbert-dot-v1": {
+            "anime": 929,
+            "manga": 1003,
+        },
+        "sentence-transformers/multi-qa-mpnet-base-cos-v1": {
+            "anime": 929,
+            "manga": 1003,
+        },
+        "sentence-transformers/multi-qa-mpnet-base-dot-v1": {
+            "anime": 929,
+            "manga": 1003,
+        },
+        "sentence-transformers/paraphrase-distilroberta-base-v2": {
+            "anime": 940,
+            "manga": 1023,
+        },
+        "sentence-transformers/paraphrase-mpnet-base-v2": {
+            "anime": 929,
+            "manga": 1003,
+        },
+        "sentence-transformers/sentence-t5-base": {"anime": 1061, "manga": 1128},
+        "sentence-transformers/sentence-t5-large": {"anime": 1061, "manga": 1128},
+        "sentence-transformers/sentence-t5-xl": {"anime": 1061, "manga": 1128},
+        "sentence-transformers/sentence-t5-xxl": {"anime": 1061, "manga": 1128},
+        "fine_tuned_sbert_anime_model": {"anime": 1061, "manga": 1128},
+    }
 
-        # Initialize SBERT components
-        word_embedding_model = models.Transformer(model_name)
-        # Set the max_seq_length for the current model based on the context
-        word_embedding_model.max_seq_length = max_token_counts.get(model_name, {}).get(
-            dataset_type, None
-        )  # Default to None if not found
+    # Initialize SBERT components
+    word_embedding_model = models.Transformer(model_name)
+    # Set the max_seq_length for the current model based on the context
+    word_embedding_model.max_seq_length = max_token_counts.get(model_name, {}).get(
+        dataset_type, None
+    )  # Default to None if not found
 
-        pooling_model = models.Pooling(
-            word_embedding_model.get_word_embedding_dimension(),
-        )
+    pooling_model = models.Pooling(
+        word_embedding_model.get_word_embedding_dimension(),
+    )
 
-        # Load pre-trained SBERT model
-        model = SentenceTransformer(
-            model_name,
-            device=device,
-            modules=[word_embedding_model, pooling_model],
-        )
+    # Load pre-trained SBERT model
+    model = SentenceTransformer(
+        model_name,
+        device=device,
+        modules=[word_embedding_model, pooling_model],
+    )
 
-        model[0].max_seq_length = max_token_counts.get(model_name, {}).get(  # type: ignore
-            dataset_type, 512
-        )
-        model[
-            1
-        ].word_embedding_dimension = word_embedding_model.get_word_embedding_dimension()  # type: ignore
+    model[0].max_seq_length = max_token_counts.get(model_name, {}).get(  # type: ignore
+        dataset_type, 512
+    )
+    model[
+        1
+    ].word_embedding_dimension = word_embedding_model.get_word_embedding_dimension()  # type: ignore
 
-        print(model)
+    print(model)
 
     # Measure the time taken to generate embeddings for each column
     start_time = time.time()

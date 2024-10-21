@@ -338,8 +338,13 @@ def get_similarities(
     else:
         df = manga_df
         synopsis_columns = manga_synopsis_columns
+    
+    if model_name == "fine_tuned_sbert_anime_model":
+        load_model_name = f"model/{model_name}"
+    else:
+        load_model_name = model_name
 
-    model = SentenceTransformer(model_name, device=device)
+    model = SentenceTransformer(load_model_name, device=device)
     processed_description = description.strip()
     new_pooled_embedding = model.encode([processed_description])
 
@@ -470,6 +475,8 @@ def get_manga_similarities() -> Response:
             raise ValueError("Request payload is missing or not in JSON format")
         validate_input(data)
         model_name = data.get("model")
+        if model_name == "sentence-transformers/fine_tuned_sbert_anime_model":
+            model_name = "fine_tuned_sbert_anime_model"
         description = data.get("description")
         page = data.get("page", 1)
         results_per_page = data.get("resultsPerPage", 10)

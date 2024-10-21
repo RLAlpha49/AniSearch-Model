@@ -620,6 +620,12 @@ def main():
         default="model/fine_tuned_sbert_anime_model",
         help="Path to save the fine-tuned model. Default is 'model/fine_tuned_sbert_anime_model'.",
     )
+    parser.add_argument(
+        "--learning_rate",
+        type=float,
+        default=2e-5,
+        help="Learning rate for the optimizer. Default is 2e-5 (0.00002).",
+    )
     args = parser.parse_args()
 
     # Load your dataset
@@ -668,7 +674,7 @@ def main():
         evaluation_steps=1000,
         output_path=args.output_model_path,
         warmup_steps=500,
-        optimizer_params={"lr": 2e-2},
+        optimizer_params={"lr": args.learning_rate},
     )
 
     # Save the model
