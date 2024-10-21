@@ -336,17 +336,21 @@ def generate_partial_positive_pairs(
                     col_a = random.choice(valid_synopses_a)
                     col_b = random.choice(valid_synopses_b)
 
-                    pairs.append(
-                        InputExample(
-                            texts=[row_a[col_a], row_b[col_b]],
-                            label=similarity,  # type: ignore
-                        )
-                    )  # Partial positive pair
-                    partial_count += 1
-                    row_a_partial_count += 1
+                    # Check if the length condition is met
+                    longer_length = max(len(row_a[col_a]), len(row_b[col_b]))
+                    shorter_length = min(len(row_a[col_a]), len(row_b[col_b]))
+                    if shorter_length >= 0.5 * longer_length:
+                        pairs.append(
+                            InputExample(
+                                texts=[row_a[col_a], row_b[col_b]],
+                                label=similarity,  # type: ignore
+                            )
+                        )  # Partial positive pair
+                        partial_count += 1
+                        row_a_partial_count += 1
 
-                    if row_a_partial_count >= max_partial_per_row:
-                        break
+                        if row_a_partial_count >= max_partial_per_row:
+                            break
         except Exception as e:  # pylint: disable=broad-exception-caught
             print(e)
             continue
@@ -426,17 +430,21 @@ def generate_negative_pairs(
                     col_a = random.choice(valid_synopses_a)
                     col_b = random.choice(valid_synopses_b)
 
-                    pairs.append(
-                        InputExample(
-                            texts=[row_a[col_a], row_b[col_b]],
-                            label=similarity,  # type: ignore
-                        )
-                    )  # Partial or negative pair
-                    negative_count += 1
-                    row_a_negative_count += 1
+                    # Check if the length condition is met
+                    longer_length = max(len(row_a[col_a]), len(row_b[col_b]))
+                    shorter_length = min(len(row_a[col_a]), len(row_b[col_b]))
+                    if shorter_length >= 0.5 * longer_length:
+                        pairs.append(
+                            InputExample(
+                                texts=[row_a[col_a], row_b[col_b]],
+                                label=similarity,  # type: ignore
+                            )
+                        )  # Partial or negative pair
+                        negative_count += 1
+                        row_a_negative_count += 1
 
-                    if row_a_negative_count >= max_negative_per_row:
-                        break
+                        if row_a_negative_count >= max_negative_per_row:
+                            break
         except Exception as e:  # pylint: disable=broad-exception-caught
             print(e)
             continue
@@ -540,6 +548,7 @@ def create_pairs(
     positive_pairs_file=None,
     partial_positive_pairs_file=None,
     negative_pairs_file=None,
+    use_saved_pairs=False,
 ):
     """
     Create positive, partial positive, and negative pairs from the dataframe.
@@ -563,7 +572,11 @@ def create_pairs(
 
     # Generate positive pairs if not already saved
     positive_pairs = []
-    if positive_pairs_file is None or not os.path.exists(positive_pairs_file):
+    if (
+        positive_pairs_file is None
+        or not os.path.exists(positive_pairs_file)
+        or not use_saved_pairs
+    ):
         positive_pairs = create_positive_pairs(
             df, synopses_columns, encoder_model, positive_pairs_file
         )
@@ -573,8 +586,10 @@ def create_pairs(
 
     # Generate partial positive pairs if not already saved
     partial_positive_pairs = []
-    if partial_positive_pairs_file is None or not os.path.exists(
-        partial_positive_pairs_file
+    if (
+        partial_positive_pairs_file is None
+        or not os.path.exists(partial_positive_pairs_file)
+        or not use_saved_pairs
     ):
         max_partial_per_row = (
             int(max_partial_positive_pairs / len(df)) if len(df) > 0 else 0
@@ -592,7 +607,11 @@ def create_pairs(
 
     # Generate negative pairs if not already saved
     negative_pairs = []
-    if negative_pairs_file is None or not os.path.exists(negative_pairs_file):
+    if (
+        negative_pairs_file is None
+        or not os.path.exists(negative_pairs_file)
+        or not use_saved_pairs
+    ):
         max_negative_per_row = int(max_negative_pairs / len(df)) if len(df) > 0 else 0
         negative_pairs = create_negative_pairs(
             df,
@@ -640,7 +659,7 @@ def get_pairs(
     partial_positive_pairs = []
     negative_pairs = []
 
-    # Load existing pairs if available
+    # Load existing pairs if available and use_saved_pairs is True
     if use_saved_pairs:
         if os.path.exists(positive_pairs_file):
             print(f"Loading positive pairs from {positive_pairs_file}")
@@ -666,9 +685,14 @@ def get_pairs(
                 for _, row in negative_pairs_df.iterrows()
             ]
 
-    # Generate missing pairs
-    if not positive_pairs or not partial_positive_pairs or not negative_pairs:
-        print("Generating missing pairs")
+    # Generate pairs if use_saved_pairs is False or if any list is empty
+    if (
+        not use_saved_pairs
+        or not positive_pairs
+        or not partial_positive_pairs
+        or not negative_pairs
+    ):
+        print("Generating pairs")
         (
             generated_positive_pairs,
             generated_partial_positive_pairs,
@@ -681,6 +705,7 @@ def get_pairs(
             positive_pairs_file=positive_pairs_file,
             partial_positive_pairs_file=partial_positive_pairs_file,
             negative_pairs_file=negative_pairs_file,
+            use_saved_pairs=use_saved_pairs,
         )
 
         # Only update the lists with newly generated pairs if they were missing
@@ -710,8 +735,7 @@ def main():
     )
     parser.add_argument(
         "--use_saved_pairs",
-        type=bool,
-        default=False,
+        action="store_true",
         help="Whether to use saved pairs. Default is False.",
     )
     parser.add_argument(
