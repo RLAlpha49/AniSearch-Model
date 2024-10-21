@@ -644,6 +644,13 @@ def main():
         default=2,
         help="Number of epochs for training. Default is 2.",
     )
+    parser.add_argument(
+        "--loss_function",
+        type=str,
+        choices=["cosine", "cosent", "angle"],
+        default="cosine",
+        help="Loss function to use: 'cosine', 'cosent', or 'angle'. Default is 'cosine'.",
+    )
     args = parser.parse_args()
 
     # Load your dataset
@@ -683,11 +690,23 @@ def main():
 
     # Create the evaluator
     evaluator = EmbeddingSimilarityEvaluator(
-        val_sentences_1, val_sentences_2, val_labels
+        val_sentences_1,
+        val_sentences_2,
+        val_labels,
+        main_similarity="cosine",
+        write_csv=True,
+        precision="float32",
     )
 
-    # Define the loss function
-    train_loss = losses.CosineSimilarityLoss(model=model)
+    # Define the loss function based on the argument
+    if args.loss_function == "cosine":
+        train_loss = losses.CosineSimilarityLoss(model=model)
+    elif args.loss_function == "cosent":
+        train_loss = losses.CoSENTLoss(model=model)
+    elif args.loss_function == "angle":
+        train_loss = losses.AnglELoss(model=model)
+    else:
+        raise ValueError(f"Unsupported loss function: {args.loss_function}")
 
     # Fine-tuning the model
     print("Fine-tuning the model")
