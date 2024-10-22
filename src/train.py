@@ -33,103 +33,152 @@ from sentence_transformers import SentenceTransformer, InputExample, losses, uti
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator  # pylint: disable=wrong-import-position # noqa: E402
 
 
-# List of genres and themes to help build negative pairs
-all_genres = {
-    "Action",
-    "Adventure",
-    "Ecchi",
-    "Girls Love",
-    "Mystery",
-    "Hentai",
-    "Drama",
-    "Romance",
-    "Horror",
-    "Gourmet",
-    "Award Winning",
-    "Erotica",
-    "Sci-Fi",
-    "Fantasy",
-    "Sports",
-    "Supernatural",
-    "Avant Garde",
-    "Boys Love",
-    "Suspense",
-    "Slice of Life",
-    "Comedy",
-}
+# Define genres and themes based on data_type
+def get_genres_and_themes(data_type: str):
+    if data_type == "anime":
+        all_genres = {
+            "Slice of Life",
+            "Boys Love",
+            "Drama",
+            "Suspense",
+            "Gourmet",
+            "Erotica",
+            "Romance",
+            "Comedy",
+            "Hentai",
+            "Sports",
+            "Supernatural",
+            "Fantasy",
+            "Girls Love",
+            "Mystery",
+            "Adventure",
+            "Horror",
+            "Award Winning",
+            "Action",
+            "Avant Garde",
+            "Ecchi",
+            "Sci-Fi",
+        }
 
-all_themes = {
-    "Harem",
-    "Educational",
-    "High Stakes Game",
-    "Adult Cast",
-    "Anthropomorphic",
-    "Iyashikei",
-    "Samurai",
-    "Pets",
-    "Mythology",
-    "Idols (Male)",
-    "Gore",
-    "Visual Arts",
-    "Magical Sex Shift",
-    "Romantic Subtext",
-    "Time Travel",
-    "Racing",
-    "CGDCT",
-    "Detective",
-    "Mecha",
-    "Psychological",
-    "Mahou Shoujo",
-    "Childcare",
-    "Performing Arts",
-    "Combat Sports",
-    "Medical",
-    "Space",
-    "Otaku Culture",
-    "Survival",
-    "Idols (Female)",
-    "Super Power",
-    "Reverse Harem",
-    "Parody",
-    "Love Polygon",
-    "School",
-    "Strategy Game",
-    "Military",
-    "Video Game",
-    "Historical",
-    "Reincarnation",
-    "Team Sports",
-    "Martial Arts",
-    "Crossdressing",
-    "Isekai",
-    "Workplace",
-    "Vampire",
-    "Delinquents",
-    "Organized Crime",
-    "Showbiz",
-    "Gag Humor",
-    "Music",
-}
+        all_themes = {
+            "Military",
+            "Survival",
+            "Idols (Female)",
+            "High Stakes Game",
+            "Crossdressing",
+            "Delinquents",
+            "Vampire",
+            "Video Game",
+            "Action",
+            "Adventure",
+            "Comedy",
+            "Drama",
+            "Fantasy",
+            "Horror",
+            "Mystery",
+            "Romance",
+            "Sci-Fi",
+            "Slice of Life",
+            "Supernatural",
+            "Thriller",
+            "Sports",
+            "Magical Realism",
+            "Mecha",
+            "Psychological",
+            "Parody",
+        }
+    elif data_type == "manga":
+        all_genres = {
+            "Comedy",
+            "Romance",
+            "Gourmet",
+            "Action",
+            "Avant Garde",
+            "Fantasy",
+            "Sports",
+            "Sci-Fi",
+            "Suspense",
+            "Erotica",
+            "Adventure",
+            "Slice of Life",
+            "Ecchi",
+            "Supernatural",
+            "Horror",
+            "Girls Love",
+            "Mystery",
+            "Award Winning",
+            "Drama",
+        }
 
-# Combine genres and themes
-all_categories = list(all_genres) + list(all_themes)
+        all_themes = {
+            "Martial Arts",
+            "Romantic Subtext",
+            "Music",
+            "Crossdressing",
+            "Workplace",
+            "Pets",
+            "Medical",
+            "Adult Cast",
+            "Combat Sports",
+            "Gag Humor",
+            "Reincarnation",
+            "Visual Arts",
+            "Showbiz",
+            "Racing",
+            "Iyashikei",
+            "Time Travel",
+            "CGDCT",
+            "Strategy Game",
+            "Villainess",
+            "Idols (Female)",
+            "Gore",
+            "Team Sports",
+            "Video Game",
+            "Super Power",
+            "Samurai",
+            "Organized Crime",
+            "Parody",
+            "Childcare",
+            "Magical Sex Shift",
+            "Love Polygon",
+            "Performing Arts",
+            "Anthropomorphic",
+            "Historical",
+            "Vampire",
+            "Reverse Harem",
+            "Isekai",
+            "Mecha",
+            "Delinquents",
+            "Detective",
+            "Idols (Male)",
+            "Otaku Culture",
+            "Mythology",
+            "Military",
+            "Mahou Shoujo",
+            "High Stakes Game",
+            "School",
+            "Space",
+            "Educational",
+            "Psychological",
+            "Harem",
+            "Memoir",
+            "Survival",
+        }
+    else:
+        raise ValueError(f"Unsupported data_type: {data_type}")
 
-# Load a pre-trained Sentence Transformer model for encoding
-encoder_model = SentenceTransformer("sentence-t5-large")
-
-# Generate embeddings for all categories
-category_embeddings = encoder_model.encode(all_categories, convert_to_tensor=False)
-
-# Create a mapping from category to its embedding
-category_to_embedding = {
-    category: embedding
-    for category, embedding in zip(all_categories, category_embeddings)
-}
+    return all_genres, all_themes
 
 
 # Function to calculate semantic similarity between genres/themes
 def calculate_semantic_similarity(
-    genres_a, genres_b, themes_a, themes_b, genre_weight=0.35, theme_weight=0.65
+    category_to_embedding,
+    genres_a,
+    genres_b,
+    themes_a,
+    themes_b,
+    genre_weight=0.35,
+    theme_weight=0.65,
 ):
     """
     Calculate the semantic similarity between two sets of genres and themes.
@@ -262,7 +311,13 @@ def create_positive_pairs(df, synopses_columns, encoder_model, positive_pairs_fi
 
 # Function to process a single row for partial positive pairs
 def generate_partial_positive_pairs(
-    i, df, synopses_columns, partial_threshold, max_partial_per_row, max_attempts=25
+    i,
+    df,
+    synopses_columns,
+    partial_threshold,
+    max_partial_per_row,
+    category_to_embedding,
+    max_attempts=25,
 ):
     """
     Generate partial positive pairs for a single row in the dataframe.
@@ -319,7 +374,7 @@ def generate_partial_positive_pairs(
 
             # Calculate partial similarity based on genres and themes
             similarity = calculate_semantic_similarity(
-                genres_a, genres_b, themes_a, themes_b
+                category_to_embedding, genres_a, genres_b, themes_a, themes_b
             )
 
             if similarity >= partial_threshold + 0.01 and similarity <= 0.8:
@@ -361,7 +416,13 @@ def generate_partial_positive_pairs(
 
 # Function to process a single row for negative pairs
 def generate_negative_pairs(
-    i, df, synopses_columns, partial_threshold, max_negative_per_row, max_attempts=25
+    i,
+    df,
+    synopses_columns,
+    partial_threshold,
+    max_negative_per_row,
+    category_to_embedding,
+    max_attempts=25,
 ):
     """
     Generate negative pairs for a single row in the dataframe.
@@ -410,6 +471,7 @@ def generate_negative_pairs(
 
             # Compute similarity
             similarity = calculate_semantic_similarity(
+                category_to_embedding,
                 set(ast.literal_eval(genres_a)),
                 set(ast.literal_eval(genres_b)),
                 set(ast.literal_eval(themes_a)),
@@ -461,6 +523,7 @@ def create_partial_positive_pairs(
     max_partial_per_row,
     partial_positive_pairs_file,
     num_workers,
+    category_to_embedding,
 ):
     """
     Create partial positive pairs from the dataframe.
@@ -483,6 +546,7 @@ def create_partial_positive_pairs(
             synopses_columns=synopses_columns,
             partial_threshold=partial_threshold,
             max_partial_per_row=max_partial_per_row,
+            category_to_embedding=category_to_embedding,
         )
         partial_results = list(
             tqdm(
@@ -505,6 +569,7 @@ def create_negative_pairs(
     max_negative_per_row,
     negative_pairs_file,
     num_workers,
+    category_to_embedding,
 ):
     """
     Create negative pairs from the dataframe.
@@ -527,6 +592,7 @@ def create_negative_pairs(
             synopses_columns=synopses_columns,
             partial_threshold=partial_threshold,
             max_negative_per_row=max_negative_per_row,
+            category_to_embedding=category_to_embedding,
         )
         negative_results = list(
             tqdm(
@@ -552,6 +618,7 @@ def create_pairs(
     negative_pairs_file=None,
     use_saved_pairs=False,
     num_workers=cpu_count() // 4,
+    category_to_embedding=None,
 ):
     """
     Create positive, partial positive, and negative pairs from the dataframe.
@@ -604,6 +671,7 @@ def create_pairs(
             max_partial_per_row,
             partial_positive_pairs_file,
             num_workers,
+            category_to_embedding,
         )
         # Clear memory
         gc.collect()
@@ -624,6 +692,7 @@ def create_pairs(
             max_negative_per_row,
             negative_pairs_file,
             num_workers,
+            category_to_embedding,
         )
         # Clear memory
         gc.collect()
@@ -640,6 +709,8 @@ def get_pairs(
     max_negative_pairs,
     max_partial_positive_pairs,
     num_workers,
+    data_type,
+    category_to_embedding,
 ):
     """
     Get positive, partial positive, and negative pairs from the dataframe.
@@ -654,11 +725,15 @@ def get_pairs(
     Returns:
         list: Combined list of positive, partial positive, and negative InputExample pairs.
     """
-    positive_pairs_file = os.path.join(saved_pairs_directory, "positive_pairs.csv")
+    # Define the path based on data_type
+    pairs_subdir = os.path.join(saved_pairs_directory, "pairs", data_type)
+    os.makedirs(pairs_subdir, exist_ok=True)
+
+    positive_pairs_file = os.path.join(pairs_subdir, "positive_pairs.csv")
     partial_positive_pairs_file = os.path.join(
-        saved_pairs_directory, "partial_positive_pairs.csv"
+        pairs_subdir, "partial_positive_pairs.csv"
     )
-    negative_pairs_file = os.path.join(saved_pairs_directory, "negative_pairs.csv")
+    negative_pairs_file = os.path.join(pairs_subdir, "negative_pairs.csv")
 
     # Initialize lists to store pairs
     positive_pairs = []
@@ -713,6 +788,7 @@ def get_pairs(
             negative_pairs_file=negative_pairs_file,
             use_saved_pairs=use_saved_pairs,
             num_workers=num_workers,
+            category_to_embedding=category_to_embedding,
         )
 
         # Only update the lists with newly generated pairs if they were missing
@@ -766,8 +842,8 @@ def main():
     parser.add_argument(
         "--output_model_path",
         type=str,
-        default="model/fine_tuned_sbert_anime_model",
-        help="Path to save the fine-tuned model. Default is 'model/fine_tuned_sbert_anime_model'.",
+        default="model/fine_tuned_sbert_model",
+        help="Path to save the fine-tuned model. Default is 'model/fine_tuned_sbert_model'.",
     )
     parser.add_argument(
         "--learning_rate",
@@ -806,10 +882,49 @@ def main():
         default=cpu_count() // 4,
         help="Number of workers for multiprocessing. Default is (cpu_count() // 4).",
     )
+    # New argument for data type
+    parser.add_argument(
+        "--data_type",
+        type=str,
+        choices=["anime", "manga"],
+        default="anime",
+        help="Type of data to train on: 'anime' or 'manga'. Default is 'anime'.",
+    )
     args = parser.parse_args()
 
-    # Load your dataset
-    df = pd.read_csv("model/merged_anime_dataset.csv")
+    # Set the output mode path based on data_type
+    output_model_path = args.output_model_path
+    if "anime" in args.output_model_path and args.data_type == "manga":
+        output_model_path = output_model_path.replace("anime", "manga")
+    elif "manga" in args.output_model_path and args.data_type == "anime":
+        output_model_path = output_model_path.replace("manga", "anime")
+    else:
+        # Append the data_type to the model name if not already included
+        if args.data_type not in args.output_model_path.lower():
+            output_model_path = f"{output_model_path}_{args.data_type}"
+
+    # Update the argument with the new output_model_path
+    args.output_model_path = output_model_path
+
+    all_genres, all_themes = get_genres_and_themes(args.data_type)
+
+    # Load a pre-trained Sentence Transformer model for encoding
+    encoder_model = SentenceTransformer("sentence-t5-large")
+
+    # Generate embeddings for all categories
+    all_categories = list(all_genres) + list(all_themes)
+    category_embeddings = encoder_model.encode(all_categories, convert_to_tensor=False)
+
+    # Create a mapping from category to its embedding
+    category_to_embedding = {
+        category: embedding
+        for category, embedding in zip(all_categories, category_embeddings)
+    }
+
+    # Load your dataset based on data_type
+    dataset_path = f"model/merged_{args.data_type}_dataset.csv"
+    logging.info(f"Loading dataset from {dataset_path}")
+    df = pd.read_csv(dataset_path)
 
     # Get the pairs
     pairs = get_pairs(
@@ -819,6 +934,8 @@ def main():
         max_negative_pairs=args.max_negative_pairs,
         max_partial_positive_pairs=args.max_partial_positive_pairs,
         num_workers=args.num_workers,
+        data_type=args.data_type,
+        category_to_embedding=category_to_embedding,
     )
 
     # Split the pairs into training and validation sets
