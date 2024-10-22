@@ -115,7 +115,7 @@ all_themes = {
 all_categories = list(all_genres) + list(all_themes)
 
 # Load a pre-trained Sentence Transformer model for encoding
-encoder_model = SentenceTransformer("sentence-t5-base")
+encoder_model = SentenceTransformer("sentence-t5-large")
 
 # Generate embeddings for all categories
 category_embeddings = encoder_model.encode(all_categories, convert_to_tensor=False)
@@ -460,6 +460,7 @@ def create_partial_positive_pairs(
     partial_threshold,
     max_partial_per_row,
     partial_positive_pairs_file,
+    num_workers,
 ):
     """
     Create partial positive pairs from the dataframe.
@@ -474,7 +475,7 @@ def create_partial_positive_pairs(
     Returns:
         list: List of partial positive InputExample pairs.
     """
-    num_workers = max(cpu_count() - 2 - 4, 1)
+    num_workers = max(num_workers, 1)
     with Pool(processes=num_workers) as pool:
         partial_func = partial(
             generate_partial_positive_pairs,
@@ -503,6 +504,7 @@ def create_negative_pairs(
     partial_threshold,
     max_negative_per_row,
     negative_pairs_file,
+    num_workers,
 ):
     """
     Create negative pairs from the dataframe.
@@ -517,7 +519,7 @@ def create_negative_pairs(
     Returns:
         list: List of negative InputExample pairs.
     """
-    num_workers = max(cpu_count() - 2 - 4, 1)
+    num_workers = max(num_workers - 2, 1)
     with Pool(processes=num_workers) as pool:
         negative_func = partial(
             generate_negative_pairs,
@@ -549,6 +551,7 @@ def create_pairs(
     partial_positive_pairs_file=None,
     negative_pairs_file=None,
     use_saved_pairs=False,
+    num_workers=cpu_count() // 4,
 ):
     """
     Create positive, partial positive, and negative pairs from the dataframe.
@@ -600,6 +603,7 @@ def create_pairs(
             partial_threshold,
             max_partial_per_row,
             partial_positive_pairs_file,
+            num_workers,
         )
         # Clear memory
         gc.collect()
@@ -619,6 +623,7 @@ def create_pairs(
             partial_threshold,
             max_negative_per_row,
             negative_pairs_file,
+            num_workers,
         )
         # Clear memory
         gc.collect()
@@ -634,6 +639,7 @@ def get_pairs(
     saved_pairs_directory,
     max_negative_pairs,
     max_partial_positive_pairs,
+    num_workers,
 ):
     """
     Get positive, partial positive, and negative pairs from the dataframe.
@@ -706,6 +712,7 @@ def get_pairs(
             partial_positive_pairs_file=partial_positive_pairs_file,
             negative_pairs_file=negative_pairs_file,
             use_saved_pairs=use_saved_pairs,
+            num_workers=num_workers,
         )
 
         # Only update the lists with newly generated pairs if they were missing
@@ -793,6 +800,12 @@ def main():
         default="cosine",
         help="Loss function to use: 'cosine', 'cosent', or 'angle'. Default is 'cosine'.",
     )
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=cpu_count() // 4,
+        help="Number of workers for multiprocessing. Default is (cpu_count() // 4).",
+    )
     args = parser.parse_args()
 
     # Load your dataset
@@ -805,6 +818,7 @@ def main():
         saved_pairs_directory=args.saved_pairs_directory,
         max_negative_pairs=args.max_negative_pairs,
         max_partial_positive_pairs=args.max_partial_positive_pairs,
+        num_workers=args.num_workers,
     )
 
     # Split the pairs into training and validation sets
