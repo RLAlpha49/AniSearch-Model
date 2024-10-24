@@ -1,11 +1,20 @@
 """
-This module implements a Flask application that provides API endpoints
-for finding the most similar anime or manga descriptions based on a given model
-and description.
+This module implements a Flask application that provides API endpoints for finding similar anime or manga descriptions.
 
-The application uses Sentence Transformers to encode descriptions and
-calculate cosine similarities between them. It supports multiple synopsis
-columns from a dataset and returns the top N most similar descriptions.
+The application uses Sentence Transformers and custom models to encode descriptions and calculate cosine similarities.
+It supports multiple synopsis columns from different datasets and returns paginated results of the most similar items.
+
+Key Features:
+- Supports multiple pre-trained and custom Sentence Transformer models
+- Handles both anime and manga similarity searches
+- Implements rate limiting and CORS
+- Provides memory management for GPU resources
+- Includes comprehensive logging
+- Returns paginated results with similarity scores
+
+The API endpoints are:
+- POST /anisearchmodel/anime: Find similar anime based on description
+- POST /anisearchmodel/manga: Find similar manga based on description
 """
 
 # pylint: disable=import-error, global-variable-not-assigned, global-statement
@@ -28,6 +37,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sentence_transformers import SentenceTransformer, util
 from werkzeug.exceptions import HTTPException
+from custom_transformer import CustomT5EncoderModel
 
 # Determine the device to use based on the environment variable
 device = (
@@ -95,10 +105,10 @@ last_request_time_lock = threading.Lock()
 
 def update_last_request_time() -> None:
     """
-    Updates the last request time to the current time.
+    Updates the last request time to the current time in a thread-safe manner.
 
-    This function acquires a lock to ensure thread safety and updates the
-    global variable `last_request_time` with the current time.
+    This function is used to track when the last API request was made, which helps
+    with memory management and cleanup of unused resources.
     """
     with last_request_time_lock:
         global last_request_time
@@ -107,7 +117,11 @@ def update_last_request_time() -> None:
 
 def clear_memory() -> None:
     """
-    Clears the GPU cache and performs garbage collection to free up memory resources.
+    Frees up system memory and GPU cache.
+
+    This function performs two cleanup operations:
+    1. Empties the GPU cache if CUDA is being used
+    2. Runs Python's garbage collector to free memory
     """
     torch.cuda.empty_cache()
     gc.collect()
@@ -115,13 +129,12 @@ def clear_memory() -> None:
 
 def periodic_memory_clear() -> None:
     """
-    Periodically clears memory if the application has been inactive for a specified duration.
+    Runs a background thread that periodically cleans up memory.
 
-    This function runs in a separate thread and checks the time since the last request.
-    If the time exceeds 300 seconds, it clears the GPU cache and performs garbage collection
-    to free up memory resources.
+    The thread monitors the time since the last API request. If no requests have been
+    made for over 300 seconds (5 minutes), it triggers memory cleanup to free resources.
 
-    The function logs the start of the thread and each memory clearing event.
+    The function runs indefinitely until the application is shut down.
     """
     logging.info("Starting the periodic memory clear thread.")
     while True:
@@ -186,20 +199,24 @@ allowed_models = [
     "toobi/anime",
     "sentence-transformers/fine_tuned_sbert_anime_model",
     "fine_tuned_sbert_anime_model",
+    "fine_tuned_sbert_model_anime",
 ]
 
 
 def validate_input(data: Dict[str, Any]) -> None:
     """
-    Validate the input data for the request.
+    Validates the input data for API requests.
+
+    This function checks that:
+    1. Both model name and description are provided
+    2. The description length is within acceptable limits
+    3. The specified model is in the list of allowed models
 
     Args:
-        data (dict): The input data containing model name and description.
+        data: Dictionary containing the request data with 'model' and 'description' keys
 
     Raises:
-        werkzeug.exceptions.HTTPException: If the model name or description is missing,
-                                           if the description is too long,
-                                           or if the model name is invalid.
+        HTTPException: If any validation check fails, with appropriate error message and status code
     """
     model_name = data.get("model")
     description = data.get("description")
@@ -208,7 +225,7 @@ def validate_input(data: Dict[str, Any]) -> None:
         logging.error("Model name or description missing in the request.")
         abort(400, description="Model name and description are required")
 
-    if len(description) > 1000:
+    if len(description) > 2000:
         logging.error("Description too long.")
         abort(400, description="Description is too long")
 
@@ -219,18 +236,18 @@ def validate_input(data: Dict[str, Any]) -> None:
 
 def load_embeddings(model_name: str, col: str, dataset_type: str) -> np.ndarray:
     """
-    Load embeddings for a given model and column.
+    Loads pre-computed embeddings for a specific model and dataset column.
 
     Args:
-        model_name (str): The name of the model used to generate embeddings.
-        col (str): The column name for which embeddings are to be loaded.
-        dataset_type (str): The type of dataset ('anime' or 'manga').
+        model_name: Name of the model used to generate the embeddings
+        col: Name of the synopsis column
+        dataset_type: Type of dataset ('anime' or 'manga')
 
     Returns:
-        np.ndarray: A numpy array containing the embeddings for the specified column.
+        NumPy array containing the pre-computed embeddings
 
     Raises:
-        FileNotFoundError: If the embeddings file does not exist.
+        FileNotFoundError: If the embeddings file doesn't exist
     """
     embeddings_file = (
         f"model/{dataset_type}/{model_name}/embeddings_{col.replace(' ', '_')}.npy"
@@ -239,27 +256,32 @@ def load_embeddings(model_name: str, col: str, dataset_type: str) -> np.ndarray:
 
 
 def calculate_cosine_similarities(
-    model: SentenceTransformer,
+    model: SentenceTransformer | CustomT5EncoderModel,
     model_name: str,
     new_embedding: np.ndarray,
     col: str,
     dataset_type: str,
 ) -> np.ndarray:
     """
-    Calculate cosine similarities between new embedding and existing embeddings for a given column.
+    Calculates cosine similarities between a new embedding and existing embeddings.
+
+    This function:
+    1. Loads pre-computed embeddings for the specified column
+    2. Verifies embedding dimensions match
+    3. Computes cosine similarity scores using GPU if available
 
     Args:
-        model (SentenceTransformer): The sentence transformer model used for encoding.
-        new_embedding (np.ndarray): The embedding of the new description.
-        col (str): The column name for which to calculate similarities.
-        dataset_type (str): The type of dataset ('anime' or 'manga').
+        model: The transformer model used for encoding
+        model_name: Name of the model
+        new_embedding: Embedding vector of the input description
+        col: Name of the synopsis column
+        dataset_type: Type of dataset ('anime' or 'manga')
 
     Returns:
-        np.ndarray: A numpy array of cosine similarity scores.
+        Array of cosine similarity scores between the new embedding and all existing embeddings
 
     Raises:
-        ValueError: If the dimensions of the existing embeddings do not match
-                    the model's embedding dimension.
+        ValueError: If embedding dimensions don't match
     """
     model_name = model_name.replace("sentence-transformers/", "")
     model_name = model_name.replace("toobi/", "")
@@ -280,16 +302,20 @@ def find_top_similarities(
     cosine_similarities_dict: Dict[str, np.ndarray], num_similarities: int = 10
 ) -> List[Tuple[int, str]]:
     """
-    Find the top N most similar descriptions across all columns based on cosine similarity scores.
+    Finds the top N most similar descriptions across all synopsis columns.
+
+    This function:
+    1. Processes similarity scores from all columns
+    2. Sorts them in descending order
+    3. Returns indices and column names for the top matches
 
     Args:
-        cosine_similarities_dict (dict): A dictionary where keys are column names
-            and values are arrays of cosine similarity scores.
-        num_similarities (int, optional): The number of top similarities to find.
-            Defaults to 10.
+        cosine_similarities_dict: Dictionary mapping column names to arrays of similarity scores
+        num_similarities: Number of top similarities to return (default: 10)
 
     Returns:
-        list: A list of tuples, containing the index and column name of the similar descriptions.
+        List of tuples containing (index, column_name) for the top similar descriptions,
+        sorted by similarity score in descending order
     """
     all_top_indices = []
     for col, cosine_similarities in cosine_similarities_dict.items():
@@ -313,17 +339,26 @@ def get_similarities(
     results_per_page: int = 10,
 ) -> List[Dict[str, Any]]:
     """
-    Find and return the top N most similar descriptions for a given dataset type.
+    Finds the most similar descriptions in the specified dataset.
+
+    This function:
+    1. Loads and validates the appropriate model
+    2. Encodes the input description
+    3. Calculates similarities with all stored descriptions
+    4. Returns paginated results with metadata
 
     Args:
-        model_name (str): The name of the model to use.
-        description (str): The description to compare against the dataset.
-        dataset_type (str): The type of dataset ('anime' or 'manga').
-        page (int, optional): The page number of results to return. Defaults to 1.
-        results_per_page (int, optional): The number of results per page. Defaults to 10.
+        model_name: Name of the model to use
+        description: Input description to find similarities for
+        dataset_type: Type of dataset ('anime' or 'manga')
+        page: Page number for pagination (default: 1)
+        results_per_page: Number of results per page (default: 10)
 
     Returns:
-        list: List of dictionaries containing top similar descriptions and their similarity scores.
+        List of dictionaries containing similar items with metadata and similarity scores
+
+    Raises:
+        ValueError: If model name is invalid or model loading fails
     """
     update_last_request_time()
 
@@ -339,12 +374,20 @@ def get_similarities(
         df = manga_df
         synopsis_columns = manga_synopsis_columns
 
-    if model_name == "fine_tuned_sbert_anime_model":
+    if (
+        model_name == "fine_tuned_sbert_anime_model"
+        or model_name == "fine_tuned_sbert_model_anime"
+    ):
         load_model_name = f"model/{model_name}"
     else:
         load_model_name = model_name
 
-    model = SentenceTransformer(load_model_name, device=device)
+    # Load the complete SentenceTransformer model
+    try:
+        model = SentenceTransformer(load_model_name, device=device)
+    except Exception as e:
+        raise ValueError(f"Failed to load model '{load_model_name}': {e}") from e
+
     processed_description = description.strip()
     new_pooled_embedding = model.encode([processed_description])
 
@@ -405,15 +448,30 @@ def get_similarities(
 @limiter.limit("1 per second")
 def get_anime_similarities() -> Response:
     """
-    Handle POST requests to find and return the top N most similar anime descriptions.
+    API endpoint for finding similar anime based on a description.
 
-    Expects a JSON payload with 'model', 'description', 'page', and 'resultsPerPage' fields.
+    This endpoint:
+    1. Validates the request payload
+    2. Processes the description using the specified model
+    3. Returns paginated results of similar anime
+
+    Expected JSON payload:
+        {
+            "model": str,          # Name of the model to use
+            "description": str,    # Input description to find similarities for
+            "page": int,           # Optional: Page number (default: 1)
+            "resultsPerPage": int  # Optional: Results per page (default: 10)
+        }
 
     Returns:
-        Response: A JSON response with the top similar anime descriptions and the similarity scores.
+        JSON response containing:
+        - List of similar anime with metadata
+        - Similarity scores
+        - Pagination information
 
     Raises:
-        400 Bad Request: If the 'model' or 'description' fields are missing from the request.
+        400: If request validation fails
+        500: If internal processing error occurs
     """
     try:
         clear_memory()
@@ -423,7 +481,7 @@ def get_anime_similarities() -> Response:
         validate_input(data)
         model_name = data.get("model")
         if model_name == "sentence-transformers/fine_tuned_sbert_anime_model":
-            model_name = "fine_tuned_sbert_anime_model"
+            model_name = "fine_tuned_sbert_model_anime"
         description = data.get("description")
         page = data.get("page", 1)
         results_per_page = data.get("resultsPerPage", 10)
@@ -458,15 +516,30 @@ def get_anime_similarities() -> Response:
 @limiter.limit("1 per second")
 def get_manga_similarities() -> Response:
     """
-    Handle POST requests to find and return the top N most similar manga descriptions.
+    API endpoint for finding similar manga based on a description.
 
-    Expects a JSON payload with 'model', 'description', 'page', and 'resultsPerPage' fields.
+    This endpoint:
+    1. Validates the request payload
+    2. Processes the description using the specified model
+    3. Returns paginated results of similar manga
+
+    Expected JSON payload:
+        {
+            "model": str,          # Name of the model to use
+            "description": str,    # Input description to find similarities for
+            "page": int,           # Optional: Page number (default: 1)
+            "resultsPerPage": int  # Optional: Results per page (default: 10)
+        }
 
     Returns:
-        Response: A JSON response with the top similar manga descriptions and the similarity scores.
+        JSON response containing:
+        - List of similar manga with metadata
+        - Similarity scores
+        - Pagination information
 
     Raises:
-        400 Bad Request: If the 'model' or 'description' fields are missing from the request.
+        400: If request validation fails
+        500: If internal processing error occurs
     """
     try:
         clear_memory()
@@ -476,7 +549,7 @@ def get_manga_similarities() -> Response:
         validate_input(data)
         model_name = data.get("model")
         if model_name == "sentence-transformers/fine_tuned_sbert_anime_model":
-            model_name = "fine_tuned_sbert_anime_model"
+            model_name = "fine_tuned_sbert_model_anime"
         description = data.get("description")
         page = data.get("page", 1)
         results_per_page = data.get("resultsPerPage", 10)

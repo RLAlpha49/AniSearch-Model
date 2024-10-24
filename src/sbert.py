@@ -210,7 +210,10 @@ def main() -> None:
     os.makedirs(embeddings_save_dir, exist_ok=True)
 
     # Load the underlying Hugging Face model to access config
-    if model_name == "fine_tuned_sbert_anime_model":
+    if (
+        model_name == "fine_tuned_sbert_model_anime"
+        or model_name == "fine_tuned_sbert_model_manga"
+    ):
         model_name = f"model/{model_name}"
     hf_model = AutoModel.from_pretrained(model_name)
 
@@ -226,43 +229,44 @@ def main() -> None:
 
     # Define the maximum token counts for each model for both anime and manga
     max_token_counts = {
-        "toobi/anime": {"anime": 929, "manga": 1003},
-        "sentence-transformers/all-distilroberta-v1": {"anime": 940, "manga": 1023},
-        "sentence-transformers/all-MiniLM-L6-v1": {"anime": 929, "manga": 1003},
-        "sentence-transformers/all-MiniLM-L12-v1": {"anime": 929, "manga": 1003},
-        "sentence-transformers/all-MiniLM-L6-v2": {"anime": 929, "manga": 1003},
-        "sentence-transformers/all-MiniLM-L12-v2": {"anime": 929, "manga": 1003},
-        "sentence-transformers/all-mpnet-base-v1": {"anime": 929, "manga": 1003},
-        "sentence-transformers/all-mpnet-base-v2": {"anime": 929, "manga": 1003},
-        "sentence-transformers/all-roberta-large-v1": {"anime": 940, "manga": 1023},
-        "sentence-transformers/gtr-t5-base": {"anime": 1061, "manga": 1128},
-        "sentence-transformers/gtr-t5-large": {"anime": 1061, "manga": 1128},
-        "sentence-transformers/gtr-t5-xl": {"anime": 1061, "manga": 1128},
+        "toobi/anime": {"anime": 733, "manga": 673},
+        "sentence-transformers/all-distilroberta-v1": {"anime": 704, "manga": 654},
+        "sentence-transformers/all-MiniLM-L6-v1": {"anime": 733, "manga": 673},
+        "sentence-transformers/all-MiniLM-L12-v1": {"anime": 733, "manga": 673},
+        "sentence-transformers/all-MiniLM-L6-v2": {"anime": 733, "manga": 673},
+        "sentence-transformers/all-MiniLM-L12-v2": {"anime": 733, "manga": 673},
+        "sentence-transformers/all-mpnet-base-v1": {"anime": 733, "manga": 673},
+        "sentence-transformers/all-mpnet-base-v2": {"anime": 733, "manga": 673},
+        "sentence-transformers/all-roberta-large-v1": {"anime": 704, "manga": 654},
+        "sentence-transformers/gtr-t5-base": {"anime": 843, "manga": 765},
+        "sentence-transformers/gtr-t5-large": {"anime": 843, "manga": 765},
+        "sentence-transformers/gtr-t5-xl": {"anime": 843, "manga": 765},
         "sentence-transformers/multi-qa-distilbert-dot-v1": {
-            "anime": 929,
-            "manga": 1003,
+            "anime": 733,
+            "manga": 673,
         },
         "sentence-transformers/multi-qa-mpnet-base-cos-v1": {
-            "anime": 929,
-            "manga": 1003,
+            "anime": 733,
+            "manga": 673,
         },
         "sentence-transformers/multi-qa-mpnet-base-dot-v1": {
-            "anime": 929,
-            "manga": 1003,
+            "anime": 733,
+            "manga": 673,
         },
         "sentence-transformers/paraphrase-distilroberta-base-v2": {
-            "anime": 940,
-            "manga": 1023,
+            "anime": 704,
+            "manga": 654,
         },
         "sentence-transformers/paraphrase-mpnet-base-v2": {
-            "anime": 929,
-            "manga": 1003,
+            "anime": 733,
+            "manga": 673,
         },
-        "sentence-transformers/sentence-t5-base": {"anime": 1061, "manga": 1128},
-        "sentence-transformers/sentence-t5-large": {"anime": 1061, "manga": 1128},
-        "sentence-transformers/sentence-t5-xl": {"anime": 1061, "manga": 1128},
-        "sentence-transformers/sentence-t5-xxl": {"anime": 1061, "manga": 1128},
-        "fine_tuned_sbert_anime_model": {"anime": 1061, "manga": 1128},
+        "sentence-transformers/sentence-t5-base": {"anime": 843, "manga": 765},
+        "sentence-transformers/sentence-t5-large": {"anime": 843, "manga": 765},
+        "sentence-transformers/sentence-t5-xl": {"anime": 843, "manga": 765},
+        "sentence-transformers/sentence-t5-xxl": {"anime": 843, "manga": 765},
+        "model/fine_tuned_sbert_model_anime": {"anime": 843, "manga": 765},
+        "model/fine_tuned_sbert_model_manga": {"anime": 843, "manga": 765},
     }
 
     # Initialize SBERT components

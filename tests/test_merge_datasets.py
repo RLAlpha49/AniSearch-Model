@@ -53,7 +53,7 @@ def test_clean_synopsis() -> None:
         ]
     }
     df = pd.DataFrame(data)
-    clean_synopsis(df, "Synopsis", "No description available for this anime.")
+    clean_synopsis(df, "Synopsis", ["No description available for this anime."])
     assert df.loc[0, "Synopsis"] == "This is a valid synopsis."
     assert df.loc[1, "Synopsis"] == ""
     assert df.loc[2, "Synopsis"] == "Another valid synopsis."
