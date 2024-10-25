@@ -1,17 +1,24 @@
 """
-This module provides functions for loading models and embeddings, calculating cosine
-similarities, and saving evaluation results for anime and manga datasets.
+Provides functionality for semantic similarity search in anime and manga datasets.
+
+This module handles loading pre-trained models and embeddings, calculating semantic
+similarities between descriptions, and saving evaluation results. It supports both
+anime and manga datasets and uses sentence transformers for embedding generation.
+
+Key Features:
+- Model and embedding loading with automatic device selection
+- Batched similarity calculation using cosine similarity
+- Deduplication of results based on titles
+- Comprehensive evaluation result logging
+- Support for multiple synopsis/description columns
+
+The module is designed to work with pre-computed embeddings stored in numpy arrays
+and uses efficient tensor operations for similarity calculations.
 
 Functions:
-    load_model_and_embeddings(model_name, dataset_type)
-    calculate_similarities(
-        model, df, synopsis_columns, embeddings_save_dir,
-        new_description, top_n=10
-    )
-    save_evaluation_results(
-        evaluation_file, model_name, dataset_type,
-        new_description, top_results
-    )
+    load_model_and_embeddings: Loads model, dataset and embeddings for similarity search
+    calculate_similarities: Computes semantic similarities between descriptions
+    save_evaluation_results: Logs evaluation results with timestamps and metadata
 """
 
 import os
@@ -53,18 +60,27 @@ def load_model_and_embeddings(
     model_name: str, dataset_type: str
 ) -> Tuple[SentenceTransformer, pd.DataFrame, List[str], str]:
     """
-    Load the model and embeddings for a given dataset type.
+    Load the model, dataset and pre-computed embeddings for similarity search.
+
+    Handles loading of the appropriate sentence transformer model, dataset and
+    pre-computed embeddings based on the specified dataset type. Supports both
+    anime and manga datasets with their respective synopsis columns.
 
     Args:
-        model_name (str): The name of the model to be loaded.
-        dataset_type (str): The type of dataset ('anime' or 'manga').
+        model_name (str): Name of the sentence transformer model to load.
+            Will prepend 'sentence-transformers/' if not already present.
+        dataset_type (str): Type of dataset to load ('anime' or 'manga').
+            Determines which dataset and embeddings to load.
 
     Returns:
-        tuple: A tuple containing the loaded model, dataframe, list of synopsis
-        columns, and embeddings save directory.
+        tuple:
+            - SentenceTransformer: Loaded model instance
+            - pd.DataFrame: Dataset containing titles and synopses
+            - List[str]: Names of synopsis columns in the dataset
+            - str: Directory path containing pre-computed embeddings
 
     Raises:
-        ValueError: If an invalid dataset type is specified.
+        ValueError: If dataset_type is not 'anime' or 'manga'
     """
     if not model_name.startswith("sentence-transformers/"):
         model_name = f"sentence-transformers/{model_name}"
@@ -109,18 +125,30 @@ def calculate_similarities(
     top_n: int = 10,
 ) -> List[Dict[str, Any]]:
     """
-    Calculate the cosine similarities between a new description and existing embeddings.
+    Find semantically similar titles by comparing embeddings.
+
+    Calculates cosine similarities between a new description's embedding and
+    pre-computed embeddings from the dataset. Returns the top-N most similar
+    titles, removing duplicates across different synopsis columns.
 
     Args:
-        model (SentenceTransformer): The model used to encode the new description.
-        df (DataFrame): The dataframe containing the dataset.
-        synopsis_columns (list): List of columns containing the synopses.
-        embeddings_save_dir (str): Directory where the embeddings are saved.
-        new_description (str): The new description to compare against existing embeddings.
-        top_n (int, optional): The number of top results to return. Defaults to 10.
+        model (SentenceTransformer): Model to encode the new description
+        df (pd.DataFrame): Dataset containing titles and synopses
+        synopsis_columns (List[str]): Columns containing synopsis text
+        embeddings_save_dir (str): Directory containing pre-computed embeddings
+        new_description (str): Description to find similar titles for
+        top_n (int, optional): Number of similar titles to return. Defaults to 10.
 
     Returns:
-        list: A list of dictionaries containing the top similarity results.
+        List[Dict[str, Any]]: Top similar titles, each containing:
+            - rank: Position in results (1-based)
+            - title: Title of the anime/manga
+            - synopsis: Plot description/synopsis
+            - similarity: Cosine similarity score
+            - source_column: Column the synopsis came from
+
+    Raises:
+        ValueError: If no valid embeddings are found in embeddings_save_dir
     """
     processed_description = common.preprocess_text(new_description)
     new_pooled_embedding = model.encode(
@@ -198,17 +226,28 @@ def save_evaluation_results(
     top_results: List[Dict[str, Any]],
 ) -> str:
     """
-    Save the evaluation results to a JSON file.
+    Save similarity search results with metadata for evaluation.
+
+    Appends the search results and metadata to a JSON file for later analysis.
+    Creates a new file if it doesn't exist. Each entry includes a timestamp,
+    model information, dataset type, query description, and similarity results.
 
     Args:
-        evaluation_file (str): Path to the evaluation results file.
-        model_name (str): Name of the model used for evaluation.
-        dataset_type (str): Type of the dataset (e.g., anime, manga).
-        new_description (str): The new description used for similarity comparison.
-        top_results (list): List of top similarity results.
+        evaluation_file (str): Path to save/append results
+        model_name (str): Name of model used for embeddings
+        dataset_type (str): Type of dataset searched ('anime' or 'manga')
+        new_description (str): Query description used for search
+        top_results (List[Dict[str, Any]]): Similarity search results
 
     Returns:
-        str: Path to the saved evaluation results file.
+        str: Path to the evaluation file
+
+    The saved JSON structure includes:
+        - timestamp: When the search was performed
+        - model_name: Model used for embeddings
+        - dataset_type: Type of dataset searched
+        - new_description: Query description
+        - top_similarities: List of similar titles and their scores
     """
     if os.path.exists(evaluation_file):
         with open(evaluation_file, "r", encoding="utf-8") as f:

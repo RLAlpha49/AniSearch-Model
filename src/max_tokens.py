@@ -1,24 +1,52 @@
+"""
+This module calculates the maximum token count for different transformer models across
+anime and manga datasets.
+
+The module processes multiple synopsis columns from anime and manga datasets, tokenizing
+the text using various transformer models to determine the maximum token length needed
+for each model. This information is useful for setting appropriate maximum sequence
+lengths when training or using these models.
+"""
+
+from typing import List, Dict
 import pandas as pd
 from tqdm import tqdm
 from transformers import AutoTokenizer
 
 
-# Function to calculate max token count for a given dataset
-def calculate_max_tokens(dataset_path, synopsis_columns, models, batch_size=64):
+def calculate_max_tokens(
+    dataset_path: str,
+    synopsis_columns: List[str],
+    model_names: List[str],
+    batch_size: int = 64,
+) -> Dict[str, int]:
+    """
+    Calculate the maximum token count for each model across specified synopsis columns in a dataset.
+
+    Args:
+        dataset_path (str): Path to the CSV dataset file.
+        synopsis_columns (list): List of column names containing synopsis text to analyze.
+        model_names (list): List of model names/paths to test for tokenization.
+        batch_size (int, optional): Batch size for processing. Defaults to 64.
+
+    Returns:
+        dict: Dictionary mapping model names to their maximum token counts.
+            Example: {'model-name': max_token_count}
+    """
     # Load the dataset
     df = pd.read_csv(dataset_path)
 
     # Dictionary to store the highest token count for each model
     model_max_token_counts = {}
 
-    for model_name in models:
+    for model_name in model_names:
         # Initialize the tokenizer for the current model
         tokenizer = AutoTokenizer.from_pretrained(
             model_name, model_max_length=100000, clean_up_tokenization_spaces=True
         )
 
         # Variable to store the maximum token count for the current model
-        max_tokens = 0
+        current_max_tokens = 0
 
         for column in synopsis_columns:
             if column not in df.columns:
@@ -34,24 +62,24 @@ def calculate_max_tokens(dataset_path, synopsis_columns, models, batch_size=64):
                 desc=f"Processing {model_name} - {column}",
             ):
                 batch = synopses[i : i + batch_size]
-                # Tokenize the batch and count the tokens
-                tokenized_batch = tokenizer(
-                    batch, add_special_tokens=True, max_length=100000
-                )
-                for tokens in tokenized_batch["input_ids"]:
-                    token_count = len(tokens)
-                    # Update max_tokens if the current token_count is higher
-                    if token_count > max_tokens:
-                        max_tokens = token_count
+                # Tokenize each text individually to avoid iteration issues
+                for text in batch:
+                    tokens = tokenizer(
+                        text, add_special_tokens=True, max_length=100000
+                    )["input_ids"]
+                    tokens_count = len(tokens)  # type: ignore
+                    # Update current_max_tokens if the current tokens_count is higher
+                    if tokens_count > current_max_tokens:
+                        current_max_tokens = tokens_count
 
         # Store the maximum token count for the current model
-        model_max_token_counts[model_name] = max_tokens
+        model_max_token_counts[model_name] = current_max_tokens
 
     return model_max_token_counts
 
 
 # List of models to test
-models = [
+model_list = [
     "toobi/anime",
     "sentence-transformers/all-distilroberta-v1",
     "sentence-transformers/all-MiniLM-L6-v1",
@@ -98,19 +126,19 @@ manga_synopsis_columns = [
 
 # Calculate max tokens for anime dataset
 anime_max_tokens = calculate_max_tokens(
-    "model/merged_anime_dataset.csv", anime_synopsis_columns, models
+    "model/merged_anime_dataset.csv", anime_synopsis_columns, model_list
 )
 print("Anime Dataset:")
-for model_name, max_tokens in anime_max_tokens.items():
-    print(f"Highest token count for model '{model_name}': {max_tokens}")
+for current_model, token_count in anime_max_tokens.items():
+    print(f"Highest token count for model '{current_model}': {token_count}")
 
 # Calculate max tokens for manga dataset
 manga_max_tokens = calculate_max_tokens(
-    "model/merged_manga_dataset.csv", manga_synopsis_columns, models
+    "model/merged_manga_dataset.csv", manga_synopsis_columns, model_list
 )
 print("\nManga Dataset:")
-for model_name, max_tokens in manga_max_tokens.items():
-    print(f"Highest token count for model '{model_name}': {max_tokens}")
+for current_model, token_count in manga_max_tokens.items():
+    print(f"Highest token count for model '{current_model}': {token_count}")
 
 # Find and print the overall maximum token count for anime and manga
 max_tokens_anime = max(anime_max_tokens.values())

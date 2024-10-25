@@ -1,12 +1,25 @@
 """
-This script merges multiple anime or manga datasets into a single dataset.
+Merges multiple anime or manga datasets into a single dataset.
 
-It performs the following operations based on the specified type (anime or manga):
-- Loads various datasets from CSV files and the Hugging Face datasets library.
-- Preprocesses names for matching by converting them to lowercase and stripping whitespace.
-- Merges datasets based on common identifiers.
-- Adds additional synopsis or description information from various sources.
-- Removes duplicates and saves the merged dataset to a CSV file.
+This script provides functionality to merge and preprocess multiple anime or manga datasets
+from various sources. It handles data cleaning, deduplication, and consolidation of
+information across datasets.
+
+Key features:
+- Loads datasets from CSV files and Hugging Face datasets library
+- Cleans and preprocesses text fields like titles and synopses
+- Merges datasets based on common identifiers while handling duplicates
+- Consolidates information from multiple sources while preserving data quality
+- Removes inappropriate content based on genres/demographics
+- Saves the final merged dataset with progress tracking
+
+The script can be run from the command line with a required --type argument
+specifying either 'anime' or 'manga'.
+
+Example:
+    python merge_datasets.py --type anime
+
+The merged dataset will be saved to model/merged_[type]_dataset.csv
 """
 
 import ast
@@ -60,12 +73,11 @@ logging.basicConfig(
 # Parse command-line arguments
 def parse_args() -> argparse.Namespace:
     """
-    Parses command-line arguments for the dataset merging script.
+    Parse command line arguments for dataset type selection.
 
     Returns:
-        argparse.Namespace: An object containing the parsed command-line arguments.
-        Specifically, it includes the 'type' argument which indicates whether to
-        generate an 'anime' or 'manga' dataset.
+        argparse.Namespace: Parsed arguments containing:
+            type (str): Either 'anime' or 'manga' to specify dataset type to merge
     """
     parser = argparse.ArgumentParser(
         description="Merge anime or manga datasets into a single dataset."
@@ -83,12 +95,14 @@ def parse_args() -> argparse.Namespace:
 # Function to clean synopses
 def clean_synopsis(df: pd.DataFrame, synopsis_col: str, unwanted_phrases: list) -> None:
     """
-    Sets the synopsis to an empty string if it contains any of the unwanted phrases.
+    Clean synopsis text by removing entries containing unwanted phrases.
 
     Args:
-        df (pd.DataFrame): The DataFrame to clean.
-        synopsis_col (str): The name of the synopsis column.
-        unwanted_phrases (list): A list of phrases indicating an invalid synopsis.
+        df: DataFrame containing the synopsis column
+        synopsis_col: Name of the column containing synopsis text
+        unwanted_phrases: List of phrases that indicate invalid synopsis content
+
+    The function modifies the DataFrame in-place, setting matching synopses to empty strings.
     """
     logging.info("Cleaning synopses in column: %s", synopsis_col)
     for index, row in df.iterrows():
@@ -100,11 +114,14 @@ def clean_synopsis(df: pd.DataFrame, synopsis_col: str, unwanted_phrases: list) 
 
 def remove_numbered_list_synopsis(df: pd.DataFrame, synopsis_cols: list[str]) -> None:
     """
-    Removes synopses that are in a numbered list format from specified columns.
+    Remove synopsis entries that are formatted as numbered lists.
 
     Args:
-        df (pd.DataFrame): The DataFrame to clean.
-        synopsis_cols (list[str]): The list of synopsis columns to clean.
+        df: DataFrame containing the synopsis columns
+        synopsis_cols: List of column names containing synopsis text
+
+    The function modifies the DataFrame in-place, setting numbered list synopses to empty strings.
+    Uses regex pattern matching to identify numbered list formats.
     """
     logging.info("Removing numbered list synopses in columns: %s", synopsis_cols)
     numbered_list_pattern = re.compile(
@@ -121,14 +138,17 @@ def remove_numbered_list_synopsis(df: pd.DataFrame, synopsis_cols: list[str]) ->
 # Function to consolidate titles into a single 'title' column
 def consolidate_titles(df: pd.DataFrame, title_columns: list) -> pd.Series:
     """
-    Consolidates multiple title columns into a single 'title' column.
+    Consolidate multiple title columns into a single title column.
 
     Args:
-        df (pd.DataFrame): The merged DataFrame.
-        title_columns (list): List of title column names to consolidate.
+        df: DataFrame containing multiple title columns
+        title_columns: List of column names containing titles to consolidate
 
     Returns:
-        pd.Series: A consolidated 'title' series.
+        pd.Series: Consolidated titles, using first non-null value found across columns
+
+    The function prioritizes existing 'title' column if present, then fills missing values
+    from other title columns in order. Empty strings and 'unknown title' are treated as null.
     """
     logging.info("Consolidating titles into a single 'title' column.")
     if "title" in df.columns:
@@ -161,32 +181,36 @@ def consolidate_titles(df: pd.DataFrame, title_columns: list) -> pd.Series:
 # Preprocess names by converting to lowercase and stripping whitespace
 def preprocess_name(name: Any) -> str:
     """
-    Preprocesses a given name by converting it to a lowercase string and removing
-    leading/trailing whitespace.
+    Preprocess a name string for consistent matching.
 
     Args:
-        name (Any): The input name to be preprocessed. Can be of any type that can
-        be converted to a string.
+        name: Input name value of any type
 
     Returns:
-        str: The preprocessed name as a lowercase string with leading and trailing
-        whitespace removed.
+        str: Preprocessed name in lowercase with whitespace stripped
+            Returns empty string if input is null/NaN
+
+    Used to standardize names across datasets before matching/merging.
     """
     if pd.isna(name):
         return ""
     return str(name).strip().lower()
 
 
-def preprocess_synopsis_columns(df: pd.DataFrame, synopsis_columns: list[str]) -> None:
+def preprocess_synopsis_columns(df: pd.DataFrame, synopsis_cols: list[str]) -> None:
     """
-    Applies text preprocessing to each synopsis column in the DataFrame.
+    Preprocess text in synopsis columns for consistency.
 
     Args:
-        df (pd.DataFrame): The DataFrame containing synopsis columns.
-        synopsis_columns (list[str]): List of synopsis column names to preprocess.
+        df: DataFrame containing synopsis columns
+        synopsis_cols: List of column names containing synopsis text
+
+    Applies common text preprocessing to each synopsis column in-place.
+    Uses common.preprocess_text() for standardization.
+    Logs warning if specified column not found.
     """
-    logging.info("Preprocessing synopsis columns: %s", synopsis_columns)
-    for col in synopsis_columns:
+    logging.info("Preprocessing synopsis columns: %s", synopsis_cols)
+    for col in synopsis_cols:
         if col in df.columns:
             logging.info("Preprocessing column: %s", col)
             df[col] = df[col].apply(common.preprocess_text)
@@ -201,16 +225,18 @@ def find_additional_info(
     name_columns: list,
 ) -> Optional[str]:
     """
-    Finds additional information for a given row based on matching names.
+    Find matching description information from additional dataset.
 
     Args:
-        row (pd.Series): A row from the merged DataFrame.
-        additional_df (pd.DataFrame): The additional DataFrame to search.
-        description_col (str): The description column in the additional DataFrame.
-        name_columns (list): The name columns to match against.
+        row: Series containing title information to match
+        additional_df: DataFrame containing additional descriptions
+        description_col: Name of column containing descriptions
+        name_columns: List of column names to use for matching titles
 
     Returns:
-        str or None: The found description or None if not found.
+        str | None: Matching description if found, None otherwise
+
+    Attempts to match titles across multiple name columns and returns first matching description.
     """
     for merged_name_col in ["title", "title_english", "title_japanese"]:
         if pd.isna(row[merged_name_col]) or row[merged_name_col] == "":
@@ -248,17 +274,20 @@ def add_additional_info(
     new_synopsis_col: str,
 ) -> pd.DataFrame:
     """
-    Adds additional synopsis information to a merged DataFrame from an additional DataFrame.
+    Add additional synopsis information from supplementary dataset.
 
     Args:
-        merged (pd.DataFrame): The merged DataFrame to update.
-        additional_df (pd.DataFrame): The additional DataFrame containing new information.
-        description_col (str): The description column in the additional DataFrame.
-        name_columns (list): The name columns to match against in the additional DataFrame.
-        new_synopsis_col (str): The name of the new synopsis column to add.
+        merged: Main DataFrame to update with additional info
+        additional_df: DataFrame containing additional descriptions
+        description_col: Name of column containing descriptions
+        name_columns: List of columns to use for matching titles
+        new_synopsis_col: Name for new column to store additional synopses
 
     Returns:
-        pd.DataFrame: The updated merged DataFrame with additional information.
+        pd.DataFrame: Updated DataFrame with additional synopsis information
+
+    Matches entries between datasets and adds non-duplicate synopsis information.
+    Uses tqdm for progress tracking during updates.
     """
     logging.info("Adding additional info to column: %s", new_synopsis_col)
     if new_synopsis_col not in merged.columns:
@@ -292,15 +321,17 @@ def add_additional_info(
 # Function to remove duplicate information from specified columns
 def remove_duplicate_infos(df: pd.DataFrame, info_cols: list[str]) -> pd.DataFrame:
     """
-    Removes duplicate information across specified synopsis columns,
-    keeping the first non-null value.
+    Remove duplicate synopsis/description entries across columns.
 
     Args:
-        df (pd.DataFrame): The DataFrame to process.
-        info_cols (list): List of synopsis columns to check for duplicates.
+        df: DataFrame containing synopsis columns
+        info_cols: List of column names containing synopsis information
 
     Returns:
-        pd.DataFrame: The DataFrame with duplicates removed.
+        pd.DataFrame: DataFrame with duplicate synopses removed
+
+    Keeps first occurrence of each unique synopsis and sets duplicates to NA.
+    Processes row-by-row to maintain data integrity.
     """
     for index, row in df.iterrows():
         unique_infos = set()
@@ -319,10 +350,22 @@ def remove_duplicate_infos(df: pd.DataFrame, info_cols: list[str]) -> pd.DataFra
 # Function to merge anime datasets
 def merge_anime_datasets() -> pd.DataFrame:
     """
-    Merges multiple anime datasets into a single DataFrame.
+    Merge multiple anime datasets into a single comprehensive dataset.
 
     Returns:
-        pd.DataFrame: The merged anime DataFrame.
+        pd.DataFrame: Merged and cleaned anime dataset
+
+    Performs the following operations:
+    - Loads multiple anime datasets from files and Hugging Face
+    - Cleans and standardizes text fields
+    - Removes adult content and kids' content
+    - Merges datasets based on IDs and titles
+    - Consolidates synopsis information
+    - Removes duplicates
+    - Saves final dataset to CSV with progress tracking
+
+    Raises:
+        Exception: If any error occurs during merging process
     """
     logging.info("Starting to merge anime datasets.")
     try:
@@ -647,10 +690,22 @@ def merge_anime_datasets() -> pd.DataFrame:
 # Function to merge manga datasets
 def merge_manga_datasets() -> pd.DataFrame:
     """
-    Merges multiple manga datasets into a single DataFrame.
+    Merge multiple manga datasets into a single comprehensive dataset.
 
     Returns:
-        pd.DataFrame: The merged manga DataFrame.
+        pd.DataFrame: Merged and cleaned manga dataset
+
+    Performs the following operations:
+    - Loads manga datasets from multiple CSV files
+    - Removes adult content
+    - Cleans and standardizes text fields
+    - Merges datasets based on IDs and titles
+    - Consolidates synopsis information
+    - Removes duplicates
+    - Saves final dataset to CSV with progress tracking
+
+    Raises:
+        Exception: If any error occurs during merging process
     """
     logging.info("Starting to merge manga datasets.")
     try:
@@ -825,9 +880,22 @@ def main() -> None:
     """
     Main function to parse command-line arguments and merge datasets.
 
-    This function determines the type of dataset to merge based on the
-    command-line argument 'type'. It supports merging 'anime' or 'manga'
-    datasets. If an invalid type is specified, it logs an error message.
+    This function serves as the entry point for the dataset merging process. It parses
+    command-line arguments to determine whether to merge anime or manga datasets, then
+    calls the appropriate merging function.
+
+    The function expects a single command-line argument --type which must be either
+    'anime' or 'manga'. It will:
+    1. Parse the command-line arguments
+    2. Log the specified dataset type
+    3. Call merge_anime_datasets() or merge_manga_datasets() based on the type
+    4. Log an error if an invalid type is specified
+
+    Returns:
+        None
+
+    Raises:
+        No exceptions are raised directly, but underlying merge functions may raise exceptions
     """
     args = parse_args()
     dataset_type: str = args.type

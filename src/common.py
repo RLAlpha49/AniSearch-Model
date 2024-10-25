@@ -1,6 +1,11 @@
 """
 This module provides utility functions for loading datasets, preprocessing text,
 and saving evaluation data for machine learning models.
+
+Functions:
+    load_dataset: Load and preprocess a dataset from a CSV file.
+    preprocess_text: Clean and normalize text data for ML processing.
+    save_evaluation_data: Save model evaluation results to JSON.
 """
 
 # pylint: disable=E0401, E0611
@@ -26,10 +31,10 @@ def load_dataset(file_path: str) -> pd.DataFrame:
     Load dataset from a CSV file and fill missing values in the 'Synopsis' column.
 
     Args:
-        file_path (str): The path to the CSV file.
+        file_path (str): Path to the CSV file containing the dataset.
 
     Returns:
-        pd.DataFrame: The loaded dataset with filled 'Synopsis' column.
+        pd.DataFrame: Loaded dataset with filled 'Synopsis' column.
     """
     df = pd.read_csv(file_path)
     df["synopsis"] = df["synopsis"].fillna("")
@@ -39,14 +44,23 @@ def load_dataset(file_path: str) -> pd.DataFrame:
 # Basic text preprocessing
 def preprocess_text(text: Any) -> Any:
     """
-    Preprocess the input text by converting it to lowercase, removing extra spaces,
-    and stripping specific unwanted patterns.
+    Preprocess text data by applying various cleaning and normalization steps.
+
+    Steps include:
+    - Converting to lowercase
+    - Expanding contractions
+    - Removing accents
+    - Removing extra whitespace
+    - Removing URLs
+    - Removing source citations
+    - Removing stopwords
+    - Lemmatizing words
 
     Args:
-        text (Optional[str]): The input text to preprocess.
+        text (Any): Input text to preprocess. Can be string or other type.
 
     Returns:
-        str: The preprocessed text.
+        Any: Preprocessed text if input was string, otherwise returns input unchanged.
     """
     if text is None:
         return ""
@@ -95,13 +109,16 @@ def save_evaluation_data(
     additional_info: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
-    Save evaluation data including timestamp and model parameters to a JSON file.
+    Save model evaluation data to a JSON file with timestamp and parameters.
+
+    Creates or appends to 'model/evaluation_results.json', storing evaluation metrics
+    and model configuration details.
 
     Args:
-        model_name (str): The name of the model.
-        batch_size (int): The batch size used for generating embeddings.
-        num_embeddings (int): Number of embeddings generated.
-        additional_info (dict, optional): Additional information to save.
+        model_name (str): Name/identifier of the model being evaluated.
+        batch_size (int): Batch size used for generating embeddings.
+        num_embeddings (int): Total number of embeddings generated.
+        additional_info (Optional[Dict[str, Any]]): Additional evaluation metrics or parameters.
     """
     evaluation_data = {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

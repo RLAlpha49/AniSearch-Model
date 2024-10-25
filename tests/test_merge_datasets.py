@@ -2,11 +2,15 @@
 This module contains unit tests for the functions in the src.merge_datasets module.
 
 The tests cover:
-- Preprocessing of names to ensure correct formatting.
-- Cleaning of synopsis data by removing unwanted phrases.
-- Consolidation of multiple title columns into a single title column.
-- Removal of duplicate synopses or descriptions.
-- Addition of additional synopsis information to the merged DataFrame.
+- Preprocessing of names to ensure correct formatting (test_preprocess_name)
+- Cleaning of synopsis data by removing unwanted phrases (test_clean_synopsis)
+- Consolidation of multiple title columns into a single title column (test_consolidate_titles)
+- Removal of duplicate synopses or descriptions (test_remove_duplicate_infos)
+- Addition of additional synopsis information to the merged DataFrame (test_add_additional_info)
+- Handling of missing matches when adding additional info (test_add_additional_info_no_match)
+- Processing of partial title information (test_add_additional_info_partial_titles)
+- Handling of missing title data (test_add_additional_info_all_titles_na)
+- Handling of whitespace and case variations (test_add_additional_info_whitespace_case)
 """
 
 from typing import Union
@@ -25,10 +29,13 @@ from src.merge_datasets import (
 @pytest.mark.order(1)
 def test_preprocess_name() -> None:
     """
-    Test the preprocess_name function to ensure it correctly preprocesses names
-    by converting them to lowercase and stripping whitespace.
+    Test the preprocess_name function to ensure it correctly preprocesses names.
 
-    This test verifies that the function handles various input types and formats.
+    Tests:
+    - Converting strings to lowercase
+    - Stripping leading/trailing whitespace
+    - Handling None values (returns empty string)
+    - Handling numeric values (converts to string)
     """
     assert preprocess_name("  Naruto  ") == "naruto"
     assert preprocess_name("One Piece") == "one piece"
@@ -39,10 +46,13 @@ def test_preprocess_name() -> None:
 @pytest.mark.order(2)
 def test_clean_synopsis() -> None:
     """
-    Test the clean_synopsis function to ensure it correctly cleans the synopsis column
-    by removing unwanted phrases.
+    Test the clean_synopsis function to ensure it correctly cleans the synopsis column.
 
-    This test verifies that the function replaces unwanted phrases with an empty string.
+    Tests:
+    - Preserving valid synopses
+    - Removing specified unwanted phrases
+    - Replacing unwanted phrases with empty strings
+    - Handling multiple occurrences of unwanted phrases
     """
     data = {
         "Synopsis": [
@@ -63,11 +73,13 @@ def test_clean_synopsis() -> None:
 @pytest.mark.order(3)
 def test_consolidate_titles() -> None:
     """
-    Test the consolidate_titles function to ensure it correctly consolidates multiple title columns
-    into a single 'title' column.
+    Test the consolidate_titles function to ensure it correctly consolidates multiple title columns.
 
-    This test verifies that the function prioritizes the main 'title' column and fills in missing
-    titles from the specified title columns.
+    Tests:
+    - Prioritizing the main 'title' column values
+    - Filling missing values from alternate title columns in order
+    - Handling multiple NA values across columns
+    - Preserving existing valid titles
     """
     data = {
         "title": ["naruto", pd.NA, "one piece", pd.NA],
@@ -88,8 +100,13 @@ def test_consolidate_titles() -> None:
 @pytest.mark.order(4)
 def test_remove_duplicate_infos() -> None:
     """
-    Test the remove_duplicate_infos function to ensure it correctly removes duplicate synopses
-    across specified columns.
+    Test the remove_duplicate_infos function to ensure it correctly handles duplicate synopses.
+
+    Tests:
+    - Identifying and removing duplicate synopses across columns
+    - Preserving unique synopses
+    - Handling NA values
+    - Maintaining original data structure and column order
     """
     data = {
         "anime_id": [1, 2, 3],
@@ -125,8 +142,13 @@ def test_remove_duplicate_infos() -> None:
 @patch("src.merge_datasets.find_additional_info")
 def test_add_additional_info(mock_find_additional_info: patch) -> None:  # type: ignore
     """
-    Test the add_additional_info function to ensure it correctly adds additional synopsis
-    information to the merged DataFrame when at least one title is present.
+    Test the add_additional_info function for basic functionality.
+
+    Tests:
+    - Adding additional synopsis information when titles match
+    - Creating new synopsis column in output DataFrame
+    - Correctly using mock find_additional_info function
+    - Handling English and Japanese titles
     """
     # Create a merged DataFrame with multiple title columns
     merged = pd.DataFrame(
@@ -191,8 +213,13 @@ def test_add_additional_info(mock_find_additional_info: patch) -> None:  # type:
 @patch("src.merge_datasets.find_additional_info")
 def test_add_additional_info_no_match(mock_find_additional_info: patch) -> None:  # type: ignore
     """
-    Test the add_additional_info function when there are no matching additional info entries
-    for some rows in the merged DataFrame, considering multiple title columns.
+    Test the add_additional_info function when no matches are found.
+
+    Tests:
+    - Handling cases where no matching additional info exists
+    - Proper handling of NA values for non-matches
+    - Processing multiple rows with varying match conditions
+    - Maintaining data integrity for non-matching rows
     """
     # Create a merged DataFrame with multiple title columns
     merged = pd.DataFrame(
@@ -261,10 +288,17 @@ def test_add_additional_info_no_match(mock_find_additional_info: patch) -> None:
 
 @pytest.mark.order(7)
 @patch("src.merge_datasets.find_additional_info")
-def test_add_additional_info_partial_titles(mock_find_additional_info: patch) -> None:  # type: ignore
+def test_add_additional_info_partial_titles(
+    mock_find_additional_info: patch,  # type: ignore
+) -> None:
     """
-    Test the add_additional_info function to ensure it correctly adds synopses
-    when some title columns are NA but at least one title is present.
+    Test the add_additional_info function with partial title information.
+
+    Tests:
+    - Processing rows with some NA title columns but at least one valid title
+    - Matching based on available title information
+    - Handling mixed NA and non-NA title columns
+    - Correct synopsis assignment when matching on partial information
     """
     # Create a merged DataFrame with partial NA titles
     merged = pd.DataFrame(
@@ -337,9 +371,17 @@ def test_add_additional_info_partial_titles(mock_find_additional_info: patch) ->
 
 @pytest.mark.order(8)
 @patch("src.merge_datasets.find_additional_info")
-def test_add_additional_info_all_titles_na(mock_find_additional_info: patch) -> None:  # type: ignore
+def test_add_additional_info_all_titles_na(
+    mock_find_additional_info: patch,  # type: ignore
+) -> None:
     """
-    Test the add_additional_info function to ensure it skips rows where all title columns are NA.
+    Test the add_additional_info function with completely missing title information.
+
+    Tests:
+    - Handling rows where all title columns are NA
+    - Skipping processing for rows with no valid titles
+    - Maintaining data integrity for rows with all NA titles
+    - Correctly processing mixed rows (some with all NA titles, some with valid titles)
     """
     # Create a merged DataFrame with all titles as NA for one row
     merged = pd.DataFrame(
@@ -394,10 +436,17 @@ def test_add_additional_info_all_titles_na(mock_find_additional_info: patch) -> 
 
 @pytest.mark.order(9)
 @patch("src.merge_datasets.find_additional_info")
-def test_add_additional_info_whitespace_case(mock_find_additional_info: patch) -> None:  # type: ignore
+def test_add_additional_info_whitespace_case(
+    mock_find_additional_info: patch,  # type: ignore
+) -> None:
     """
-    Test the add_additional_info function to ensure it correctly handles titles with
-    leading/trailing whitespaces and different cases.
+    Test the add_additional_info function's handling of whitespace and case variations.
+
+    Tests:
+    - Processing titles with leading/trailing whitespace
+    - Handling different case variations (uppercase, lowercase, mixed)
+    - Correct matching despite whitespace/case differences
+    - Maintaining original data while normalizing for comparison
     """
     # Create a merged DataFrame with varied title formats
     merged = pd.DataFrame(

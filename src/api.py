@@ -1,8 +1,10 @@
 """
-This module implements a Flask application that provides API endpoints for finding similar anime or manga descriptions.
+This module implements a Flask application that provides API endpoints for finding
+similar anime or manga descriptions.
 
-The application uses Sentence Transformers and custom models to encode descriptions and calculate cosine similarities.
-It supports multiple synopsis columns from different datasets and returns paginated results of the most similar items.
+The application uses Sentence Transformers and custom models to encode descriptions
+and calculate cosine similarities. It supports multiple synopsis columns from
+different datasets and returns paginated results of the most similar items.
 
 Key Features:
 - Supports multiple pre-trained and custom Sentence Transformer models
@@ -37,7 +39,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sentence_transformers import SentenceTransformer, util
 from werkzeug.exceptions import HTTPException
-from custom_transformer import CustomT5EncoderModel
+from src.custom_transformer import CustomT5EncoderModel
 
 # Determine the device to use based on the environment variable
 device = (
@@ -489,7 +491,8 @@ def get_anime_similarities() -> Response:
         # Get the client's IP address
         client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
         logging.info(
-            "Received anime request from IP: %s with model: %s, description: %s, page: %d, resultsPerPage: %d",
+            "Received anime request from IP: %s with model: %s, "
+            "description: %s, page: %d, resultsPerPage: %d",
             client_ip,
             model_name,
             description,
@@ -558,7 +561,8 @@ def get_manga_similarities() -> Response:
         client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
 
         logging.info(
-            "Received manga request from IP: %s with model: %s, description: %s, page: %d, resultsPerPage: %d",
+            "Manga request - IP: %s, model: %s, desc: %s, "
+            "page: %d, results/page: %d",
             client_ip,
             model_name,
             description,

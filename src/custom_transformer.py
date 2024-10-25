@@ -1,9 +1,10 @@
 """
-This module defines a custom Transformer model that replaces ReLU activation functions with GELU.
+This module defines a custom T5 Encoder model that replaces ReLU activation functions with GELU.
 
 The CustomT5EncoderModel class extends the Transformer model from the sentence_transformers library
 and modifies the activation functions in the feed-forward networks of the transformer blocks to use
-GELU instead of ReLU.
+GELU instead of ReLU. This modification can help improve model performance since GELU has been shown
+to work well in transformer architectures.
 """
 
 from typing import Optional, Dict
@@ -13,18 +14,24 @@ from torch import nn
 
 class CustomT5EncoderModel(models.Transformer):
     """
-    Custom Transformer model that replaces activation functions with GELU.
+    Custom T5 Encoder model that replaces ReLU activation functions with GELU.
 
     This class extends the Transformer model from the sentence_transformers library
-    and modifies the activation functions in the feed-forward networks of the transformer
-    blocks to use GELU instead of ReLU.
+    and modifies the activation functions in the feed-forward networks of the 
+    transformer blocks to use GELU instead of ReLU. GELU (Gaussian Error Linear Unit) 
+    is a smoother activation function that often performs better than ReLU in 
+    transformer architectures.
 
     Attributes:
-        model_name_or_path (str): Name or path of the pre-trained Transformer model.
-        model_args (Optional[Dict]): Additional arguments for the Transformer model.
-        max_seq_length (int): Maximum sequence length.
-        do_lower_case (bool): Whether to convert the input to lowercase.
+        model_name_or_path (str): Name or path of the pre-trained T5 model to load.
+        model_args (Optional[Dict]): Additional arguments to pass to the T5 model 
+            constructor.
+        max_seq_length (int): Maximum sequence length for input text. Longer 
+            sequences will be truncated.
+        do_lower_case (bool): Whether to convert input text to lowercase before 
+            tokenization.
     """
+
     def __init__(
         self,
         model_name_or_path: str,
@@ -36,10 +43,11 @@ class CustomT5EncoderModel(models.Transformer):
         Initialize the CustomT5EncoderModel.
 
         Args:
-            model_name_or_path (str): Name or path of the pre-trained Transformer model.
-            model_args (Optional[Dict]): Additional arguments for the Transformer model.
-            max_seq_length (int): Maximum sequence length.
-            do_lower_case (bool): Whether to convert the input to lowercase.
+            model_name_or_path (str): Name or path of the pre-trained T5 model to load.
+            model_args (Optional[Dict]): Additional arguments to pass to the T5 model constructor.
+                Defaults to an empty dict if None.
+            max_seq_length (int): Maximum sequence length for input text. Default is 256.
+            do_lower_case (bool): Whether to convert input text to lowercase. Default is False.
         """
         super().__init__(
             model_name_or_path=model_name_or_path,
@@ -51,10 +59,13 @@ class CustomT5EncoderModel(models.Transformer):
 
     def modify_activation(self, model):
         """
-        Replace ReLU activation with GELU in all transformer blocks.
+        Replace ReLU activation with GELU in all transformer blocks of the T5 encoder.
+
+        This method iterates through all transformer blocks in the encoder and replaces
+        the ReLU activation in each feed-forward network with GELU activation.
 
         Args:
-            model: The underlying Transformer model.
+            model: The underlying T5 transformer model whose activations will be modified.
         """
         for _, block in enumerate(model.encoder.block):
             # Accessing the feed-forward network within each block

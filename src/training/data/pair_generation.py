@@ -2,24 +2,27 @@
 This module handles the generation of training pairs for a sentence transformer model.
 
 It provides functionality to create three types of pairs:
-1. Positive pairs: Pairs of synopses from the same entry with high similarity
-2. Partial positive pairs: Pairs of synopses from different entries with moderate similarity
-3. Negative pairs: Pairs of synopses from different entries with low similarity
+1. Positive pairs: Pairs of synopses from same entry with high similarity (>=0.8)
+2. Partial positive pairs: Pairs from different entries with moderate similarity
+   (>=0.5 and <0.8)
+3. Negative pairs: Pairs from different entries with low similarity (<0.5)
 
 The similarity between entries is calculated based on their genres and themes using
 semantic embeddings. The module uses multiprocessing for efficient pair generation
 and includes functions for both single-row processing and batch processing.
 
 Functions:
-    calculate_semantic_similarity: Calculate similarity between genres and themes
-    create_positive_pairs: Generate pairs from same-entry synopses
-    generate_partial_positive_pairs: Generate pairs from different entries with moderate similarity
+    calculate_semantic_similarity: Calculate weighted similarity between genres/themes
+    create_positive_pairs: Generate pairs from same-entry synopses with high sim
+    generate_partial_positive_pairs: Generate pairs from different entries with
+        moderate similarity
     create_partial_positive_pairs: Orchestrate partial positive pair generation
-    generate_negative_pairs: Generate pairs from different entries with low similarity
-    create_negative_pairs: Orchestrate negative pair generation
+    generate_negative_pairs: Generate pairs from different entries with low sim
+    create_negative_pairs: Orchestrate negative pair generation with multiprocessing
 
 The module supports saving generated pairs to CSV files and includes proper error
-handling and logging throughout the pair generation process.
+handling and logging throughout the pair generation process. For all pair types,
+the shorter synopsis must be at least 50% the length of the longer synopsis.
 """
 
 import ast
@@ -52,15 +55,19 @@ def calculate_semantic_similarity(
     Calculate the semantic similarity between two sets of genres and themes.
 
     Args:
-        genres_a (set): Set of genres for the first item.
-        genres_b (set): Set of genres for the second item.
-        themes_a (set): Set of themes for the first item.
-        themes_b (set): Set of themes for the second item.
-        genre_weight (float): Weight for the genre similarity. Default is 0.35.
-        theme_weight (float): Weight for the theme similarity. Default is 0.65.
+        category_to_embedding (Dict[str, NDArray[np.float64]]): Dictionary mapping 
+            categories to embeddings
+        genres_a (Set[str]): Set of genres for the first item
+        genres_b (Set[str]): Set of genres for the second item
+        themes_a (Set[str]): Set of themes for the first item
+        themes_b (Set[str]): Set of themes for the second item
+        genre_weight (float, optional): Weight for genre similarity. 
+            Defaults to 0.35
+        theme_weight (float, optional): Weight for theme similarity. 
+            Defaults to 0.65
 
     Returns:
-        float: The weighted semantic similarity score.
+        float: Weighted semantic similarity score between 0 and 1
     """
     # Calculate cosine similarity for genres
     try:
@@ -113,16 +120,18 @@ def create_positive_pairs(
     positive_pairs_file: Optional[str],
 ) -> List[InputExample]:
     """
-    Create positive pairs of synopses from the dataframe.
+    Create positive pairs of synopses from the same entry with high similarity.
 
     Args:
-        df (pd.DataFrame): DataFrame containing the data.
-        synopses_columns (list): List of columns containing synopses.
-        encoder_model (SentenceTransformer): Pre-trained Sentence Transformer model.
-        positive_pairs_file (str): Path to the file where positive pairs will be saved.
+        df (pd.DataFrame): DataFrame containing the data
+        synopses_columns (List[str]): List of column names containing synopses
+        encoder_model (SentenceTransformer): Pre-trained sentence transformer model
+        positive_pairs_file (Optional[str]): Path to save positive pairs CSV, if provided
 
     Returns:
-        list: List of positive InputExample pairs.
+        List[InputExample]: List of positive pairs with similarity scores >= 0.8.
+        Each pair consists of synopses from the same entry where the shorter
+        synopsis is at least 50% the length of the longer one.
     """
     positive_pairs: List[InputExample] = []
     for _, row in tqdm(df.iterrows(), desc="Creating positive pairs", total=len(df)):
@@ -177,15 +186,19 @@ def generate_partial_positive_pairs(
     Generate partial positive pairs for a single row in the dataframe.
 
     Args:
-        i (int): Index of the row to process.
-        df (pd.DataFrame): DataFrame containing the data.
-        synopses_columns (list): List of columns containing synopses.
-        partial_threshold (float): Threshold for partial similarity.
-        max_partial_per_row (int): Maximum number of partial positive pairs per row.
-        max_attempts (int): Maximum number of attempts to find pairs. Default is 25.
+        i (int): Index of the row to process
+        df (pd.DataFrame): DataFrame containing the data
+        synopses_columns (List[str]): List of column names containing synopses
+        partial_threshold (float): Minimum similarity threshold for partial positives
+        max_partial_per_row (int): Maximum number of partial positive pairs per row
+        category_to_embedding (Dict[str, NDArray[np.float64]]): Category embedding dict
+        valid_indices (List[int]): List of valid row indices to sample from
+        max_attempts (int, optional): Max attempts to find pairs. Defaults to 200
 
     Returns:
-        list: List of partial positive InputExample pairs.
+        List[InputExample]: List of partial positive pairs with similarity between
+        partial_threshold+0.01 and 0.8. Each pair consists of synopses from different
+        entries where the shorter synopsis is at least 50% the length of the longer one.
     """
     row_a: pd.Series = df.iloc[i]
     pairs: List[InputExample] = []
@@ -281,15 +294,19 @@ def generate_negative_pairs(
     Generate negative pairs for a single row in the dataframe.
 
     Args:
-        i (int): Index of the row to process.
-        df (pd.DataFrame): DataFrame containing the data.
-        synopses_columns (list): List of columns containing synopses.
-        partial_threshold (float): Threshold for partial similarity.
-        max_negative_per_row (int): Maximum number of negative pairs per row.
-        max_attempts (int): Maximum number of attempts to find pairs. Default is 25.
+        i (int): Index of the row to process
+        df (pd.DataFrame): DataFrame containing the data
+        synopses_columns (List[str]): List of column names containing synopses
+        partial_threshold (float): Maximum similarity threshold for negatives
+        max_negative_per_row (int): Maximum number of negative pairs per row
+        category_to_embedding (Dict[str, NDArray[np.float64]]): Category embedding dict
+        valid_indices (List[int]): List of valid row indices to sample from
+        max_attempts (int, optional): Max attempts to find pairs. Defaults to 50
 
     Returns:
-        list: List of negative InputExample pairs.
+        List[InputExample]: List of negative pairs with similarity between 0.15 and
+        partial_threshold-0.01. Each pair consists of synopses from different entries
+        where the shorter synopsis is at least 50% the length of the longer one.
     """
     row_a = df.iloc[i]
     pairs = []
@@ -377,17 +394,21 @@ def create_partial_positive_pairs(
     category_to_embedding: Dict[str, NDArray[np.float64]],
 ) -> List[InputExample]:
     """
-    Create partial positive pairs from the dataframe.
+    Create partial positive pairs from the dataframe using multiprocessing.
 
     Args:
-        df (pd.DataFrame): DataFrame containing the data.
-        synopses_columns (list): List of columns containing synopses.
-        partial_threshold (float): Threshold for partial similarity.
-        max_partial_per_row (int): Maximum number of partial positive pairs per row.
-        partial_positive_pairs_file (str): Path to where partial positive pairs will be saved.
+        df (pd.DataFrame): DataFrame containing the data
+        synopses_columns (List[str]): List of column names containing synopses
+        partial_threshold (float): Minimum similarity threshold for partial positives
+        max_partial_per_row (int): Maximum number of partial positive pairs per row
+        partial_positive_pairs_file (Optional[str]): Path to save pairs CSV, if provided
+        num_workers (int): Number of worker processes for multiprocessing
+        category_to_embedding (Dict[str, NDArray[np.float64]]): Category embedding dict
 
     Returns:
-        list: List of partial positive InputExample pairs.
+        List[InputExample]: List of partial positive pairs with similarity between
+        partial_threshold+0.01 and 0.8. Each pair consists of synopses from different
+        entries where the shorter synopsis is at least 50% the length of the longer one.
     """
     row_indices: List[int] = list(range(len(df)))
     valid_indices: List[int] = []
@@ -438,17 +459,21 @@ def create_negative_pairs(
     category_to_embedding: Dict[str, NDArray[np.float64]],
 ):
     """
-    Create negative pairs from the dataframe.
+    Create negative pairs from the dataframe using multiprocessing.
 
     Args:
-        df (pd.DataFrame): DataFrame containing the data.
-        synopses_columns (list): List of columns containing synopses.
-        partial_threshold (float): Threshold for partial similarity.
-        max_negative_per_row (int): Maximum number of negative pairs per row.
-        negative_pairs_file (str): Path to the file where negative pairs will be saved.
+        df (pd.DataFrame): DataFrame containing the data
+        synopses_columns (List[str]): List of column names containing synopses
+        partial_threshold (float): Maximum similarity threshold for negatives
+        max_negative_per_row (int): Maximum number of negative pairs per row
+        negative_pairs_file (Optional[str]): Path to save pairs CSV, if provided
+        num_workers (int): Number of worker processes for multiprocessing
+        category_to_embedding (Dict[str, NDArray[np.float64]]): Category embedding dict
 
     Returns:
-        list: List of negative InputExample pairs.
+        List[InputExample]: List of negative pairs with similarity between 0.15 and
+        partial_threshold-0.01. Each pair consists of synopses from different entries
+        where the shorter synopsis is at least 50% the length of the longer one.
     """
     row_indices = list(range(len(df)))
     valid_indices = []

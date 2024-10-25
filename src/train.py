@@ -26,12 +26,13 @@ pipeline, including:
    - Multiprocessing for pair generation
    - Efficient data loading with DataLoader
 
-Configuration Options:
-    - Model selection and architecture
+Configuration:
+    The module accepts various command line arguments to configure:
+    - Model architecture and pre-trained weights
     - Training hyperparameters (learning rate, batch size, epochs)
     - Data processing settings (pair counts, thresholds)
     - Resource allocation (workers, GPU usage)
-    - Data type selection (anime/manga)
+    - Input/output paths and data types
 
 Usage:
     python train.py [arguments]
@@ -39,10 +40,10 @@ Usage:
     For full list of arguments, use: python train.py --help
 
 Notes:
-    - Requires sufficient GPU memory for model training
     - Supports resuming training from saved pair files
-    - Implements automatic mixed precision for efficient training
+    - Uses cosine similarity for evaluation
     - Handles both anime and manga datasets with specific genre/theme sets
+    - Custom transformer option available for modified architectures
 """
 
 import argparse
@@ -98,20 +99,33 @@ def create_pairs(
     """
     Create positive, partial positive, and negative pairs from the dataframe.
 
+    This function handles the generation of three types of synopsis pairs:
+    1. Positive pairs: From same entries with high similarity
+    2. Partial positive pairs: From different entries with moderate similarity
+    3. Negative pairs: From different entries with low similarity
+
     Args:
-        df: DataFrame containing the data.
-        max_negative_per_row: Maximum number of negative pairs per row.
-        max_partial_positive_per_row: Maximum number of partial positive pairs per row.
-        partial_threshold: Threshold for partial similarity. Default is 0.5.
-        positive_pairs_file: Path to the file where positive pairs will be saved.
-        partial_positive_pairs_file: Path to where partial positive pairs will be saved.
-        negative_pairs_file: Path to the file where negative pairs will be saved.
-        use_saved_pairs: Whether to use saved pairs if available.
-        num_workers: Number of worker processes for multiprocessing.
-        category_to_embedding: Dictionary mapping categories to their embeddings.
+        df: DataFrame containing anime/manga data with synopses
+        max_negative_per_row: Maximum negative pairs to generate per entry
+        max_partial_positive_per_row: Maximum partial positive pairs per entry
+        category_to_embedding: Dictionary mapping categories to their vector embeddings
+        partial_threshold: Similarity threshold for partial positive pairs (default: 0.5)
+        positive_pairs_file: Optional path to save/load positive pairs
+        partial_positive_pairs_file: Optional path to save/load partial positive pairs
+        negative_pairs_file: Optional path to save/load negative pairs
+        use_saved_pairs: Whether to load existing pairs if available
+        num_workers: Number of parallel workers for pair generation
 
     Returns:
-        Tuple containing lists of positive, partial positive, and negative InputExample pairs.
+        Tuple containing:
+        - List[InputExample]: Positive pairs
+        - List[InputExample]: Partial positive pairs
+        - List[InputExample]: Negative pairs
+
+    Notes:
+        - Uses sentence-t5-xl model for encoding during pair generation
+        - Performs garbage collection after each pair type generation
+        - Saves generated pairs to files if paths are provided
     """
     synopses_columns: List[str] = [
         col for col in df.columns if "synopsis" in col.lower()
@@ -183,20 +197,30 @@ def get_pairs(
     category_to_embedding: Dict[str, NDArray[np.float64]],
 ) -> List[InputExample]:
     """
-    Get all pairs, either from saved files or by generating new ones.
+    Retrieve or generate all training pairs for model training.
+
+    This function handles loading existing pairs from files or generating new ones
+    as needed. It manages three types of pairs: positive, partial positive, and
+    negative pairs.
 
     Args:
-        df: DataFrame containing the data.
-        use_saved_pairs: Whether to use saved pairs if available.
-        saved_pairs_directory: Directory containing saved pairs.
-        max_negative_per_row: Maximum number of negative pairs to generate per row.
-        max_partial_positive_per_row: Maximum number of partial positive pairs to generate per row.
-        num_workers: Number of worker processes for multiprocessing.
-        data_type: Type of data ('anime' or 'manga').
-        category_to_embedding: Dictionary mapping categories to their embeddings.
+        df: DataFrame containing the anime/manga data
+        use_saved_pairs: Whether to attempt loading existing pairs
+        saved_pairs_directory: Base directory for saved pair files
+        max_negative_per_row: Maximum negative pairs per entry
+        max_partial_positive_per_row: Maximum partial positive pairs per entry
+        num_workers: Number of parallel workers for generation
+        data_type: Type of data ('anime' or 'manga')
+        category_to_embedding: Dictionary mapping categories to embeddings
 
     Returns:
-        List of all InputExample pairs combined.
+        List[InputExample]: Combined list of all pair types for training
+
+    Notes:
+        - Automatically creates directory structure for pair files
+        - Falls back to generation if loading fails or files missing
+        - Combines all pair types into a single training set
+        - Maintains consistent file naming based on data_type
     """
     positive_pairs: List[InputExample] = []
     partial_positive_pairs: List[InputExample] = []
@@ -277,7 +301,26 @@ def get_pairs(
 
 def main() -> None:
     """
-    Main function to train a SentenceTransformer model.
+    Main training function for fine-tuning SentenceTransformer models.
+
+    This function:
+    1. Parses command line arguments for training configuration
+    2. Sets up model paths and data loading
+    3. Generates or loads training pairs
+    4. Initializes and configures the model
+    5. Sets up training parameters and loss functions
+    6. Executes the training loop
+    7. Saves the final model
+
+    Command line arguments control all aspects of training including:
+    - Model selection and architecture
+    - Training hyperparameters
+    - Data processing settings
+    - Resource allocation
+    - Input/output paths
+
+    The function handles the complete training pipeline from data preparation
+    through model saving, with appropriate logging and error handling.
     """
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Train a SentenceTransformer model.")

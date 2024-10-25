@@ -1,12 +1,20 @@
 """
-This script generates Sentence-BERT (SBERT) embeddings for either an anime or manga dataset.
+Generate Sentence-BERT (SBERT) embeddings for anime or manga datasets.
 
-It performs the following operations:
-- Loads a pre-trained SBERT model specified by the user.
-- Preprocesses text data from various synopsis or description columns in the dataset.
-- Generates embeddings for each synopsis or description using batched processing.
-- Saves the generated embeddings to disk under separate directories for anime and manga.
-- Records and saves evaluation data including model and hardware information.
+This script loads a pre-trained SBERT model and generates embeddings for text data from
+anime or manga datasets. It handles batched processing, supports multiple synopsis/description
+columns, and saves the generated embeddings to disk.
+
+Key Features:
+- Configurable model selection via command line arguments
+- Automatic device selection (CPU/CUDA) with optimized batch sizes
+- Preprocessing of text data before embedding generation
+- Batched processing for memory efficiency
+- Comprehensive evaluation data recording
+- Support for both pre-trained and fine-tuned models
+
+The embeddings are saved in separate directories based on the dataset type and model used.
+Performance metrics and model information are also recorded for evaluation purposes.
 """
 
 # pylint: disable=E0401, E0611
@@ -58,13 +66,12 @@ from sentence_transformers import (  # pylint: disable=wrong-import-position, wr
 # Parse command-line arguments
 def parse_args() -> argparse.Namespace:
     """
-    Parses command-line arguments for the SBERT embedding generation script.
+    Parse command-line arguments for SBERT embedding generation.
 
     Returns:
-        argparse.Namespace: An object containing the parsed command-line arguments.
-        Specifically, it includes:
-        - 'model': The name of the SBERT model to use.
-        - 'type': The type of dataset ('anime' or 'manga') for which to generate embeddings.
+        argparse.Namespace: Parsed arguments containing:
+            model (str): Name or path of SBERT model to use
+            type (str): Dataset type ('anime' or 'manga')
     """
     parser = argparse.ArgumentParser(
         description="Generate SBERT embeddings for anime or manga dataset."
@@ -95,18 +102,21 @@ def get_sbert_embeddings(
     device: str,
 ) -> np.ndarray:
     """
-    Generate SBERT embeddings for a given DataFrame column using batched processing.
+    Generate SBERT embeddings for text data using batched processing.
+
+    Processes text data in batches to generate embeddings efficiently while managing memory usage.
+    Supports mixed precision for specific models on CUDA devices.
 
     Args:
-        dataframe (pandas.DataFrame): The input DataFrame containing the text data.
-        sbert_model (SentenceTransformer): The SBERT model to use for generating embeddings.
-        batch_size (int): The number of texts to process in each batch.
-        column_name (str): The name of the DataFrame column containing the text data.
-        model_name (str): The name of the model being used.
-        device (str): The device to use for computation ('cpu' or 'cuda').
+        dataframe: DataFrame containing the text data
+        sbert_model: Initialized SBERT model instance
+        batch_size: Number of texts to process per batch
+        column_name: Name of column containing text data
+        model_name: Name/identifier of the SBERT model
+        device: Computation device ('cpu' or 'cuda')
 
     Returns:
-        numpy.ndarray: A 2D array of embeddings, each row corresponds to a text in input DataFrame.
+        numpy.ndarray: Matrix of embeddings where each row corresponds to a text input
     """
     embeddings_list = []
     for i in tqdm(
@@ -141,7 +151,17 @@ def get_sbert_embeddings(
 # Run by test_
 def main() -> None:
     """
-    Main function to execute the embedding generation process.
+    Execute the SBERT embedding generation pipeline.
+
+    Workflow:
+    1. Parse command line arguments and determine device
+    2. Load and preprocess dataset based on type (anime/manga)
+    3. Initialize SBERT model with appropriate configuration
+    4. Generate embeddings for each text column in batches
+    5. Save embeddings and evaluation data to disk
+
+    The function handles device selection, batch size optimization, and memory management
+    based on the model and available hardware.
     """
     args = parse_args()
 

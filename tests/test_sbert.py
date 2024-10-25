@@ -2,8 +2,12 @@
 This module contains tests for the sbert.py script, which generates embeddings
 for anime and manga datasets using the Sentence-BERT model.
 
-The tests verify that the script runs successfully with valid command-line arguments
-and that the expected output files are created and contain valid data.
+The tests verify:
+- Successful execution of the script with valid command-line arguments
+- Creation and validation of embedding files for both anime and manga datasets
+- Proper saving and structure of evaluation results
+- Correct dimensionality of generated embeddings
+- Consistency between model parameters and evaluation data
 """
 
 import subprocess
@@ -22,14 +26,27 @@ def run_sbert_command_and_verify(
     Run the SBERT command-line script and verify the generated embeddings and
     evaluation results.
 
+    This function:
+    1. Executes the SBERT script with specified parameters
+    2. Verifies script execution success
+    3. Checks for creation of expected embedding files
+    4. Validates embedding dimensions
+    5. Verifies evaluation results structure and content
+
     Args:
-        model_name (str): The name of the model to be used.
-        dataset_type (str): The type of dataset ('anime' or 'manga').
-        expected_files (List[str]): List of expected embedding file names.
+        model_name (str): The name of the model to be used (e.g., 
+            'sentence-transformers/all-mpnet-base-v2')
+        dataset_type (str): The type of dataset ('anime' or 'manga')
+        expected_files (List[str]): List of expected embedding file names to be 
+            generated
 
     Raises:
-        AssertionError: If the script fails, embeddings files are not created,
-        or evaluation results do not match.
+        AssertionError: If any of the following conditions are not met:
+            - Script execution fails
+            - Expected embedding files are not created
+            - Embeddings have invalid dimensions
+            - Evaluation results are missing or malformed
+            - Model parameters don't match input parameters
     """
     command = [
         sys.executable,
@@ -109,13 +126,21 @@ def test_run_sbert_command_line(
     model_name: str, dataset_type: str, expected_files: List[str]
 ) -> None:
     """
-    Test the SBERT command line script by running it with the specified model name
-    and dataset type. Verify that the expected embedding files are created and the
-    evaluation results are saved correctly.
+    Test the SBERT command line script by running it with different dataset types
+    and verifying the outputs.
+
+    This test:
+    1. Tests both anime and manga datasets
+    2. Verifies generation of dataset-specific embedding files
+    3. Validates embedding file structure and content
+    4. Checks evaluation results for each dataset type
 
     Args:
-        model_name (str): The name of the model to be tested.
-        dataset_type (str): The type of dataset ('anime' or 'manga').
-        expected_files (List[str]): List of expected embedding file names.
+        model_name (str): The name of the model to be tested, provided by pytest fixture
+        dataset_type (str): The type of dataset being tested ('anime' or 'manga')
+        expected_files (List[str]): List of expected embedding files for the dataset type
+
+    The test is parameterized to run separately for anime and manga datasets,
+    with different expected output files for each type.
     """
     run_sbert_command_and_verify(model_name, dataset_type, expected_files)

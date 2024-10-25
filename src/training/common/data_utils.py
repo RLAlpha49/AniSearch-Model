@@ -33,21 +33,24 @@ from sentence_transformers import InputExample
 DataType = Literal["anime", "manga"]
 
 
-# Save pairs to a CSV file
 def save_pairs_to_csv(pairs: List[InputExample], filename: Optional[str]) -> None:
     """
-    Save pairs of texts and their labels to a CSV file.
+    Save pairs of texts and their similarity labels to a CSV file.
+
+    This function takes a list of InputExample objects containing text pairs and their
+    similarity labels and saves them to a CSV file. It creates the output directory
+    if it doesn't exist.
 
     Args:
-        pairs: List of InputExample pairs containing texts and labels
-        filename: Path to the CSV file where pairs will be saved
+        pairs (List[InputExample]): List of text pairs and their similarity labels
+        filename (Optional[str]): Path to save the CSV file
 
     Returns:
         None
 
     Raises:
-        TypeError: If filename is None
-        OSError: If directory creation fails
+        TypeError: If filename parameter is None
+        OSError: If directory creation fails or file cannot be written
     """
     if filename is None:
         raise TypeError("Filename cannot be None")
@@ -67,21 +70,24 @@ def save_pairs_to_csv(pairs: List[InputExample], filename: Optional[str]) -> Non
     print(f"Pairs saved to {filename}")
 
 
-# Define genres and themes based on data_type
 def get_genres_and_themes(data_type: DataType) -> Tuple[Set[str], Set[str]]:
     """
-    Get genres and themes based on data_type.
+    Get predefined sets of genres and themes for anime or manga data.
+
+    This function returns two sets containing valid genres and themes based on the
+    specified data type. The sets are curated specifically for each content type
+    to ensure accurate semantic similarity calculations.
 
     Args:
-        data_type: Type of data, either "anime" or "manga"
+        data_type (DataType): Type of data to get genres/themes for ("anime" or "manga")
 
     Returns:
-        A tuple containing:
-            - Set[str]: All available genres for the specified data type
-            - Set[str]: All available themes for the specified data type
+        Tuple[Set[str], Set[str]]: A tuple containing:
+            - First element: Set of all valid genres for the data type
+            - Second element: Set of all valid themes for the data type
 
     Raises:
-        ValueError: If data_type is neither "anime" nor "manga"
+        ValueError: If data_type is not "anime" or "manga"
     """
     all_genres: Set[str]
     all_themes: Set[str]

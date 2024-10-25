@@ -1,10 +1,16 @@
 """
-This module determines the operating system and starts the Flask application
-using the appropriate server.
-- On Linux, it uses Gunicorn with 4 worker processes.
-- On Windows, it uses Waitress.
-- On other operating systems, it defaults to using Flask's built-in server.
-The script uses the `subprocess.run` method to execute the server command.
+Starts the Flask application using an appropriate server based on the operating system.
+
+The module accepts optional command line arguments:
+- First argument: Device type ('cuda' or 'cpu', defaults to 'cpu')
+- Second argument: Number of workers/threads (positive integer, defaults to 4)
+
+Server selection:
+- Linux: Uses Gunicorn with specified number of worker processes
+- Windows: Uses Waitress with specified number of threads
+- Other OS: Uses Flask's built-in development server
+
+The server runs on port 21493 and binds to all network interfaces (0.0.0.0).
 """
 
 import platform
@@ -15,13 +21,26 @@ import os
 
 def run_server() -> None:
     """
-    Determine the operating system and start the Flask application using the appropriate server.
+    Start the Flask application using an OS-appropriate server with configurable settings.
 
-    - On Linux, the application is run using Gunicorn with a specified number of worker processes.
-    - On Windows, the application is run using Waitress with a specified number of threads.
-    - On other operating systems, the application defaults to using Flask's built-in server.
+    Command line arguments:
+        argv[1]: Device type ('cuda' or 'cpu', defaults to 'cpu')
+        argv[2]: Number of workers/threads (positive integer, defaults to 4)
 
-    This function uses the `subprocess.run` method to execute the server command.
+    Environment variables set:
+        DEVICE: Set to the specified device type ('cuda' or 'cpu')
+
+    Server configuration:
+        Linux: Gunicorn
+            - Workers: Specified by argv[2]
+            - Logs: ./logs/gunicorn_access.log and gunicorn_error.log
+            - Binds to: 0.0.0.0:21493
+
+        Windows: Waitress
+            - Threads: Specified by argv[2]
+            - Port: 21493
+
+        Other OS: Flask development server
     """
     os_type: str = platform.system()
 
