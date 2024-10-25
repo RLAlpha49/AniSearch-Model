@@ -291,10 +291,10 @@ def main() -> None:
 
     # Initialize SBERT components
     word_embedding_model = models.Transformer(model_name)
-    # Set the max_seq_length for the current model based on the context
-    word_embedding_model.max_seq_length = max_token_counts.get(model_name, {}).get(
-        dataset_type, None
-    )  # Default to None if not found
+    if word_embedding_model.max_seq_length is None:
+        word_embedding_model.max_seq_length = max_token_counts.get(model_name, {}).get(
+            dataset_type, None
+        )  # Default to None if not found
 
     pooling_model = models.Pooling(
         word_embedding_model.get_word_embedding_dimension(),
@@ -307,9 +307,8 @@ def main() -> None:
         modules=[word_embedding_model, pooling_model],
     )
 
-    model[0].max_seq_length = max_token_counts.get(model_name, {}).get(  # type: ignore
-        dataset_type, 512
-    )
+    # Set max sequence length based on word embedding model
+    model[0].max_seq_length = word_embedding_model.max_seq_length  # type: ignore
     model[
         1
     ].word_embedding_dimension = word_embedding_model.get_word_embedding_dimension()  # type: ignore
