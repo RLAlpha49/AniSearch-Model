@@ -17,18 +17,18 @@ class CustomT5EncoderModel(models.Transformer):
     Custom T5 Encoder model that replaces ReLU activation functions with GELU.
 
     This class extends the Transformer model from the sentence_transformers library
-    and modifies the activation functions in the feed-forward networks of the 
-    transformer blocks to use GELU instead of ReLU. GELU (Gaussian Error Linear Unit) 
-    is a smoother activation function that often performs better than ReLU in 
+    and modifies the activation functions in the feed-forward networks of the
+    transformer blocks to use GELU instead of ReLU. GELU (Gaussian Error Linear Unit)
+    is a smoother activation function that often performs better than ReLU in
     transformer architectures.
 
     Attributes:
         model_name_or_path (str): Name or path of the pre-trained T5 model to load.
-        model_args (Optional[Dict]): Additional arguments to pass to the T5 model 
+        model_args (Optional[Dict]): Additional arguments to pass to the T5 model
             constructor.
-        max_seq_length (int): Maximum sequence length for input text. Longer 
+        max_seq_length (int): Maximum sequence length for input text. Longer
             sequences will be truncated.
-        do_lower_case (bool): Whether to convert input text to lowercase before 
+        do_lower_case (bool): Whether to convert input text to lowercase before
             tokenization.
     """
 
@@ -55,7 +55,8 @@ class CustomT5EncoderModel(models.Transformer):
             max_seq_length=max_seq_length,
             do_lower_case=do_lower_case,
         )
-        self.modify_activation(self.auto_model)
+        if not model_name_or_path.startswith("toobi/anime"):
+            self.modify_activation(self.auto_model)
 
     def modify_activation(self, model):
         """

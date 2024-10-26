@@ -52,12 +52,14 @@ import logging
 from multiprocessing import cpu_count
 import gc
 from typing import Tuple, List, Dict, Optional
+import random
 import pandas as pd
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 import torch
 import numpy as np
 from numpy.typing import NDArray
+
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
@@ -81,6 +83,7 @@ from training.models.training import (  # pylint: disable=wrong-import-position 
     create_evaluator,
     get_loss_function,
 )
+from training.common.early_stopping import EarlyStoppingCallback  # pylint: disable=wrong-import-position import-error no-name-in-module # noqa: E402
 
 
 # Function to create positive and negative pairs
@@ -133,6 +136,7 @@ def create_pairs(
 
     # Load a pre-trained Sentence Transformer model for encoding
     encoder_model: SentenceTransformer = SentenceTransformer("sentence-t5-xl")
+    logger.debug("Loaded encoder model: %s", encoder_model)
 
     positive_pairs: List[InputExample] = []
     if (
@@ -140,9 +144,11 @@ def create_pairs(
         or not os.path.exists(positive_pairs_file)
         or not use_saved_pairs
     ):
+        logger.info("Creating positive pairs.")
         positive_pairs = create_positive_pairs(
             df, synopses_columns, encoder_model, positive_pairs_file
         )
+        logger.debug("Generated %d positive pairs.", len(positive_pairs))
         gc.collect()
         torch.cuda.empty_cache()
 
@@ -152,6 +158,7 @@ def create_pairs(
         or not os.path.exists(partial_positive_pairs_file)
         or not use_saved_pairs
     ):
+        logger.info("Creating partial positive pairs.")
         partial_positive_pairs = create_partial_positive_pairs(
             df,
             synopses_columns,
@@ -160,6 +167,9 @@ def create_pairs(
             partial_positive_pairs_file,
             num_workers,
             category_to_embedding,
+        )
+        logger.debug(
+            "Generated %d partial positive pairs.", len(partial_positive_pairs)
         )
         gc.collect()
         torch.cuda.empty_cache()
@@ -170,6 +180,7 @@ def create_pairs(
         or not os.path.exists(negative_pairs_file)
         or not use_saved_pairs
     ):
+        logger.info("Creating negative pairs.")
         negative_pairs = create_negative_pairs(
             df,
             synopses_columns,
@@ -179,6 +190,7 @@ def create_pairs(
             num_workers,
             category_to_embedding,
         )
+        logger.debug("Generated %d negative pairs.", len(negative_pairs))
         gc.collect()
         torch.cuda.empty_cache()
 
@@ -239,15 +251,18 @@ def get_pairs(
 
     if use_saved_pairs:
         if os.path.exists(positive_pairs_file):
-            print(f"Loading positive pairs from {positive_pairs_file}")
+            logger.info("Loading positive pairs from %s", positive_pairs_file)
             positive_pairs_df: pd.DataFrame = pd.read_csv(positive_pairs_file)
             positive_pairs = [
                 InputExample(texts=[row["text_a"], row["text_b"]], label=row["label"])
                 for _, row in positive_pairs_df.iterrows()
             ]
+            logger.debug("Loaded %d positive pairs from file.", len(positive_pairs))
 
         if os.path.exists(partial_positive_pairs_file):
-            print(f"Loading partial positive pairs from {partial_positive_pairs_file}")
+            logger.info(
+                "Loading partial positive pairs from %s", partial_positive_pairs_file
+            )
             partial_positive_pairs_df: pd.DataFrame = pd.read_csv(
                 partial_positive_pairs_file
             )
@@ -255,14 +270,19 @@ def get_pairs(
                 InputExample(texts=[row["text_a"], row["text_b"]], label=row["label"])
                 for _, row in partial_positive_pairs_df.iterrows()
             ]
+            logger.debug(
+                "Loaded %d partial positive pairs from file.",
+                len(partial_positive_pairs),
+            )
 
         if os.path.exists(negative_pairs_file):
-            print(f"Loading negative pairs from {negative_pairs_file}")
+            logger.info("Loading negative pairs from %s", negative_pairs_file)
             negative_pairs_df: pd.DataFrame = pd.read_csv(negative_pairs_file)
             negative_pairs = [
                 InputExample(texts=[row["text_a"], row["text_b"]], label=row["label"])
                 for _, row in negative_pairs_df.iterrows()
             ]
+            logger.debug("Loaded %d negative pairs from file.", len(negative_pairs))
 
     if (
         not use_saved_pairs
@@ -270,7 +290,7 @@ def get_pairs(
         or not partial_positive_pairs
         or not negative_pairs
     ):
-        print("Generating pairs")
+        logger.info("Generating pairs as some or all pair types are missing.")
         (
             generated_positive_pairs,
             generated_partial_positive_pairs,
@@ -290,13 +310,33 @@ def get_pairs(
 
         if not positive_pairs:
             positive_pairs = generated_positive_pairs
+            logger.debug("Assigned generated positive pairs.")
+
         if not partial_positive_pairs:
             partial_positive_pairs = generated_partial_positive_pairs
+            logger.debug("Assigned generated partial positive pairs.")
+
         if not negative_pairs:
             negative_pairs = generated_negative_pairs
+            logger.debug("Assigned generated negative pairs.")
 
-    pairs: List[InputExample] = positive_pairs + partial_positive_pairs + negative_pairs
-    return pairs
+    total_pairs = (
+        len(positive_pairs) + len(partial_positive_pairs) + len(negative_pairs)
+    )
+    logger.info("Total pairs prepared for training: %d", total_pairs)
+    return positive_pairs + partial_positive_pairs + negative_pairs
+
+
+def set_seed(seed: int):
+    """
+    Set the random seed for reproducibility.
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    logger.debug("Random seed set to %d for reproducibility.", seed)
 
 
 def main() -> None:
@@ -309,7 +349,7 @@ def main() -> None:
     3. Generates or loads training pairs
     4. Initializes and configures the model
     5. Sets up training parameters and loss functions
-    6. Executes the training loop
+    6. Executes the training loop with early stopping
     7. Saves the final model
 
     Command line arguments control all aspects of training including:
@@ -322,7 +362,6 @@ def main() -> None:
     The function handles the complete training pipeline from data preparation
     through model saving, with appropriate logging and error handling.
     """
-    # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Train a SentenceTransformer model.")
     parser.add_argument(
         "--model_name",
@@ -408,46 +447,199 @@ def main() -> None:
         action="store_true",
         help="Whether to use the custom transformer with GELU activation.",
     )
+    parser.add_argument(
+        "--early_stopping_patience",
+        type=int,
+        default=3,
+        help=(
+            "Number of evaluations with no improvement after which training will be "
+            "stopped. Default is 3."
+        ),
+    )
+    parser.add_argument(
+        "--early_stopping_min_delta",
+        type=float,
+        default=0.0,
+        help="Minimum change in the monitored metric to qualify as an improvement. Default is 0.0.",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda" if torch.cuda.is_available() else "cpu",
+        help="Device to use for training: 'cuda', 'cpu', or specific GPU indices (e.g., 'cuda:0').",
+    )
+    parser.add_argument(
+        "--num_gpus",
+        type=int,
+        default=1,
+        help="Number of GPUs to use for training. Default is 1.",
+    )
+    parser.add_argument(
+        "--logging_level",
+        type=str,
+        default="INFO",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+        help="Logging level for the training script. Default is 'INFO'.",
+    )
+    parser.add_argument(
+        "--save_steps",
+        type=int,
+        default=500,
+        help="Number of steps between saving model checkpoints. Default is 500.",
+    )
+    parser.add_argument(
+        "--checkpoint_dir",
+        type=str,
+        default="checkpoints",
+        help="Directory to save model checkpoints. Default is 'checkpoints'.",
+    )
+    parser.add_argument(
+        "--scheduler_type",
+        type=str,
+        default="warmuplinear",
+        choices=[
+            "constant",
+            "warmupconstant",
+            "warmuplinear",
+            "warmupcosine",
+            "warmupcosinewithhardrestarts",
+        ],
+        help="Type of learning rate scheduler to use. Default is 'warmuplinear'.",
+    )
+    parser.add_argument(
+        "--warmup_ratio",
+        type=float,
+        default=0.1,
+        help="Proportion of total training steps to use for warmup. Default is 0.1 (10%).",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for reproducibility. Default is 42.",
+    )
+    parser.add_argument(
+        "--overwrite_output_dir",
+        action="store_true",
+        help="Overwrite the content of the output directory if it exists. Default is False.",
+    )
+    parser.add_argument(
+        "--checkpoint_save_total_limit",
+        type=int,
+        default=5,
+        help="Maximum number of checkpoints to save. Default is 5.",
+    )
+
     args = parser.parse_args()
 
-    # Set the output model path based on data_type
+    global logger  # pylint: disable=global-statement global-variable-undefined
+    logger = logging.getLogger("train")
+    logger.setLevel(getattr(logging, args.logging_level.upper(), logging.INFO))
+
+    # Create handler (StreamHandler for console output)
+    handler = logging.StreamHandler()
+    handler.setLevel(getattr(logging, args.logging_level.upper(), logging.INFO))
+
+    # Create formatter and add it to the handler
+    formatter = logging.Formatter(
+        fmt="%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+    )
+    handler.setFormatter(formatter)
+
+    # Add handler to the logger
+    if not logger.handlers:
+        logger.addHandler(handler)
+
+    logger.debug("Argument parser initialized with arguments: %s", args)
+
+    # Handle output_model_path based on data_type
     output_model_path: str = args.output_model_path
     if "anime" in args.output_model_path and args.data_type == "manga":
-        output_model_path = output_model_path.replace("anime", "manga")
+        output_model_path = args.output_model_path.replace("anime", "manga")
     elif "manga" in args.output_model_path and args.data_type == "anime":
-        output_model_path = output_model_path.replace("manga", "anime")
+        output_model_path = args.output_model_path.replace("manga", "anime")
     elif args.data_type not in args.output_model_path.lower():
         output_model_path = f"{output_model_path}_{args.data_type}"
 
-    # Update the argument with the new output_model_path
     args.output_model_path = output_model_path
+    logger.debug("Final output_model_path set to: %s", args.output_model_path)
 
-    all_genres: set
-    all_themes: set
-    all_genres, all_themes = get_genres_and_themes(args.data_type)
+    # Ensure checkpoint directory exists
+    os.makedirs(args.checkpoint_dir, exist_ok=True)
+    logger.debug("Checkpoint directory ensured at: %s", args.checkpoint_dir)
 
-    # Load a pre-trained Sentence Transformer model for encoding
-    encoder_model: SentenceTransformer = SentenceTransformer("sentence-t5-large")
+    # Set random seed for reproducibility
+    set_seed(args.seed)
 
-    # Generate embeddings for all categories
-    all_categories: List[str] = list(all_genres) + list(all_themes)
-    category_embeddings: NDArray[np.float64] = encoder_model.encode(
-        all_categories, convert_to_tensor=False
+    # Set up device
+    device = args.device
+    if isinstance(device, str):
+        device = torch.device(device)
+    logger.info("Using device: %s", device)
+
+    # Initialize Early Stopping Callback
+    early_stopping = EarlyStoppingCallback(
+        patience=args.early_stopping_patience, min_delta=args.early_stopping_min_delta
+    )
+    logger.debug(
+        "EarlyStoppingCallback initialized with patience=%d, min_delta=%.2f",
+        args.early_stopping_patience,
+        args.early_stopping_min_delta,
     )
 
-    # Create a mapping from category to its embedding
-    category_to_embedding: Dict[str, NDArray[np.float64]] = {
+    # Load genres and themes
+    logger.info("Loading genres and themes for data_type: %s", args.data_type)
+    all_genres, all_themes = get_genres_and_themes(args.data_type)
+    logger.debug("Loaded %d genres and %d themes.", len(all_genres), len(all_themes))
+
+    # Load the SBERT model
+    model_path = args.model_name
+    if not model_path.startswith("toobi/anime"):
+        model_path = "sentence-transformers/" + model_path
+    logger.info("Creating model from path: %s", model_path)
+    model: SentenceTransformer | torch.nn.DataParallel = create_model(
+        model_path,
+        use_custom_transformer=True if args.use_custom_transformer else False,
+        max_seq_length=843,
+    )
+    logger.debug("Model created: %s", model)
+
+    # Access the Transformer model
+    transformer = model._first_module().auto_model  # pylint: disable=protected-access
+    logger.debug("Accessed Transformer encoder: %s", transformer.encoder)
+
+    model.to(device)
+    logger.info("Model moved to device: %s", device)
+
+    # Multi-GPU Support
+    if torch.cuda.device_count() > 1 and args.num_gpus > 1:
+        model = torch.nn.DataParallel(model, device_ids=list(range(args.num_gpus)))
+        logger.info("Using %d GPUs for training.", args.num_gpus)
+    else:
+        logger.info("Using a single GPU or CPU for training.")
+
+    # Prepare category embeddings
+    all_categories: list = list(all_genres) + list(all_themes)
+    logger.info("Encoding categories for embeddings.")
+    category_embeddings = model.encode(all_categories, convert_to_tensor=False)
+    category_to_embedding = {
         category: embedding
         for category, embedding in zip(all_categories, category_embeddings)
     }
+    logger.debug("Category embeddings created for %d categories.", len(all_categories))
 
-    # Load your dataset based on data_type
+    # Load dataset
     dataset_path: str = f"model/merged_{args.data_type}_dataset.csv"
-    logging.info("Loading dataset from %s", dataset_path)
+    logger.info("Loading dataset from %s", dataset_path)
+    if not os.path.exists(dataset_path):
+        logger.error("Dataset file does not exist at path: %s", dataset_path)
+        raise FileNotFoundError(f"Dataset file not found: {dataset_path}")
     df: pd.DataFrame = pd.read_csv(dataset_path)
+    logger.debug("Dataset loaded with %d records.", len(df))
 
-    # Get the pairs
-    pairs: List[InputExample] = get_pairs(
+    # Generate or load training pairs
+    logger.info("Preparing training pairs.")
+    pairs: list = get_pairs(
         df,
         use_saved_pairs=args.use_saved_pairs,
         saved_pairs_directory=args.saved_pairs_directory,
@@ -457,54 +649,79 @@ def main() -> None:
         data_type=args.data_type,
         category_to_embedding=category_to_embedding,
     )
+    logger.debug("Total training pairs prepared: %d", len(pairs))
 
     # Split the pairs into training and validation sets
-    train_pairs, val_pairs = train_test_split(pairs, test_size=0.1)
-
-    # Load the SBERT model
-    model: SentenceTransformer = create_model(
-        "sentence-transformers/" + args.model_name,
-        use_custom_transformer=True if args.use_custom_transformer else False,
-        max_seq_length=843,
+    logger.info("Splitting data into training and validation sets.")
+    train_pairs, val_pairs = train_test_split(
+        pairs, test_size=0.1, random_state=args.seed
     )
-    print(model)
-
-    # Access the Transformer model
-    transformer = model._first_module().auto_model  # pylint: disable=protected-access
-    print(transformer.encoder.block)
+    logger.debug(
+        "Training pairs: %d, Validation pairs: %d", len(train_pairs), len(val_pairs)
+    )
 
     # Create the evaluator
+    logger.info("Creating evaluator for validation.")
     evaluator = create_evaluator(val_pairs)
 
-    # Create a DataLoader
-    print("Creating DataLoader")
+    # Create DataLoader
+    logger.info("Creating DataLoader for training.")
     train_dataloader: DataLoader = DataLoader(
         train_pairs, shuffle=True, batch_size=args.batch_size
     )
+    logger.debug("DataLoader created with batch size: %d", args.batch_size)
 
     # Calculate the number of batches per epoch
     num_batches_per_epoch: int = len(train_dataloader)
+    logger.debug("Number of batches per epoch: %d", num_batches_per_epoch)
 
-    # Calculate evaluation steps
-    evaluation_steps: int = num_batches_per_epoch // args.evaluations_per_epoch
+    # Calculate total training steps
+    total_steps = args.epochs * num_batches_per_epoch
+    logger.debug("Total training steps: %d", total_steps)
+
+    # Calculate warmup steps
+    warmup_steps = int((args.warmup_ratio * total_steps) // args.epochs)
+    logger.debug("Warmup steps: %d", warmup_steps)
 
     # Get the loss function
-    train_loss = get_loss_function(args.loss_function, model)
+    train_loss = get_loss_function(args.loss_function, model)  # type: ignore
+    logger.debug("Loss function set to: %s", args.loss_function)
 
-    # Fine-tuning the model
-    print("Fine-tuning the model")
-    model.fit(
-        train_objectives=[(train_dataloader, train_loss)],
-        evaluator=evaluator,
-        epochs=args.epochs,
-        evaluation_steps=evaluation_steps,
-        output_path=args.output_model_path,
-        warmup_steps=evaluation_steps // 2,
-        optimizer_params={"lr": args.learning_rate},
-    )
+    # Start Training Loop
+    logger.info("Starting fine-tuning of the model.")
+    for epoch in range(args.epochs):
+        logger.info("Epoch %d/%d", epoch + 1, args.epochs)
+        model.fit(
+            train_objectives=[(train_dataloader, train_loss)],
+            evaluator=evaluator,
+            epochs=1,
+            evaluation_steps=max(
+                1, num_batches_per_epoch // args.evaluations_per_epoch
+            ),
+            output_path=args.output_model_path,
+            warmup_steps=warmup_steps,
+            scheduler=args.scheduler_type,
+            optimizer_params={"lr": args.learning_rate},
+            weight_decay=0.02,
+            checkpoint_save_steps=args.save_steps,
+            checkpoint_path=args.checkpoint_dir,
+            checkpoint_save_total_limit=args.checkpoint_save_total_limit,
+        )
+        logger.debug("Model.fit() completed for epoch %d.", epoch + 1)
 
-    # Save the model
+        # Evaluate after each epoch
+        evaluation = evaluator(model)  # type: ignore
+        current_score = evaluation.get("eval_pearson_cosine", 0)
+
+        # Early Stopping
+        early_stopping.on_evaluate(current_score, epoch, steps=num_batches_per_epoch)
+        if early_stopping.stop_training:
+            logger.info("Early stopping triggered. Stopping training.")
+            break
+
+    # Save the final model
     model.save(args.output_model_path)
+    logger.info("Final model saved at %s", args.output_model_path)
 
 
 if __name__ == "__main__":

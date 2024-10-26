@@ -14,22 +14,22 @@ The module supports multiple loss functions:
 And provides flexible evaluation options with configurable precision levels.
 
 Functions:
-    create_model: Initialize and configure a SentenceTransformer model with 
+    create_model: Initialize and configure a SentenceTransformer model with
         optional custom transformer
-    create_evaluator: Set up an evaluator for model validation with configurable 
+    create_evaluator: Set up an evaluator for model validation with configurable
         precision
-    get_loss_function: Get the appropriate loss function based on configuration 
+    get_loss_function: Get the appropriate loss function based on configuration
         name
 
 Type Definitions:
     LossType: Union type for supported loss function instances
     LossFunctionType: Union type for loss function classes
-    PrecisionType: Literal type for supported precision levels (float32, int8, 
+    PrecisionType: Literal type for supported precision levels (float32, int8,
         uint8, binary, ubinary)
 
 This module is designed to work with the sentence-transformers library and supports
-various training configurations for fine-tuning transformer models on similarity 
-tasks. The module allows for customization of model architecture, loss functions, 
+various training configurations for fine-tuning transformer models on similarity
+tasks. The module allows for customization of model architecture, loss functions,
 and evaluation metrics.
 """
 
@@ -57,19 +57,19 @@ def create_model(
 
     The model architecture consists of:
     1. Transformer layer (custom or default)
-    2. Pooling layer 
+    2. Pooling layer
     3. Dense layer with identity activation
     4. Normalization layer
 
     Args:
         model_name (str): Name or path of the pre-trained Transformer model
-        use_custom_transformer (bool): Whether to use custom transformer with 
+        use_custom_transformer (bool): Whether to use custom transformer with
             modified activations
         max_seq_length (int): Maximum sequence length for the Transformer
         device (Optional[str]): Device to run the model on (e.g. 'cuda', 'cpu')
 
     Returns:
-        SentenceTransformer: The initialized SentenceTransformer model with the 
+        SentenceTransformer: The initialized SentenceTransformer model with the
             specified architecture
     """
     modules: List[nn.Module] = []

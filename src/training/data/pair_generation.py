@@ -55,15 +55,15 @@ def calculate_semantic_similarity(
     Calculate the semantic similarity between two sets of genres and themes.
 
     Args:
-        category_to_embedding (Dict[str, NDArray[np.float64]]): Dictionary mapping 
+        category_to_embedding (Dict[str, NDArray[np.float64]]): Dictionary mapping
             categories to embeddings
         genres_a (Set[str]): Set of genres for the first item
         genres_b (Set[str]): Set of genres for the second item
         themes_a (Set[str]): Set of themes for the first item
         themes_b (Set[str]): Set of themes for the second item
-        genre_weight (float, optional): Weight for genre similarity. 
+        genre_weight (float, optional): Weight for genre similarity.
             Defaults to 0.35
-        theme_weight (float, optional): Weight for theme similarity. 
+        theme_weight (float, optional): Weight for theme similarity.
             Defaults to 0.65
 
     Returns:

@@ -39,7 +39,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sentence_transformers import SentenceTransformer, util
 from werkzeug.exceptions import HTTPException
-from src.custom_transformer import CustomT5EncoderModel
+from custom_transformer import CustomT5EncoderModel
 
 # Determine the device to use based on the environment variable
 device = (

@@ -34,10 +34,10 @@ def run_sbert_command_and_verify(
     5. Verifies evaluation results structure and content
 
     Args:
-        model_name (str): The name of the model to be used (e.g., 
+        model_name (str): The name of the model to be used (e.g.,
             'sentence-transformers/all-mpnet-base-v2')
         dataset_type (str): The type of dataset ('anime' or 'manga')
-        expected_files (List[str]): List of expected embedding file names to be 
+        expected_files (List[str]): List of expected embedding file names to be
             generated
 
     Raises:
