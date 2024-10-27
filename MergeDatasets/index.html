@@ -1401,7 +1401,7 @@ specifying either 'anime' or 'manga'.</p>
 Uses tqdm for progress tracking during updates.</p>
 
             <details class="quote">
-              <summary>Source code in <code>src/merge_datasets.py</code></summary>
+              <summary>Source code in <code>src\merge_datasets.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-271">271</a></span>
 <span class="normal"><a href="#__codelineno-0-272">272</a></span>
 <span class="normal"><a href="#__codelineno-0-273">273</a></span>
@@ -1584,7 +1584,7 @@ Uses tqdm for progress tracking during updates.</p>
         <p>The function modifies the DataFrame in-place, setting matching synopses to empty strings.</p>
 
             <details class="quote">
-              <summary>Source code in <code>src/merge_datasets.py</code></summary>
+              <summary>Source code in <code>src\merge_datasets.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-98"> 98</a></span>
 <span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
 <span class="normal"><a href="#__codelineno-0-100">100</a></span>
@@ -1710,7 +1710,7 @@ Uses tqdm for progress tracking during updates.</p>
 from other title columns in order. Empty strings and 'unknown title' are treated as null.</p>
 
             <details class="quote">
-              <summary>Source code in <code>src/merge_datasets.py</code></summary>
+              <summary>Source code in <code>src\merge_datasets.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-141">141</a></span>
 <span class="normal"><a href="#__codelineno-0-142">142</a></span>
 <span class="normal"><a href="#__codelineno-0-143">143</a></span>
@@ -1913,7 +1913,7 @@ from other title columns in order. Empty strings and 'unknown title' are treated
         <p>Attempts to match titles across multiple name columns and returns first matching description.</p>
 
             <details class="quote">
-              <summary>Source code in <code>src/merge_datasets.py</code></summary>
+              <summary>Source code in <code>src\merge_datasets.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-223">223</a></span>
 <span class="normal"><a href="#__codelineno-0-224">224</a></span>
 <span class="normal"><a href="#__codelineno-0-225">225</a></span>
@@ -2058,7 +2058,7 @@ calls the appropriate merging function.</p>
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>src/merge_datasets.py</code></summary>
+              <summary>Source code in <code>src\merge_datasets.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-881">881</a></span>
 <span class="normal"><a href="#__codelineno-0-882">882</a></span>
 <span class="normal"><a href="#__codelineno-0-883">883</a></span>
@@ -2203,7 +2203,7 @@ calls the appropriate merging function.</p>
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>src/merge_datasets.py</code></summary>
+              <summary>Source code in <code>src\merge_datasets.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-353">353</a></span>
 <span class="normal"><a href="#__codelineno-0-354">354</a></span>
 <span class="normal"><a href="#__codelineno-0-355">355</a></span>
@@ -2960,7 +2960,7 @@ calls the appropriate merging function.</p>
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>src/merge_datasets.py</code></summary>
+              <summary>Source code in <code>src\merge_datasets.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-693">693</a></span>
 <span class="normal"><a href="#__codelineno-0-694">694</a></span>
 <span class="normal"><a href="#__codelineno-0-695">695</a></span>
@@ -3379,7 +3379,7 @@ type (str): Either 'anime' or 'manga' to specify dataset type to merge</p>
     </table>
 
             <details class="quote">
-              <summary>Source code in <code>src/merge_datasets.py</code></summary>
+              <summary>Source code in <code>src\merge_datasets.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-76">76</a></span>
 <span class="normal"><a href="#__codelineno-0-77">77</a></span>
 <span class="normal"><a href="#__codelineno-0-78">78</a></span>
@@ -3497,7 +3497,7 @@ Returns empty string if input is null/NaN</p>
         <p>Used to standardize names across datasets before matching/merging.</p>
 
             <details class="quote">
-              <summary>Source code in <code>src/merge_datasets.py</code></summary>
+              <summary>Source code in <code>src\merge_datasets.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-184">184</a></span>
 <span class="normal"><a href="#__codelineno-0-185">185</a></span>
 <span class="normal"><a href="#__codelineno-0-186">186</a></span>
@@ -3598,7 +3598,7 @@ Uses common.preprocess_text() for standardization.
 Logs warning if specified column not found.</p>
 
             <details class="quote">
-              <summary>Source code in <code>src/merge_datasets.py</code></summary>
+              <summary>Source code in <code>src\merge_datasets.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-202">202</a></span>
 <span class="normal"><a href="#__codelineno-0-203">203</a></span>
 <span class="normal"><a href="#__codelineno-0-204">204</a></span>
@@ -3728,7 +3728,7 @@ Logs warning if specified column not found.</p>
 Processes row-by-row to maintain data integrity.</p>
 
             <details class="quote">
-              <summary>Source code in <code>src/merge_datasets.py</code></summary>
+              <summary>Source code in <code>src\merge_datasets.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-324">324</a></span>
 <span class="normal"><a href="#__codelineno-0-325">325</a></span>
 <span class="normal"><a href="#__codelineno-0-326">326</a></span>
@@ -3848,7 +3848,7 @@ Processes row-by-row to maintain data integrity.</p>
 Uses regex pattern matching to identify numbered list formats.</p>
 
             <details class="quote">
-              <summary>Source code in <code>src/merge_datasets.py</code></summary>
+              <summary>Source code in <code>src\merge_datasets.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-117">117</a></span>
 <span class="normal"><a href="#__codelineno-0-118">118</a></span>
 <span class="normal"><a href="#__codelineno-0-119">119</a></span>
