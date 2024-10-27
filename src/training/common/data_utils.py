@@ -2,12 +2,16 @@
 Utility module for data handling and management in the anime/manga recommendation system.
 
 This module provides utility functions for:
+
 1. Data persistence: Saving and loading training pairs
+
 2. Genre and theme management: Maintaining predefined sets of genres and themes
    for both anime and manga datasets
 
 The module supports two main data types:
+
 - Anime: Contains specific genres and themes for anime content
+
 - Manga: Contains specific genres and themes for manga content
 
 Functions:

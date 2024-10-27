@@ -4,10 +4,10 @@ It includes fixtures and test functions to ensure that the models are correctly 
 similarities are calculated, and evaluation results are saved properly.
 
 The tests verify:
-- Model and embedding loading functionality
-- Similarity calculation between new descriptions and existing content
-- Proper saving and structure of evaluation results
-- Consistent behavior across both anime and manga datasets
+    - Model and embedding loading functionality
+    - Similarity calculation between new descriptions and existing content
+    - Proper saving and structure of evaluation results
+    - Consistent behavior across both anime and manga datasets
 """
 
 import os
@@ -43,10 +43,10 @@ def test_anime_model(new_description: str, model_name: str) -> None:  # pylint: 
     Test the anime model's ability to find similar content based on description.
 
     This test verifies:
-    1. Proper loading of the model and anime embeddings
-    2. Accurate calculation of similarities between new description and existing anime
-    3. Correct structure and saving of evaluation results
-    4. Expected number and format of top similar results
+        1. Proper loading of the model and anime embeddings
+        2. Accurate calculation of similarities between new description and existing anime
+        3. Correct structure and saving of evaluation results
+        4. Expected number and format of top similar results
 
     Args:
         new_description (str): A test description to compare against the anime database.
@@ -99,10 +99,10 @@ def test_manga_model(new_description: str, model_name: str) -> None:  # pylint: 
     Test the manga model's ability to find similar content based on description.
 
     This test verifies:
-    1. Proper loading of the model and manga embeddings
-    2. Accurate calculation of similarities between new description and existing manga
-    3. Correct structure and saving of evaluation results
-    4. Expected number and format of top similar results
+        1. Proper loading of the model and manga embeddings
+        2. Accurate calculation of similarities between new description and existing manga
+        3. Correct structure and saving of evaluation results
+        4. Expected number and format of top similar results
 
     Args:
         new_description (str): A test description to compare against the manga database.

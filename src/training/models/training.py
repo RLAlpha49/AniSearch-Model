@@ -2,14 +2,17 @@
 This module provides utilities for configuring and training sentence transformer models.
 
 It includes functionality for:
+
 1. Model initialization and configuration with optional custom transformers
+
 2. Evaluator setup for model validation with configurable precision
+
 3. Loss function selection and configuration
 
 The module supports multiple loss functions:
-- Cosine Similarity Loss: Standard cosine similarity loss for sentence pairs
-- CoSENT Loss: Contrastive sentence transformer loss
-- AnglE Loss: Angular loss for sentence embeddings
+    - Cosine Similarity Loss: Standard cosine similarity loss for sentence pairs
+    - CoSENT Loss: Contrastive sentence transformer loss
+    - AnglE Loss: Angular loss for sentence embeddings
 
 And provides flexible evaluation options with configurable precision levels.
 
@@ -22,8 +25,11 @@ Functions:
         name
 
 Type Definitions:
+
     LossType: Union type for supported loss function instances
+
     LossFunctionType: Union type for loss function classes
+
     PrecisionType: Literal type for supported precision levels (float32, int8,
         uint8, binary, ubinary)
 

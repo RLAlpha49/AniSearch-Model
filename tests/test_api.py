@@ -7,10 +7,10 @@ correctly. The tests use a mock for the get_similarities function to simulate
 different scenarios.
 
 The test suite includes:
-- Testing successful manga similarity search with valid inputs
-- Testing error handling for invalid inputs (missing fields, invalid model names)
-- Testing internal server error handling
-- Parameterized tests for different invalid input scenarios
+    - Testing successful manga similarity search with valid inputs
+    - Testing error handling for invalid inputs (missing fields, invalid model names)
+    - Testing internal server error handling
+    - Parameterized tests for different invalid input scenarios
 
 The tests use pytest fixtures for the Flask test client and model name configuration.
 """

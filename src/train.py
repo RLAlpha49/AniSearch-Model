@@ -6,38 +6,32 @@ semantic similarities between anime/manga synopses. It handles the complete trai
 pipeline, including:
 
 1. Data Processing:
-   - Loading anime/manga datasets
-   - Managing genres and themes
-   - Generating embeddings for categories
+    - Loading anime/manga datasets
+    - Managing genres and themes
+    - Generating embeddings for categories
 
 2. Pair Generation:
-   - Positive pairs: Same-entry synopses with high similarity
-   - Partial positive pairs: Different-entry synopses with moderate similarity
-   - Negative pairs: Different-entry synopses with low similarity
+    - Positive pairs: Same-entry synopses with high similarity
+    - Partial positive pairs: Different-entry synopses with moderate similarity
+    - Negative pairs: Different-entry synopses with low similarity
 
 3. Model Training:
-   - Fine-tuning pre-trained sentence transformers
-   - Custom loss function support (cosine, cosent, angle)
-   - Validation and evaluation during training
-   - Checkpoint saving and model persistence
+    - Fine-tuning pre-trained sentence transformers
+    - Custom loss function support (cosine, cosent, angle)
+    - Validation and evaluation during training
+    - Checkpoint saving and model persistence
 
 4. Resource Management:
-   - GPU memory management with garbage collection
-   - Multiprocessing for pair generation
-   - Efficient data loading with DataLoader
-
-Configuration:
-    The module accepts various command line arguments to configure:
-    - Model architecture and pre-trained weights
-    - Training hyperparameters (learning rate, batch size, epochs)
-    - Data processing settings (pair counts, thresholds)
-    - Resource allocation (workers, GPU usage)
-    - Input/output paths and data types
+    - GPU memory management with garbage collection
+    - Multiprocessing for pair generation
+    - Efficient data loading with DataLoader
 
 Usage:
-    python train.py [arguments]
+```
+python train.py [arguments]
+```
 
-    For full list of arguments, use: python train.py --help
+For full list of arguments, use: python train.py --help
 
 Notes:
     - Supports resuming training from saved pair files
@@ -103,8 +97,11 @@ def create_pairs(
     Create positive, partial positive, and negative pairs from the dataframe.
 
     This function handles the generation of three types of synopsis pairs:
+
     1. Positive pairs: From same entries with high similarity
+
     2. Partial positive pairs: From different entries with moderate similarity
+
     3. Negative pairs: From different entries with low similarity
 
     Args:
@@ -136,7 +133,7 @@ def create_pairs(
 
     # Load a pre-trained Sentence Transformer model for encoding
     encoder_model: SentenceTransformer = SentenceTransformer("sentence-t5-xl")
-    logger.debug("Loaded encoder model: %s", encoder_model)
+    logger.debug("Loaded encoder model: %s", encoder_model)  # type: ignore
 
     positive_pairs: List[InputExample] = []
     if (
@@ -144,11 +141,11 @@ def create_pairs(
         or not os.path.exists(positive_pairs_file)
         or not use_saved_pairs
     ):
-        logger.info("Creating positive pairs.")
+        logger.info("Creating positive pairs.")  # type: ignore
         positive_pairs = create_positive_pairs(
             df, synopses_columns, encoder_model, positive_pairs_file
         )
-        logger.debug("Generated %d positive pairs.", len(positive_pairs))
+        logger.debug("Generated %d positive pairs.", len(positive_pairs))  # type: ignore
         gc.collect()
         torch.cuda.empty_cache()
 
@@ -158,7 +155,7 @@ def create_pairs(
         or not os.path.exists(partial_positive_pairs_file)
         or not use_saved_pairs
     ):
-        logger.info("Creating partial positive pairs.")
+        logger.info("Creating partial positive pairs.")  # type: ignore
         partial_positive_pairs = create_partial_positive_pairs(
             df,
             synopses_columns,
@@ -169,7 +166,8 @@ def create_pairs(
             category_to_embedding,
         )
         logger.debug(
-            "Generated %d partial positive pairs.", len(partial_positive_pairs)
+            "Generated %d partial positive pairs.",
+            len(partial_positive_pairs),  # type: ignore
         )
         gc.collect()
         torch.cuda.empty_cache()
@@ -180,7 +178,7 @@ def create_pairs(
         or not os.path.exists(negative_pairs_file)
         or not use_saved_pairs
     ):
-        logger.info("Creating negative pairs.")
+        logger.info("Creating negative pairs.")  # type: ignore
         negative_pairs = create_negative_pairs(
             df,
             synopses_columns,
@@ -190,7 +188,7 @@ def create_pairs(
             num_workers,
             category_to_embedding,
         )
-        logger.debug("Generated %d negative pairs.", len(negative_pairs))
+        logger.debug("Generated %d negative pairs.", len(negative_pairs))  # type: ignore
         gc.collect()
         torch.cuda.empty_cache()
 
@@ -251,18 +249,18 @@ def get_pairs(
 
     if use_saved_pairs:
         if os.path.exists(positive_pairs_file):
-            logger.info("Loading positive pairs from %s", positive_pairs_file)
+            logger.info("Loading positive pairs from %s", positive_pairs_file)  # type: ignore
             positive_pairs_df: pd.DataFrame = pd.read_csv(positive_pairs_file)
             positive_pairs = [
                 InputExample(texts=[row["text_a"], row["text_b"]], label=row["label"])
                 for _, row in positive_pairs_df.iterrows()
             ]
-            logger.debug("Loaded %d positive pairs from file.", len(positive_pairs))
+            logger.debug("Loaded %d positive pairs from file.", len(positive_pairs))  # type: ignore
 
         if os.path.exists(partial_positive_pairs_file):
             logger.info(
                 "Loading partial positive pairs from %s", partial_positive_pairs_file
-            )
+            )  # type: ignore
             partial_positive_pairs_df: pd.DataFrame = pd.read_csv(
                 partial_positive_pairs_file
             )
@@ -273,16 +271,16 @@ def get_pairs(
             logger.debug(
                 "Loaded %d partial positive pairs from file.",
                 len(partial_positive_pairs),
-            )
+            )  # type: ignore
 
         if os.path.exists(negative_pairs_file):
-            logger.info("Loading negative pairs from %s", negative_pairs_file)
+            logger.info("Loading negative pairs from %s", negative_pairs_file)  # type: ignore
             negative_pairs_df: pd.DataFrame = pd.read_csv(negative_pairs_file)
             negative_pairs = [
                 InputExample(texts=[row["text_a"], row["text_b"]], label=row["label"])
                 for _, row in negative_pairs_df.iterrows()
             ]
-            logger.debug("Loaded %d negative pairs from file.", len(negative_pairs))
+            logger.debug("Loaded %d negative pairs from file.", len(negative_pairs))  # type: ignore
 
     if (
         not use_saved_pairs
@@ -290,7 +288,7 @@ def get_pairs(
         or not partial_positive_pairs
         or not negative_pairs
     ):
-        logger.info("Generating pairs as some or all pair types are missing.")
+        logger.info("Generating pairs as some or all pair types are missing.")  # type: ignore
         (
             generated_positive_pairs,
             generated_partial_positive_pairs,
@@ -310,20 +308,20 @@ def get_pairs(
 
         if not positive_pairs:
             positive_pairs = generated_positive_pairs
-            logger.debug("Assigned generated positive pairs.")
+            logger.debug("Assigned generated positive pairs.")  # type: ignore
 
         if not partial_positive_pairs:
             partial_positive_pairs = generated_partial_positive_pairs
-            logger.debug("Assigned generated partial positive pairs.")
+            logger.debug("Assigned generated partial positive pairs.")  # type: ignore
 
         if not negative_pairs:
             negative_pairs = generated_negative_pairs
-            logger.debug("Assigned generated negative pairs.")
+            logger.debug("Assigned generated negative pairs.")  # type: ignore
 
     total_pairs = (
         len(positive_pairs) + len(partial_positive_pairs) + len(negative_pairs)
     )
-    logger.info("Total pairs prepared for training: %d", total_pairs)
+    logger.info("Total pairs prepared for training: %d", total_pairs)  # type: ignore
     return positive_pairs + partial_positive_pairs + negative_pairs
 
 
@@ -336,7 +334,7 @@ def set_seed(seed: int):
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
-    logger.debug("Random seed set to %d for reproducibility.", seed)
+    logger.debug("Random seed set to %d for reproducibility.", seed)  # type: ignore
 
 
 def main() -> None:

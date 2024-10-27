@@ -2,9 +2,12 @@
 This module handles the generation of training pairs for a sentence transformer model.
 
 It provides functionality to create three types of pairs:
+
 1. Positive pairs: Pairs of synopses from same entry with high similarity (>=0.8)
+
 2. Partial positive pairs: Pairs from different entries with moderate similarity
    (>=0.5 and <0.8)
+
 3. Negative pairs: Pairs from different entries with low similarity (<0.5)
 
 The similarity between entries is calculated based on their genres and themes using

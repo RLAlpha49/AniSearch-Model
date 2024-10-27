@@ -5,7 +5,6 @@
 ![GitHub Workflow Status](https://github.com/RLAlpha49/AniSearchModel/actions/workflows/codeql.yml/badge.svg)
 ![GitHub Workflow Status](https://github.com/RLAlpha49/AniSearchModel/actions/workflows/ruff.yml/badge.svg)
 ![GitHub Workflow Status](https://github.com/RLAlpha49/AniSearchModel/actions/workflows/docs.yml/badge.svg)
-
 AniSearchModel leverages Sentence-BERT (SBERT) models to generate embeddings for anime and manga synopses, enabling the calculation of semantic similarities between descriptions. This project facilitates the preprocessing, merging, and analysis of various anime and manga datasets to identify the most similar synopses.
 
 ## Table of Contents

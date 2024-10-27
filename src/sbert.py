@@ -6,12 +6,12 @@ anime or manga datasets. It handles batched processing, supports multiple synops
 columns, and saves the generated embeddings to disk.
 
 Key Features:
-- Configurable model selection via command line arguments
-- Automatic device selection (CPU/CUDA) with optimized batch sizes
-- Preprocessing of text data before embedding generation
-- Batched processing for memory efficiency
-- Comprehensive evaluation data recording
-- Support for both pre-trained and fine-tuned models
+    - Configurable model selection via command line arguments
+    - Automatic device selection (CPU/CUDA) with optimized batch sizes
+    - Preprocessing of text data before embedding generation
+    - Batched processing for memory efficiency
+    - Comprehensive evaluation data recording
+    - Support for both pre-trained and fine-tuned models
 
 The embeddings are saved in separate directories based on the dataset type and model used.
 Performance metrics and model information are also recorded for evaluation purposes.
@@ -154,10 +154,15 @@ def main() -> None:
     Execute the SBERT embedding generation pipeline.
 
     Workflow:
+
     1. Parse command line arguments and determine device
+
     2. Load and preprocess dataset based on type (anime/manga)
+
     3. Initialize SBERT model with appropriate configuration
+
     4. Generate embeddings for each text column in batches
+
     5. Save embeddings and evaluation data to disk
 
     The function handles device selection, batch size optimization, and memory management

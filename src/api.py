@@ -7,16 +7,16 @@ and calculate cosine similarities. It supports multiple synopsis columns from
 different datasets and returns paginated results of the most similar items.
 
 Key Features:
-- Supports multiple pre-trained and custom Sentence Transformer models
-- Handles both anime and manga similarity searches
-- Implements rate limiting and CORS
-- Provides memory management for GPU resources
-- Includes comprehensive logging
-- Returns paginated results with similarity scores
+    - Supports multiple pre-trained and custom Sentence Transformer models
+    - Handles both anime and manga similarity searches
+    - Implements rate limiting and CORS
+    - Provides memory management for GPU resources
+    - Includes comprehensive logging
+    - Returns paginated results with similarity scores
 
 The API endpoints are:
-- POST /anisearchmodel/anime: Find similar anime based on description
-- POST /anisearchmodel/manga: Find similar manga based on description
+    - POST /anisearchmodel/anime: Find similar anime based on description
+    - POST /anisearchmodel/manga: Find similar manga based on description
 """
 
 # pylint: disable=import-error, global-variable-not-assigned, global-statement
@@ -122,7 +122,9 @@ def clear_memory() -> None:
     Frees up system memory and GPU cache.
 
     This function performs two cleanup operations:
+
     1. Empties the GPU cache if CUDA is being used
+
     2. Runs Python's garbage collector to free memory
     """
     torch.cuda.empty_cache()
@@ -210,8 +212,11 @@ def validate_input(data: Dict[str, Any]) -> None:
     Validates the input data for API requests.
 
     This function checks that:
+
     1. Both model name and description are provided
+
     2. The description length is within acceptable limits
+
     3. The specified model is in the list of allowed models
 
     Args:
@@ -268,8 +273,11 @@ def calculate_cosine_similarities(
     Calculates cosine similarities between a new embedding and existing embeddings.
 
     This function:
+
     1. Loads pre-computed embeddings for the specified column
+
     2. Verifies embedding dimensions match
+
     3. Computes cosine similarity scores using GPU if available
 
     Args:
@@ -307,8 +315,11 @@ def find_top_similarities(
     Finds the top N most similar descriptions across all synopsis columns.
 
     This function:
+
     1. Processes similarity scores from all columns
+
     2. Sorts them in descending order
+
     3. Returns indices and column names for the top matches
 
     Args:
@@ -344,9 +355,13 @@ def get_similarities(
     Finds the most similar descriptions in the specified dataset.
 
     This function:
+
     1. Loads and validates the appropriate model
+
     2. Encodes the input description
+
     3. Calculates similarities with all stored descriptions
+
     4. Returns paginated results with metadata
 
     Args:
@@ -453,17 +468,22 @@ def get_anime_similarities() -> Response:
     API endpoint for finding similar anime based on a description.
 
     This endpoint:
+
     1. Validates the request payload
+
     2. Processes the description using the specified model
+
     3. Returns paginated results of similar anime
 
     Expected JSON payload:
-        {
-            "model": str,          # Name of the model to use
-            "description": str,    # Input description to find similarities for
-            "page": int,           # Optional: Page number (default: 1)
-            "resultsPerPage": int  # Optional: Results per page (default: 10)
-        }
+    ```
+    {
+        "model": str,          # Name of the model to use
+        "description": str,    # Input description to find similarities for
+        "page": int,           # Optional: Page number (default: 1)
+        "resultsPerPage": int  # Optional: Results per page (default: 10)
+    }
+    ```
 
     Returns:
         JSON response containing:
@@ -522,17 +542,22 @@ def get_manga_similarities() -> Response:
     API endpoint for finding similar manga based on a description.
 
     This endpoint:
+
     1. Validates the request payload
+
     2. Processes the description using the specified model
+
     3. Returns paginated results of similar manga
 
     Expected JSON payload:
-        {
-            "model": str,          # Name of the model to use
-            "description": str,    # Input description to find similarities for
-            "page": int,           # Optional: Page number (default: 1)
-            "resultsPerPage": int  # Optional: Results per page (default: 10)
-        }
+    ```
+    {
+        "model": str,          # Name of the model to use
+        "description": str,    # Input description to find similarities for
+        "page": int,           # Optional: Page number (default: 1)
+        "resultsPerPage": int  # Optional: Results per page (default: 10)
+    }
+    ```
 
     Returns:
         JSON response containing:

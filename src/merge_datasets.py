@@ -6,18 +6,20 @@ from various sources. It handles data cleaning, deduplication, and consolidation
 information across datasets.
 
 Key features:
-- Loads datasets from CSV files and Hugging Face datasets library
-- Cleans and preprocesses text fields like titles and synopses
-- Merges datasets based on common identifiers while handling duplicates
-- Consolidates information from multiple sources while preserving data quality
-- Removes inappropriate content based on genres/demographics
-- Saves the final merged dataset with progress tracking
+    - Loads datasets from CSV files and Hugging Face datasets library
+    - Cleans and preprocesses text fields like titles and synopses
+    - Merges datasets based on common identifiers while handling duplicates
+    - Consolidates information from multiple sources while preserving data quality
+    - Removes inappropriate content based on genres/demographics
+    - Saves the final merged dataset with progress tracking
 
 The script can be run from the command line with a required --type argument
 specifying either 'anime' or 'manga'.
 
 Example:
-    python merge_datasets.py --type anime
+```
+python merge_datasets.py --type anime
+```
 
 The merged dataset will be saved to model/merged_[type]_dataset.csv
 """
@@ -356,13 +358,13 @@ def merge_anime_datasets() -> pd.DataFrame:
         pd.DataFrame: Merged and cleaned anime dataset
 
     Performs the following operations:
-    - Loads multiple anime datasets from files and Hugging Face
-    - Cleans and standardizes text fields
-    - Removes adult content and kids' content
-    - Merges datasets based on IDs and titles
-    - Consolidates synopsis information
-    - Removes duplicates
-    - Saves final dataset to CSV with progress tracking
+        - Loads multiple anime datasets from files and Hugging Face
+        - Cleans and standardizes text fields
+        - Removes adult content and kids' content
+        - Merges datasets based on IDs and titles
+        - Consolidates synopsis information
+        - Removes duplicates
+        - Saves final dataset to CSV with progress tracking
 
     Raises:
         Exception: If any error occurs during merging process
@@ -696,13 +698,13 @@ def merge_manga_datasets() -> pd.DataFrame:
         pd.DataFrame: Merged and cleaned manga dataset
 
     Performs the following operations:
-    - Loads manga datasets from multiple CSV files
-    - Removes adult content
-    - Cleans and standardizes text fields
-    - Merges datasets based on IDs and titles
-    - Consolidates synopsis information
-    - Removes duplicates
-    - Saves final dataset to CSV with progress tracking
+        - Loads manga datasets from multiple CSV files
+        - Removes adult content
+        - Cleans and standardizes text fields
+        - Merges datasets based on IDs and titles
+        - Consolidates synopsis information
+        - Removes duplicates
+        - Saves final dataset to CSV with progress tracking
 
     Raises:
         Exception: If any error occurs during merging process

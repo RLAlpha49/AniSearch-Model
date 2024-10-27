@@ -6,11 +6,11 @@ similarities between descriptions, and saving evaluation results. It supports bo
 anime and manga datasets and uses sentence transformers for embedding generation.
 
 Key Features:
-- Model and embedding loading with automatic device selection
-- Batched similarity calculation using cosine similarity
-- Deduplication of results based on titles
-- Comprehensive evaluation result logging
-- Support for multiple synopsis/description columns
+    - Model and embedding loading with automatic device selection
+    - Batched similarity calculation using cosine similarity
+    - Deduplication of results based on titles
+    - Comprehensive evaluation result logging
+    - Support for multiple synopsis/description columns
 
 The module is designed to work with pre-computed embeddings stored in numpy arrays
 and uses efficient tensor operations for similarity calculations.

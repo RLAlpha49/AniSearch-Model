@@ -3,11 +3,11 @@ This module contains tests for the sbert.py script, which generates embeddings
 for anime and manga datasets using the Sentence-BERT model.
 
 The tests verify:
-- Successful execution of the script with valid command-line arguments
-- Creation and validation of embedding files for both anime and manga datasets
-- Proper saving and structure of evaluation results
-- Correct dimensionality of generated embeddings
-- Consistency between model parameters and evaluation data
+    - Successful execution of the script with valid command-line arguments
+    - Creation and validation of embedding files for both anime and manga datasets
+    - Proper saving and structure of evaluation results
+    - Correct dimensionality of generated embeddings
+    - Consistency between model parameters and evaluation data
 """
 
 import subprocess
@@ -27,11 +27,11 @@ def run_sbert_command_and_verify(
     evaluation results.
 
     This function:
-    1. Executes the SBERT script with specified parameters
-    2. Verifies script execution success
-    3. Checks for creation of expected embedding files
-    4. Validates embedding dimensions
-    5. Verifies evaluation results structure and content
+        1. Executes the SBERT script with specified parameters
+        2. Verifies script execution success
+        3. Checks for creation of expected embedding files
+        4. Validates embedding dimensions
+        5. Verifies evaluation results structure and content
 
     Args:
         model_name (str): The name of the model to be used (e.g.,
@@ -130,10 +130,10 @@ def test_run_sbert_command_line(
     and verifying the outputs.
 
     This test:
-    1. Tests both anime and manga datasets
-    2. Verifies generation of dataset-specific embedding files
-    3. Validates embedding file structure and content
-    4. Checks evaluation results for each dataset type
+        1. Tests both anime and manga datasets
+        2. Verifies generation of dataset-specific embedding files
+        3. Validates embedding file structure and content
+        4. Checks evaluation results for each dataset type
 
     Args:
         model_name (str): The name of the model to be tested, provided by pytest fixture

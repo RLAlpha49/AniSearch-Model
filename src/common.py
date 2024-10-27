@@ -47,14 +47,14 @@ def preprocess_text(text: Any) -> Any:
     Preprocess text data by applying various cleaning and normalization steps.
 
     Steps include:
-    - Converting to lowercase
-    - Expanding contractions
-    - Removing accents
-    - Removing extra whitespace
-    - Removing URLs
-    - Removing source citations
-    - Removing stopwords
-    - Lemmatizing words
+        - Converting to lowercase
+        - Expanding contractions
+        - Removing accents
+        - Removing extra whitespace
+        - Removing URLs
+        - Removing source citations
+        - Removing stopwords
+        - Lemmatizing words
 
     Args:
         text (Any): Input text to preprocess. Can be string or other type.

@@ -1,0 +1,164 @@
+site_name: AniSearchModel
+site_url: https://rlalpha49.github.io/AniSearchModel
+site_description: AniSearchModel leverages Sentence-BERT (SBERT) models to generate embeddings for synopses, enabling the calculation of semantic similarities between descriptions.
+site_author: RLAlpha49
+repo_url: https://github.com/RLAlpha49/AniSearchModel
+repo_name: RLAlpha49/AniSearchModel
+copyright: >
+  Copyright &copy; 2024 RLAlpha49 under the MIT License –
+  <a href="#__consent">Change cookie settings</a>
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/RLAlpha49
+    - icon: fontawesome/brands/discord
+      link: https://discordapp.com/users/251479989378220044
+  analytics:
+    provider: google
+    property: G-D5XNSQW23M
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: This page was helpful
+          data: 1
+          note: >-
+            Thanks for your feedback!
+        - icon: material/emoticon-sad-outline
+          name: This page could be improved
+          data: 0
+          note: >-
+            Thanks for your feedback! Help us improve this page by
+            using our <a href="..." target="_blank" rel="noopener">feedback form</a>.
+  consent:
+    title: Cookie consent
+    actions:
+      - accept
+      - reject
+      - manage
+    description: >-
+      We use cookies to recognize your repeated visits and preferences, as well
+      as to measure the effectiveness of our documentation and whether users
+      find what they're searching for. With your consent, you're helping us to
+      make our documentation better.
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            docstring_section_style: spacy
+            merge_init_into_class: true
+            heading_level: 3
+            show_if_no_docstring: true
+            show_root_toc_entry: false
+            show_symbol_type_heading: true
+            show_signatures: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            separate_signature: true
+            docstring_options:
+              ignore_init_summary: true
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: datetime
+  - git-committers:
+      repository: RLAlpha49/AniSearchModel
+      branch: main
+
+nav:
+  - Home: index.md
+  - AniSearchModel:
+      - API: API.md
+      - Common: Common.md
+      - CustomTransformer: CustomTransformer.md
+      - MergeDatasets: MergeDatasets.md
+      - RunServer: RunServer.md
+      - Sbert: Sbert.md
+      - Test: Test.md
+      - Train: Train.md
+      - Misc:
+          - MaxTokens: Misc/MaxTokens.md
+      - Training:
+          - Common:
+              - DataUtils: Training/Common/DataUtils.md
+              - EarlyStoppingCallback: Training/Common/EarlyStoppingCallback.md
+          - Data:
+              - PairGeneration: Training/Data/PairGeneration.md
+          - Models:
+              - Training: Training/Models/Training.md
+      - Tests:
+          - Conftest: Tests/Conftest.md
+          - TestAPI: Tests/TestAPI.md
+          - TestMergeDatasets: Tests/TestMergeDatasets.md
+          - TestModel: Tests/TestModel.md
+          - TestSbert: Tests/TestSbert.md
+
+theme:
+  name: material
+  font:
+    text: Fira Sans
+    code: Fira Code
+  icon:
+    repo: fontawesome/brands/git-alt
+    annotation: material/plus-circle
+    edit: material/pencil
+    view: material/eye
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - search
+    - search.suggest
+    - search.highlight
+    - search.share
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.instant.progress
+    - navigation.instant.preview
+    - navigation.tracking
+    - navigation.top
+    - navigation.path
+    - navigation.prune
+    - navigation.indexes
+    - content.action.view
+    - content.tooltips
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - def_list
+  - attr_list
+  - toc:
+      permalink: true
+      permalink_title: Anchor link to this section for reference
+  - tables
+  - pymdownx.betterem
+  - pymdownx.details
+  - pymdownx.emoji:
+        emoji_index: !!python/name:material.extensions.emoji.twemoji
+        emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.smartsymbols
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - md_in_html
