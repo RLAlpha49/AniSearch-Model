@@ -527,6 +527,12 @@ def main() -> None:
         default=5,
         help="Maximum number of checkpoints to save. Default is 5.",
     )
+    parser.add_argument(
+        "--weight_decay",
+        type=float,
+        default=0.01,
+        help="Weight decay for optimizer. Default is 0.01.",
+    )
 
     args = parser.parse_args()
 
@@ -700,7 +706,7 @@ def main() -> None:
             warmup_steps=warmup_steps,
             scheduler=args.scheduler_type,
             optimizer_params={"lr": args.learning_rate},
-            weight_decay=0.02,
+            weight_decay=args.weight_decay,
             checkpoint_save_steps=args.save_steps,
             checkpoint_path=args.checkpoint_dir,
             checkpoint_save_total_limit=args.checkpoint_save_total_limit,

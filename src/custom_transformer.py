@@ -30,6 +30,7 @@ class CustomT5EncoderModel(models.Transformer):
             sequences will be truncated.
         do_lower_case (bool): Whether to convert input text to lowercase before
             tokenization.
+        dropout_rate (float): Dropout rate to apply to the feed-forward networks.
     """
 
     def __init__(
@@ -38,6 +39,7 @@ class CustomT5EncoderModel(models.Transformer):
         model_args: Optional[Dict] = None,
         max_seq_length: int = 256,
         do_lower_case: bool = False,
+        dropout_rate: float = 0.2,
     ):
         """
         Initialize the CustomT5EncoderModel.
@@ -48,6 +50,7 @@ class CustomT5EncoderModel(models.Transformer):
                 Defaults to an empty dict if None.
             max_seq_length (int): Maximum sequence length for input text. Default is 256.
             do_lower_case (bool): Whether to convert input text to lowercase. Default is False.
+            dropout_rate (float): Dropout rate to apply to the feed-forward networks. Default is 0.2.
         """
         super().__init__(
             model_name_or_path=model_name_or_path,
@@ -56,9 +59,9 @@ class CustomT5EncoderModel(models.Transformer):
             do_lower_case=do_lower_case,
         )
         if not model_name_or_path.startswith("toobi/anime"):
-            self.modify_activation(self.auto_model)
+            self.modify_activation(self.auto_model, dropout_rate)
 
-    def modify_activation(self, model):
+    def modify_activation(self, model, dropout_rate):
         """
         Replace ReLU activation with GELU in all transformer blocks of the T5 encoder.
 
@@ -67,9 +70,16 @@ class CustomT5EncoderModel(models.Transformer):
 
         Args:
             model: The underlying T5 transformer model whose activations will be modified.
+            dropout_rate (float): Dropout rate to apply to the feed-forward networks.
         """
-        for _, block in enumerate(model.encoder.block):
-            # Accessing the feed-forward network within each block
-            ff = block.layer[1].DenseReluDense
-            # Replace ReLU with GELU
-            ff.act = nn.GELU()
+        if hasattr(model, 'encoder') and hasattr(model.encoder, 'block'):
+            model.encoder.dropout = nn.Dropout(p=dropout_rate, inplace=False)
+            for _, block in enumerate(model.encoder.block):
+                # Accessing the feed-forward network within each block
+                ff = block.layer[1].DenseReluDense
+                # Replace ReLU with GELU
+                ff.act = nn.GELU()
+                # Set dropout rates using float values instead of nn.Dropout instances
+                ff.dropout = nn.Dropout(p=dropout_rate, inplace=False)
+                block.layer[0].dropout = nn.Dropout(p=dropout_rate, inplace=False)
+                block.layer[1].dropout = nn.Dropout(p=dropout_rate, inplace=False)
