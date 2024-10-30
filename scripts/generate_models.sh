@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set default start model if not provided
-start_model="${1:-sentence-transformers/all-distilroberta-v1}"
+start_model="${1:-toobi/anime}"
 start_processing=false
 
 # Define dataset types

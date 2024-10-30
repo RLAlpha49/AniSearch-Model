@@ -3,7 +3,7 @@ setlocal
 
 rem Set default start model if not provided
 if "%1"=="" (
-    set "start_model=sentence-transformers/all-distilroberta-v1"
+    set "start_model=toobi/anime"
 ) else (
     set "start_model=%1"
 )
