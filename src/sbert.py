@@ -31,6 +31,8 @@ from tqdm import tqdm
 import torch
 from transformers import AutoModel
 
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+
 # Add the project root to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -294,12 +296,20 @@ def main() -> None:
         "model/fine_tuned_sbert_model_manga": {"anime": 843, "manga": 765},
     }
 
-    # Initialize SBERT components
+    # Retrieve max_position_embeddings from the model's config
+    max_position_embeddings = (
+        hf_model.config.max_position_embeddings - 2
+        if hasattr(hf_model.config, "max_position_embeddings")
+        else max_token_counts.get(model_name, {}).get(dataset_type, 512)
+    )
+    print(f"Model's max_position_embeddings: {max_position_embeddings}")
+
+    # Initialize SBERT components with dynamic max_seq_length
     word_embedding_model = models.Transformer(model_name)
-    if word_embedding_model.max_seq_length is None:
-        word_embedding_model.max_seq_length = max_token_counts.get(model_name, {}).get(
-            dataset_type, None
-        )  # Default to None if not found
+    word_embedding_model.max_seq_length = min(
+        max_token_counts.get(model_name, {}).get(dataset_type, max_position_embeddings),
+        max_position_embeddings,
+    )
 
     pooling_model = models.Pooling(
         word_embedding_model.get_word_embedding_dimension(),
@@ -312,7 +322,7 @@ def main() -> None:
         modules=[word_embedding_model, pooling_model],
     )
 
-    # Set max sequence length based on word embedding model
+    # Ensure the model's max_seq_length does not exceed max_position_embeddings
     model[0].max_seq_length = word_embedding_model.max_seq_length  # type: ignore
     model[
         1
