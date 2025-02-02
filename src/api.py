@@ -29,6 +29,7 @@ import threading
 import time
 import sys
 from typing import Any, List, Dict, Tuple
+from pathlib import Path
 from concurrent_log_handler import ConcurrentRotatingFileHandler
 from flask import Flask, request, jsonify, abort, Response, make_response
 from flask_cors import CORS
@@ -40,6 +41,9 @@ from flask_limiter.util import get_remote_address
 from sentence_transformers import SentenceTransformer, util
 from werkzeug.exceptions import HTTPException
 from custom_transformer import CustomT5EncoderModel
+
+# Get directory of this script file
+script_dir = Path(__file__).parent
 
 # Determine the device to use based on the environment variable
 device = (
@@ -155,9 +159,9 @@ threading.Thread(target=periodic_memory_clear, daemon=True).start()
 # Initialize the limiter
 limiter = Limiter(get_remote_address, app=app, default_limits=["1 per second"])
 
-# Load the merged datasets
-anime_df = pd.read_csv("model/merged_anime_dataset.csv")
-manga_df = pd.read_csv("model/merged_manga_dataset.csv")
+# Load the merged datasets using
+anime_df = pd.read_csv(script_dir.parent / "model/merged_anime_dataset.csv")
+manga_df = pd.read_csv(script_dir.parent / "model/merged_manga_dataset.csv")
 
 # List of synopsis columns to consider for anime and manga
 anime_synopsis_columns = [
@@ -257,7 +261,8 @@ def load_embeddings(model_name: str, col: str, dataset_type: str) -> np.ndarray:
         FileNotFoundError: If the embeddings file doesn't exist
     """
     embeddings_file = (
-        f"model/{dataset_type}/{model_name}/embeddings_{col.replace(' ', '_')}.npy"
+        script_dir.parent
+        / f"model/{dataset_type}/{model_name}/embeddings_{col.replace(' ', '_')}.npy"
     )
     return np.load(embeddings_file)
 
@@ -395,7 +400,7 @@ def get_similarities(
         model_name == "fine_tuned_sbert_anime_model"
         or model_name == "fine_tuned_sbert_model_anime"
     ):
-        load_model_name = f"model/{model_name}"
+        load_model_name = script_dir.parent / f"model/{model_name}"
     else:
         load_model_name = model_name
 
@@ -586,8 +591,7 @@ def get_manga_similarities() -> Response:
         client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
 
         logging.info(
-            "Manga request - IP: %s, model: %s, desc: %s, "
-            "page: %d, results/page: %d",
+            "Manga request - IP: %s, model: %s, desc: %s, page: %d, results/page: %d",
             client_ip,
             model_name,
             description,
