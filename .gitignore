@@ -18,3 +18,7 @@ model/fine_tuned_sbert_model_anime
 model/anime_pairs.csv
 site
 .cache
+.mypy_cache
+.pytest_cache
+.ruff_cache
+run_script.sh
