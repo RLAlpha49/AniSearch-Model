@@ -2,78 +2,78 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/API/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Common/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/CustomTransformer/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/MergeDatasets/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/RunServer/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Sbert/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Test/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Train/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Misc/MaxTokens/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Tests/Conftest/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Tests/TestAPI/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Tests/TestMergeDatasets/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Tests/TestModel/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Tests/TestSbert/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Training/Common/DataUtils/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Training/Common/EarlyStoppingCallback/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Training/Data/PairGeneration/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
     <url>
          <loc>https://rlalpha49.github.io/AniSearchModel/Training/Models/Training/</loc>
-         <lastmod>2024-10-30</lastmod>
+         <lastmod>2025-02-02</lastmod>
     </url>
 </urlset>
