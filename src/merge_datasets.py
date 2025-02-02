@@ -373,7 +373,7 @@ def merge_anime_datasets() -> pd.DataFrame:
     try:
         # Load datasets
         logging.info("Loading anime datasets from CSV files.")
-        myanimelist_dataset: pd.DataFrame = pd.read_csv("data/anime/Anime.csv")
+        myanimelist_dataset: pd.DataFrame = pd.read_csv("data/anime/anime.csv")
         anime_dataset_2023: pd.DataFrame = pd.read_csv(
             "data/anime/anime-dataset-2023.csv"
         )
@@ -381,7 +381,7 @@ def merge_anime_datasets() -> pd.DataFrame:
         anime_4500: pd.DataFrame = pd.read_csv("data/anime/anime4500.csv")
         anime_2022: pd.DataFrame = pd.read_csv("data/anime/Anime-2022.csv")
         anime_data: pd.DataFrame = pd.read_csv("data/anime/Anime_data.csv")
-        anime2: pd.DataFrame = pd.read_csv("data/anime/anime2.csv")
+        anime2: pd.DataFrame = pd.read_csv("data/anime/Anime2.csv")
         mal_anime: pd.DataFrame = pd.read_csv("data/anime/mal_anime.csv")
 
         # Load using the datasets library
