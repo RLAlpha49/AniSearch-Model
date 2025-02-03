@@ -72,7 +72,7 @@ class CustomT5EncoderModel(models.Transformer):
             model: The underlying T5 transformer model whose activations will be modified.
             dropout_rate (float): Dropout rate to apply to the feed-forward networks.
         """
-        if hasattr(model, 'encoder') and hasattr(model.encoder, 'block'):
+        if hasattr(model, "encoder") and hasattr(model.encoder, "block"):
             model.encoder.dropout = nn.Dropout(p=dropout_rate, inplace=False)
             for _, block in enumerate(model.encoder.block):
                 # Accessing the feed-forward network within each block
