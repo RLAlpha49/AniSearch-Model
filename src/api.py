@@ -40,7 +40,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sentence_transformers import SentenceTransformer, util
 from werkzeug.exceptions import HTTPException
-from custom_transformer import CustomT5EncoderModel
+from src.custom_transformer import CustomT5EncoderModel
 
 # Get directory of this script file
 script_dir = Path(__file__).parent
@@ -400,13 +400,13 @@ def get_similarities(
         model_name == "fine_tuned_sbert_anime_model"
         or model_name == "fine_tuned_sbert_model_anime"
     ):
-        load_model_name = script_dir.parent / f"model/{model_name}"
+        load_model_name = f"model/{model_name}"
     else:
         load_model_name = model_name
 
     # Load the complete SentenceTransformer model
     try:
-        model = SentenceTransformer(load_model_name, device=device)
+        model = SentenceTransformer(load_model_name, device=device)  # type: ignore
     except Exception as e:
         raise ValueError(f"Failed to load model '{load_model_name}': {e}") from e
 

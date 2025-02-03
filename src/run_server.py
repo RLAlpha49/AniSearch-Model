@@ -89,13 +89,22 @@ def run_server() -> None:
                 "src.api:app",
             ],
             check=True,
+            env={**os.environ, "PYTHONPATH": "."},
         )
     elif os_type == "Windows":
         # Use Waitress on Windows
         print(f"Running on Windows. Starting Waitress server with {threads} threads.")
         subprocess.run(
-            ["waitress-serve", "--port=21493", f"--threads={threads}", "src.api:app"],
+            [
+                sys.executable,
+                "-m",
+                "waitress",
+                "--port=21493",
+                f"--threads={threads}",
+                "src.api:app",
+            ],
             check=True,
+            env={**os.environ, "PYTHONPATH": "."},
         )
     else:
         print(f"Running on {os_type}. Using Flask's built-in server.")
