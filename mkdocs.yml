@@ -1,11 +1,11 @@
-site_name: AniSearchModel
-site_url: https://rlalpha49.github.io/AniSearchModel
-site_description: AniSearchModel leverages Sentence-BERT (SBERT) models to generate embeddings for synopses, enabling the calculation of semantic similarities between descriptions.
+site_name: AniSearch-Model
+site_url: https://rlalpha49.github.io/AniSearch-Model
+site_description: AniSearch Model leverages cross-encoder transformer models to match descriptions with anime and manga titles through semantic search.
 site_author: RLAlpha49
-repo_url: https://github.com/RLAlpha49/AniSearchModel
-repo_name: RLAlpha49/AniSearchModel
+repo_url: https://github.com/RLAlpha49/AniSearch-Model
+repo_name: RLAlpha49/AniSearch-Model
 copyright: >
-  Copyright &copy; 2024 RLAlpha49 under the MIT License –
+  Copyright &copy; 2025 RLAlpha49 under the MIT License –
   <a href="#__consent">Change cookie settings</a>
 extra:
   social:
@@ -65,36 +65,27 @@ plugins:
       enable_creation_date: true
       type: datetime
   - git-committers:
-      repository: RLAlpha49/AniSearchModel
+      repository: RLAlpha49/AniSearch-Model
       branch: main
 
 nav:
   - Home: index.md
-  - AniSearchModel:
-      - API: API.md
-      - Common: Common.md
-      - CustomTransformer: CustomTransformer.md
-      - MergeDatasets: MergeDatasets.md
-      - RunServer: RunServer.md
-      - Sbert: Sbert.md
-      - Test: Test.md
-      - Train: Train.md
-      - Misc:
-          - MaxTokens: Misc/MaxTokens.md
-      - Training:
-          - Common:
-              - DataUtils: Training/Common/DataUtils.md
-              - EarlyStoppingCallback: Training/Common/EarlyStoppingCallback.md
-          - Data:
-              - PairGeneration: Training/Data/PairGeneration.md
-          - Models:
-              - Training: Training/Models/Training.md
-      - Tests:
-          - Conftest: Tests/Conftest.md
-          - TestAPI: Tests/TestAPI.md
-          - TestMergeDatasets: Tests/TestMergeDatasets.md
-          - TestModel: Tests/TestModel.md
-          - TestSbert: Tests/TestSbert.md
+  - Getting Started:
+    - Installation: installation.md
+    - Usage Guide: usage.md
+    - Examples: examples.md
+  - Concepts:
+    - Models & Architecture: models.md
+    - Datasets: datasets.md
+  - API Reference:
+    - Main Module: api/main.md
+    - Models: api/models.md
+    - Training: api/training.md
+    - CLI Components: api/cli.md 
+    - Utilities: api/utils.md
+    - Dataset Merging: api/merge_datasets.md
+  - Development:
+    - Contributing: contributing.md
 
 theme:
   name: material
@@ -107,13 +98,21 @@ theme:
     edit: material/pencil
     view: material/eye
   palette:
-    - scheme: default
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
       toggle:
-        icon: material/brightness-7
+        icon: material/weather-night
         name: Switch to dark mode
-    - scheme: slate
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
       toggle:
-        icon: material/brightness-4
+        icon: material/weather-sunny
         name: Switch to light mode
   features:
     - search
@@ -134,6 +133,9 @@ theme:
     - content.code.copy
     - content.code.annotate
     - toc.follow
+    - header.autohide
+    - navigation.footer
+    - content.tabs.link
 
 markdown_extensions:
   - abbr

@@ -3,7 +3,6 @@ numpy
 pandas
 torch
 tqdm
-matplotlib
 
 # NLP and machine learning
 sentence-transformers
