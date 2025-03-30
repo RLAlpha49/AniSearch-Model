@@ -1,36 +1,61 @@
 """
-Utility functions for displaying search results and model information.
+Display utilities for the anime search application.
+
+WARNING: This module should NOT import any ML frameworks like TensorFlow or PyTorch,
+         as it's used for lightweight model listing without loading heavy dependencies.
 """
 
+import os
 from typing import Dict, Optional
+
 from src.utils.constants import ALTERNATIVE_MODELS
 from src.utils.error_handling import handle_exceptions
 
+# Model save path
+MODEL_SAVE_PATH = "model/fine-tuned/"
 
-@handle_exceptions(include_exc_info=True)
-def format_score(score: float, normalize: bool, model_name: str = "") -> str:
+
+def format_score(score: float, normalize_scores: bool, model_name: str) -> str:
     """
-    Format a score for display based on whether it's normalized.
+    Format a score for display.
 
     Args:
-        score: The score to format
-        normalize: Whether the score is normalized between 0-1
-        model_name: Name of the model (used to determine if it's a GooAQ model)
+        score: The raw score
+        normalize_scores: Whether scores are normalized
+        model_name: The model name for context
 
     Returns:
-        A formatted string representation of the score
+        Formatted score string
     """
-    if normalize:
-        # Check if this is a GooAQ model
-        is_gooaq = "gooaq" in model_name.lower()
+    if normalize_scores or "ms-marco" in model_name.lower():
+        # For MS Marco models or normalized scores, display as percentage
+        return f"{score:.1%} relevance"
+    else:
+        # For other models, just show the raw score
+        return f"score: {score:.3f}"
 
-        if is_gooaq:
-            # For GooAQ models, multiply by 10 instead of 100
-            return f"Match: {score*10:.1f}%"
-        # For other normalized scores (0-1), display as percentage
-        return f"Match: {score*100:.1f}%"
-    # For non-normalized scores, display the raw value
-    return f"Score: {score:.2f}"
+
+def list_fine_tuned_models() -> Dict[str, str]:
+    """
+    List available fine-tuned models.
+
+    This is a lightweight version that doesn't import TensorFlow/PyTorch.
+
+    Returns:
+        Dictionary mapping model names to their paths
+    """
+    if not os.path.exists(MODEL_SAVE_PATH):
+        return {}
+
+    fine_tuned_models = {}
+    for model_name in os.listdir(MODEL_SAVE_PATH):
+        model_path = os.path.join(MODEL_SAVE_PATH, model_name)
+        config_path = os.path.join(model_path, "config.json")
+
+        if os.path.isdir(model_path) and os.path.exists(config_path):
+            fine_tuned_models[model_name] = model_path
+
+    return fine_tuned_models
 
 
 @handle_exceptions(cli_mode=True, reraise=False)
@@ -38,12 +63,11 @@ def display_available_models(
     fine_tuned_models: Optional[Dict[str, str]] = None,
 ) -> None:
     """
-    Display available cross-encoder models.
+    Display available models for searching/training.
 
     Args:
         fine_tuned_models: Dictionary of fine-tuned models to display
     """
-    # Use the constant instead of importing BaseSearchModel which would load TensorFlow
     models = ALTERNATIVE_MODELS
 
     print("\nAvailable Pre-trained Cross-Encoder Models:")
