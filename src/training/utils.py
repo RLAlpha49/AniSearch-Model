@@ -1,5 +1,7 @@
 """
-Utility functions for training cross-encoder models.
+Utility functions for training models.
+
+This module provides utility functions for training and evaluating models.
 """
 
 import ast
@@ -13,8 +15,10 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast
+from src.utils.error_handling import handle_exceptions
 
-from src.utils.constants import ALTERNATIVE_MODELS
+# Constants
+MODEL_SAVE_PATH = "model/fine-tuned/"
 
 # Default parameters
 DEFAULT_EPOCHS = 3
@@ -23,8 +27,8 @@ DEFAULT_EVAL_STEPS = 500
 DEFAULT_WARMUP_STEPS = 500
 DEFAULT_MAX_SAMPLES = 10000
 DEFAULT_LEARNING_RATE = 2e-6
-MODEL_SAVE_PATH = "model/fine-tuned/"
 
+# Setup logger
 logger = logging.getLogger(__name__)
 
 
@@ -57,6 +61,7 @@ def get_device(device: Optional[str] = None) -> str:
     return device
 
 
+@handle_exceptions(log_exceptions=True, include_exc_info=True)
 def batch_truncate_text_pairs(
     text_pairs: List[Tuple[str, str]],
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
@@ -208,32 +213,3 @@ def parse_list_column(column_value) -> List[str]:
         return column_value
     else:
         return []
-
-
-def list_available_models() -> None:
-    """Display available models for fine-tuning."""
-    # Use constants directly instead of importing TensorFlow modules
-    models = ALTERNATIVE_MODELS
-
-    print("\nAvailable Base Models for Fine-Tuning:")
-    print("====================================")
-
-    # Flatten nested dictionary for display
-    flat_models = {}
-    for category, model_dict in models.items():
-        print(f"\n{category.upper()}:")
-        for name, path in model_dict.items():
-            print(f"  {name}: {path}")
-            flat_models[name] = path
-
-    print("\nUsage example:")
-    print(
-        "  python src/main.py train --type anime ",
-        '--model "cross-encoder/ms-marco-MiniLM-L-6-v2" --epochs 3',
-    )
-    print("\nModel selection guide:")
-    print("- TinyBERT models: Smallest and fastest, good for low-resource environments")
-    print("- MiniLM models: Good balance of performance and efficiency")
-    print("- ELECTRA models: Higher accuracy but more computationally intensive")
-    print("- MS Marco models: Optimized for information retrieval")
-    print("- Other models: Specialized for specific NLP tasks (NLI, QA, etc.)")

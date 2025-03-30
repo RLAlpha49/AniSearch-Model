@@ -45,6 +45,9 @@ from src.training.utils import (
     parse_list_column,
     setup_random_seeds,
 )
+from src.models.anime_search_model import ANIME_DATASET_PATH
+from src.models.manga_search_model import MANGA_DATASET_PATH
+from src.utils.error_handling import handle_exceptions
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -124,8 +127,6 @@ class BaseModelTrainer:
         # Load dataset
         if dataset_path is None:
             # Use default dataset path if none is provided
-            from src.models.anime_search_model import ANIME_DATASET_PATH
-            from src.models.manga_search_model import MANGA_DATASET_PATH
 
             self.dataset_path = (
                 ANIME_DATASET_PATH if dataset_type == "anime" else MANGA_DATASET_PATH
@@ -146,6 +147,7 @@ class BaseModelTrainer:
         # Prepare dataset for training
         self._prepare_dataset()
 
+    @handle_exceptions(log_exceptions=True, include_exc_info=True)
     def _prepare_dataset(self) -> None:
         """Prepare the dataset for training by extracting and combining synopses."""
         # Extract synopsis columns
@@ -180,6 +182,7 @@ class BaseModelTrainer:
         if missing_cols:
             raise ValueError(f"Missing required columns in dataset: {missing_cols}")
 
+    @handle_exceptions(log_exceptions=True, include_exc_info=True)
     def create_synthetic_training_data(self) -> List[InputExample]:
         """
         Create synthetic training data for cross-encoder training.
@@ -246,6 +249,7 @@ class BaseModelTrainer:
         random.shuffle(examples)
         return examples
 
+    @handle_exceptions(log_exceptions=True, include_exc_info=True)
     def create_training_data_from_labeled_file(
         self, labeled_file: str
     ) -> List[InputExample]:
@@ -287,9 +291,9 @@ class BaseModelTrainer:
             )
 
         logger.info("Created %d training examples from labeled data", len(examples))
-        random.shuffle(examples)
         return examples
 
+    @handle_exceptions(log_exceptions=True, include_exc_info=True)
     def create_query_variations(
         self, base_queries: List[str], n_variations: int = 7
     ) -> List[str]:
@@ -332,6 +336,7 @@ class BaseModelTrainer:
 
         return variations
 
+    @handle_exceptions(log_exceptions=True, include_exc_info=True)
     def train(
         self,
         labeled_file: Optional[str] = None,
@@ -455,7 +460,9 @@ class BaseModelTrainer:
             total_steps = steps_per_epoch * self.epochs
             self.warmup_steps = max(100, int(total_steps * 0.1))
             logger.info(
-                f"Using {self.warmup_steps} warm-up steps (approx. {int(100 * self.warmup_steps / total_steps)}% of total steps)"
+                "Using %d warm-up steps (approx. %d%% of total steps)",
+                self.warmup_steps,
+                int(100 * self.warmup_steps / total_steps),
             )
 
         # Set evaluation steps if not specified
@@ -464,7 +471,7 @@ class BaseModelTrainer:
             steps_per_epoch = max(1, len(truncated_train_data) // self.batch_size)
             self.eval_steps = max(100, steps_per_epoch // 5)
             logger.info(
-                f"Using {self.eval_steps} evaluation steps (approx. 5 times per epoch)"
+                "Using %d evaluation steps (approx. 5 times per epoch)", self.eval_steps
             )
 
         # Set up loss function
@@ -514,25 +521,30 @@ class BaseModelTrainer:
             disable_tqdm=False,
         )
 
-        logger.info(f"Starting training with {self.epochs} epochs")
-
-        # Create trainer and train model
+        # Initialize trainer
         trainer = CrossEncoderTrainer(
             model=model,
+            args=training_args,
             train_dataset=train_hf_dataset,
             eval_dataset=eval_hf_dataset,
             loss=loss,
-            args=training_args,
         )
 
         # Train the model
+        logger.info(
+            "Training with: epochs=%d, batch_size=%d, warmup_steps=%d, eval_steps=%d",
+            self.epochs,
+            self.batch_size,
+            self.warmup_steps,
+            self.eval_steps,
+        )
         trainer.train()
 
         # Save the model
-        os.makedirs(self.output_path, exist_ok=True)
-        model.save_pretrained(self.output_path)
+        logger.info("Saving fine-tuned model to %s", self.output_path)
+        model.save(self.output_path)
+        logger.info("Training completed successfully!")
 
-        logger.info(f"Model training complete, saved to {self.output_path}")
         return self.output_path
 
     def _calculate_similarity_score(self, row1, row2):

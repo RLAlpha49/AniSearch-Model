@@ -173,6 +173,11 @@ def parse_args() -> argparse.Namespace:
         help="List available base models for fine-tuning",
     )
     train_parser.add_argument(
+        "--list-fine-tuned",
+        action="store_true",
+        help="List available fine-tuned along with pre-trained models and exit",
+    )
+    train_parser.add_argument(
         "--loss",
         type=str,
         choices=[

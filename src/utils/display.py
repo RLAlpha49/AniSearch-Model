@@ -4,8 +4,10 @@ Utility functions for displaying search results and model information.
 
 from typing import Dict, Optional
 from src.utils.constants import ALTERNATIVE_MODELS
+from src.utils.error_handling import handle_exceptions
 
 
+@handle_exceptions(include_exc_info=True)
 def format_score(score: float, normalize: bool, model_name: str = "") -> str:
     """
     Format a score for display based on whether it's normalized.
@@ -31,6 +33,7 @@ def format_score(score: float, normalize: bool, model_name: str = "") -> str:
     return f"Score: {score:.2f}"
 
 
+@handle_exceptions(cli_mode=True, reraise=False)
 def display_available_models(
     fine_tuned_models: Optional[Dict[str, str]] = None,
 ) -> None:
@@ -60,12 +63,14 @@ def display_available_models(
 
     print("\nUsage example:")
     print(
-        '  python src/main.py search --type anime --query "Your query" --model "cross-encoder/ms-marco-MiniLM-L-6-v2"'
+        '  python src/main.py search --type anime --query "Your query" '
+        '--model "cross-encoder/ms-marco-MiniLM-L-6-v2"'
     )
     if fine_tuned_models:
         print("\nTo use a fine-tuned model:")
         print(
-            '  python src/main.py search --type anime --query "Your query" --model "model/fine-tuned/your-model-name"'
+            '  python src/main.py search --type anime --query "Your query" '
+            '--model "model/fine-tuned/your-model-name"'
         )
     print("\nModel selection guide:")
     print("- TinyBERT models: Smallest and fastest, good for low-resource environments")
