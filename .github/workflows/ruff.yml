@@ -5,11 +5,11 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-            - uses: chartboost/ruff-action@v1
-    ruffFormat:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
-            - uses: chartboost/ruff-action@v1
+            - name: Run Ruff Check
+              uses: astral-sh/ruff-action@v3
+              with:
+                  args: "check"
+            - name: Run Ruff Format
+              uses: astral-sh/ruff-action@v3
               with:
                   args: "format --check"
