@@ -8,7 +8,6 @@ matching user-provided descriptions with manga entries in the merged dataset.
 import logging
 from typing import List, Dict, Optional, Any
 
-import numpy as np
 
 from src.models.base_search_model import BaseSearchModel
 from src.utils.constants import (
