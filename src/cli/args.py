@@ -1,5 +1,38 @@
 """
-Command-line argument parsing for the anime search model.
+# Command-Line Argument Parser
+
+A robust argument parsing system for the anime/manga search and training commands.
+
+This module provides command-line argument parsing functionality for the application,
+supporting both search and training operations for anime and manga datasets. It defines
+the available arguments, their defaults, help text, and handles validation of argument
+combinations.
+
+## Features
+
+- Subcommand structure with 'search' and 'train' commands
+- Comprehensive argument validation to prevent invalid combinations
+- Support for interactive and batch search modes
+- Extensive configuration options for model training
+- Listing capabilities for pre-trained and fine-tuned models
+
+## Command Structure
+
+The CLI supports two main commands:
+
+1. **search**: Search for anime/manga using natural language descriptions
+   ```bash
+   python -m src.main search --type anime --query "A story about robots in a post-apocalyptic world"
+   ```
+
+2. **train**: Train custom cross-encoder models on anime/manga datasets
+   ```bash
+   python -m src.main train --type anime --epochs 5 --batch-size 32
+   ```
+
+## Default Behavior
+
+For backward compatibility, if no command is specified, the system defaults to 'search' mode.
 """
 
 import argparse
@@ -10,18 +43,39 @@ from src.utils.constants import MODEL_NAME, NUM_RESULTS, DEFAULT_BATCH_SIZE
 
 def validate_args(args: argparse.Namespace) -> argparse.Namespace:
     """
-    Validate command line arguments.
+    Validate command line arguments for consistency and correctness.
 
-    Ensures that certain arguments are only used with appropriate dataset types.
+    This function ensures that argument combinations are valid and compatible.
+    It performs checks such as:
+
+    1. Ensuring the 'type' argument is provided when required
+    2. Validating that certain arguments are only used with appropriate dataset types
+       (e.g., --include-light-novels only with manga datasets)
 
     Args:
-        args: Parsed command line arguments
+        args: The parsed command line arguments to validate.
+            This is typically the output from argparse.ArgumentParser.parse_args().
 
     Returns:
-        The validated arguments
+        argparse.Namespace: The validated arguments, unchanged if validation passes.
 
     Raises:
-        ValueError: If arguments are used incorrectly
+        SystemExit: If validation fails, the program exits with an error message.
+            The error message is printed to stderr before exiting.
+
+    Notes:
+        - This function is called automatically by parse_args()
+        - Some validation rules are specific to certain commands or dataset types
+        - The function provides user-friendly error messages to help diagnose issues
+
+    Example:
+        ```python
+        parser = argparse.ArgumentParser()
+        # Add arguments...
+        args = parser.parse_args()
+        validated_args = validate_args(args)
+        # Use validated_args safely...
+        ```
     """
     # Check if type is required but missing
     if not (hasattr(args, "list_models") and args.list_models) and not (
@@ -53,10 +107,71 @@ def validate_args(args: argparse.Namespace) -> argparse.Namespace:
 
 def parse_args() -> argparse.Namespace:
     """
-    Parse command line arguments.
+    Parse command line arguments for the anime/manga search and training system.
+
+    This function sets up the argument parser with two main subcommands:
+
+    1. 'search': For finding anime/manga using natural language descriptions
+    2. 'train': For training custom cross-encoder models on the datasets
+
+    Each subcommand has its own set of options and arguments. The function handles
+    backward compatibility by defaulting to 'search' if no command is provided.
 
     Returns:
-        Parsed arguments
+        argparse.Namespace: The parsed and validated command line arguments.
+            Contains all the options and arguments specified by the user,
+            or their default values if not explicitly provided.
+
+    Notes:
+        - For backward compatibility, if no command is provided, 'search' is assumed
+        - The 'search' command supports interactive and batch modes
+        - The 'train' command has extensive options for model training
+        - All arguments are validated by calling validate_args() internally
+
+    Argument Structure:
+
+    ### Common Arguments:
+        --type: Dataset type ('anime' or 'manga')
+        --model: Model name or path
+        --batch-size: Batch size for processing
+        --list-models: List available pre-trained models
+        --list-fine-tuned: List available fine-tuned models
+
+    ### Search Command Arguments:
+        --query: Description to search for
+        --results: Number of results to return
+        --interactive (-i): Enter interactive mode
+        --include-light-novels: Include light novels in manga results
+
+    ### Train Command Arguments:
+        --epochs: Number of training epochs
+        --eval-steps: Steps between evaluations
+        --learning-rate: Learning rate for training
+        --max-samples: Maximum number of training samples
+        --labeled-data: Path to labeled data CSV
+        --create-labeled-data: Create synthetic labeled data
+        --seed: Random seed for reproducibility
+        --loss: Loss function for training
+        --scheduler: Learning rate scheduler
+
+    Example:
+        ```python
+        # Parse arguments and use them
+        args = parse_args()
+
+        if args.command == 'search':
+            # Handle search command
+            if args.interactive:
+                # Run interactive mode
+                pass
+            else:
+                # Run single query search
+                pass
+
+        elif args.command == 'train':
+            # Handle train command
+            pass
+        ```
     """
     parser = argparse.ArgumentParser(
         description="Anime/Manga Description Search Model using Cross-Encoders"
