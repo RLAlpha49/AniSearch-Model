@@ -23,10 +23,23 @@ def validate_args(args: argparse.Namespace) -> argparse.Namespace:
     Raises:
         ValueError: If arguments are used incorrectly
     """
+    # Check if type is required but missing
+    if not (hasattr(args, "list_models") and args.list_models) and not (
+        hasattr(args, "list_fine_tuned") and args.list_fine_tuned
+    ):
+        if not hasattr(args, "type") or not args.type:
+            print(
+                "Error: --type is required when not listing models",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
     # Validate that --include-light-novels is only used with manga dataset type
     if (
         hasattr(args, "include_light_novels")
         and args.include_light_novels
+        and hasattr(args, "type")
+        and args.type
         and args.type.lower() != "manga"
     ):
         print(
@@ -60,7 +73,7 @@ def parse_args() -> argparse.Namespace:
         "--type",
         type=str,
         choices=["anime", "manga"],
-        required=True,
+        required=False,
         help="Type of dataset to search ('anime' or 'manga')",
     )
     search_parser.add_argument(
@@ -114,7 +127,7 @@ def parse_args() -> argparse.Namespace:
         "--type",
         type=str,
         choices=["anime", "manga"],
-        required=True,
+        required=False,
         help="Type of dataset to train on ('anime' or 'manga')",
     )
     train_parser.add_argument(

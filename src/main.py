@@ -36,6 +36,26 @@ from src.utils.logging_config import setup_logging
 logger = logging.getLogger(__name__)
 
 
+def handle_model_listing(args):
+    """
+    Handle listing models without loading any ML frameworks.
+
+    This is a lightweight function that doesn't import TensorFlow or PyTorch.
+
+    Args:
+        args: Command-line arguments
+    """
+    from src.utils.display import display_available_models, list_fine_tuned_models
+
+    if args.list_fine_tuned:
+        display_available_models(fine_tuned_models=list_fine_tuned_models())
+    else:
+        display_available_models()
+
+    # Exit after displaying models to prevent any further imports
+    sys.exit(0)
+
+
 def get_search_model(
     dataset_type: str, model_name: str, include_light_novels: bool = False
 ):
@@ -64,24 +84,6 @@ def get_search_model(
     )
 
 
-def display_models(args):
-    """
-    Display available models based on arguments.
-
-    Args:
-        args: Parsed command-line arguments
-    """
-    from src.utils.display import display_available_models
-    from src.models.base_search_model import BaseSearchModel
-
-    if args.list_fine_tuned:
-        display_available_models(
-            fine_tuned_models=BaseSearchModel.list_fine_tuned_models()
-        )
-    else:
-        display_available_models()
-
-
 def handle_search_command(args) -> None:
     """
     Handle the search command functionality.
@@ -92,11 +94,6 @@ def handle_search_command(args) -> None:
     from src.cli.interactive import interactive_mode
     from src.utils.display import format_score
     from src.utils.error_handling import handle_exceptions
-
-    # Display available models if requested
-    if args.list_models or args.list_fine_tuned:
-        display_models(args)
-        return
 
     @handle_exceptions(log_exceptions=True, include_exc_info=True, reraise=True)
     def execute_search():
@@ -130,10 +127,7 @@ def handle_search_command(args) -> None:
                 print(f"   ID: {result['id']}")
                 print(f"   Synopsis excerpt: {synopsis_excerpt}")
         else:
-            print(
-                "Error: Either --query, --interactive, --list-models, "
-                "or --list-fine-tuned must be specified"
-            )
+            print("Error: Either --query or --interactive must be specified")
 
     execute_search()
 
@@ -149,11 +143,6 @@ def handle_train_command(args) -> None:
     from src.training.manga_trainer import MangaModelTrainer
     from src.training.base_trainer import BaseModelTrainer
     from src.utils.error_handling import handle_exceptions
-
-    # Display available models if requested
-    if args.list_models or args.list_fine_tuned:
-        display_models(args)
-        return
 
     @handle_exceptions(log_exceptions=True, include_exc_info=True, reraise=True)
     def execute_training():
@@ -220,6 +209,16 @@ def main() -> None:
 
     # Parse command-line arguments
     args = parse_args()
+
+    # Check for model listing arguments first, before any heavy imports
+    if (
+        hasattr(args, "list_models")
+        and args.list_models
+        or hasattr(args, "list_fine_tuned")
+        and args.list_fine_tuned
+    ):
+        handle_model_listing(args)
+        return  # This won't be reached as handle_model_listing calls sys.exit
 
     # Handle based on command
     if args.command == "search":
