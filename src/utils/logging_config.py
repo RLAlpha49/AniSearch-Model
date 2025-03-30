@@ -46,9 +46,6 @@ def setup_logging() -> None:
     The function is decorated with handle_exceptions to ensure that any issues
     during logging configuration are properly captured and reported.
 
-    Args:
-        None
-
     Returns:
         None: This function configures the global logging system but doesn't
             return any value.

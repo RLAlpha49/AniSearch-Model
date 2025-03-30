@@ -66,9 +66,20 @@ class MangaModelTrainer(BaseModelTrainer):
     content (e.g., "Looking for manga about...", "Manga similar to...").
 
     Attributes:
+        dataset_type (str): Fixed to "manga" to specify this trainer works with manga datasets.
         include_light_novels (bool): Flag indicating whether light novels should be
             included in the training dataset. When False, light novels are filtered out.
-        Inherits all attributes from BaseModelTrainer, with dataset_type fixed to "manga"
+        model_name (str): Name of the base cross-encoder model used for fine-tuning.
+        epochs (int): Number of training epochs.
+        batch_size (int): Number of examples processed in each training step.
+        eval_steps (int): Number of steps between model evaluations.
+        warmup_steps (int): Number of warmup steps for the learning rate scheduler.
+        max_samples (int): Maximum number of training samples to use.
+        learning_rate (float): Learning rate for the optimizer.
+        eval_split (float): Fraction of data used for evaluation.
+        seed (int): Random seed for reproducibility.
+        device (str): Device used for training (cpu or cuda).
+        df (pandas.DataFrame): The loaded manga dataset after preparation.
 
     Example:
         ```python

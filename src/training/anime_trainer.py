@@ -62,7 +62,18 @@ class AnimeModelTrainer(BaseModelTrainer):
     content (e.g., "Looking for anime about...", "Anime similar to...").
 
     Attributes:
-        Inherits all attributes from BaseModelTrainer, with dataset_type fixed to "anime"
+        dataset_type (str): Fixed to "anime" to specify this trainer works with anime datasets.
+        model_name (str): Name of the base cross-encoder model used for fine-tuning.
+        epochs (int): Number of training epochs.
+        batch_size (int): Number of examples processed in each training step.
+        eval_steps (int): Number of steps between model evaluations.
+        warmup_steps (int): Number of warmup steps for the learning rate scheduler.
+        max_samples (int): Maximum number of training samples to use.
+        learning_rate (float): Learning rate for the optimizer.
+        eval_split (float): Fraction of data used for evaluation.
+        seed (int): Random seed for reproducibility.
+        device (str): Device used for training (cpu or cuda).
+        df (pandas.DataFrame): The loaded anime dataset after preparation.
 
     Example:
         ```python
