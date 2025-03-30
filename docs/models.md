@@ -22,6 +22,42 @@ Cross-Encoder Input:
 Output: Relevance Score (e.g., 0.92)
 ```
 
+## Class Hierarchy
+
+The model implementation follows a hierarchical class structure:
+
+```mermaid
+classDiagram
+    BaseModelTrainer <|-- AnimeModelTrainer
+    BaseModelTrainer <|-- MangaModelTrainer
+    
+    class BaseModelTrainer {
+        +str dataset_type
+        +str model_name
+        +int epochs
+        +int batch_size
+        +DataFrame df
+        +__init__()
+        +train()
+        +create_synthetic_training_data()
+        +create_query_variations()
+        +_calculate_similarity_score()
+        +_prepare_dataset()
+    }
+    
+    class AnimeModelTrainer {
+        +__init__()
+        +create_query_variations()
+    }
+    
+    class MangaModelTrainer {
+        +bool include_light_novels
+        +__init__()
+        +_filter_light_novels()
+        +create_query_variations()
+    }
+```
+
 ## Pre-trained Models
 
 AniSearch Model supports various cross-encoder models from the Sentence Transformers library:
@@ -65,6 +101,22 @@ When choosing a model, consider:
 
 ### Search Process Flow
 
+The following diagram illustrates how the search process works from query input to ranked results:
+
+```mermaid
+flowchart LR
+    A[User Query] --> B[Preprocess Query]
+    B --> C[Load Search Model]
+    C --> D[Generate Query Variations]
+    D --> E[Batch Process Against Dataset]
+    E --> F[Compute Relevance Scores]
+    F --> G[Sort by Score]
+    G --> H[Return Top-K Results]
+    
+    style A fill:#e1f5fe,stroke:#0288d1
+    style H fill:#e8f5e9,stroke:#4caf50
+```
+
 1. **User Query Processing**:
     - Tokenize the natural language query
     - Apply any necessary preprocessing
@@ -78,6 +130,27 @@ When choosing a model, consider:
     - Return top-k results
 
 ### Training Process Flow
+
+The training process involves several important steps:
+
+```mermaid
+flowchart TD
+    A[Initialize Trainer] --> B[Load Dataset]
+    B --> C[Prepare Dataset]
+    C --> D{Synthetic or Labeled Data?}
+    D -->|Synthetic| E[Create Synthetic Data]
+    D -->|Labeled| F[Load Labeled File]
+    E --> G[Generate Query Variations]
+    F --> G
+    G --> H[Split Training/Evaluation]
+    H --> I[Configure Training Parameters]
+    I --> J[Train Model]
+    J --> K[Save Fine-tuned Model]
+    
+    style A fill:#e1f5fe,stroke:#0288d1
+    style D fill:#fff9c4,stroke:#fbc02d
+    style K fill:#e8f5e9,stroke:#4caf50
+```
 
 1. **Data Preparation**:
     - Create positive and negative pairs
