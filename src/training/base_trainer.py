@@ -1,5 +1,36 @@
 """
-Base trainer class for fine-tuning cross-encoder models for anime/manga search.
+# Base Model Trainer
+
+Comprehensive framework for fine-tuning cross-encoder models for anime and manga search.
+
+This module provides a base trainer class that implements the core functionality needed
+for fine-tuning cross-encoder models on anime and manga datasets. It handles the entire
+training pipeline, from dataset preparation and example generation to model training
+and evaluation.
+
+## Features
+
+- Configurable training parameters (epochs, batch size, learning rate, etc.)
+- Synthetic training data generation with positive and negative examples
+- Support for custom labeled datasets
+- Smart truncation of text pairs to fit model token limits
+- Automatic device selection (CPU/GPU)
+- Multiple loss function options
+- Query variation generation for improved robustness
+- Proper train/evaluation splitting
+- Reproducible results through consistent random seed handling
+
+## Usage Context
+
+The base trainer is used for:
+
+1. Fine-tuning pre-trained cross-encoder models on anime/manga data
+2. Creating specialized models that better understand anime/manga terminology
+3. Generating labeled training data for inspection or custom training
+4. Developing models that provide more relevant search results for specific content types
+
+The trainer uses SentenceTransformers' CrossEncoder implementation and integrates
+with HuggingFace's training utilities for efficient fine-tuning.
 """
 
 import os
@@ -54,7 +85,65 @@ logger = logging.getLogger(__name__)
 
 
 class BaseModelTrainer:
-    """Base class for training cross-encoder models on anime/manga datasets."""
+    """
+    Base trainer class for fine-tuning cross-encoder models on anime/manga datasets.
+
+    This class provides the core functionality for training cross-encoder models
+    on anime and manga datasets. It handles dataset preparation, synthetic training
+    data generation, model configuration, and training execution. The trainer supports
+    various training parameters and loss functions, allowing for flexible model tuning.
+
+    The trainer creates training examples by pairing titles (queries) with synopses
+    (documents), generating both positive pairs (matching title-synopsis) and negative
+    pairs (title with unrelated synopsis). It can also generate variations of queries
+    to improve model robustness.
+
+    Attributes:
+        dataset_type (str): Type of dataset ('anime' or 'manga')
+        model_name (str): Name or path of the base model to fine-tune
+        epochs (int): Number of training epochs
+        batch_size (int): Training batch size
+        eval_steps (int): Number of steps between evaluations
+        warmup_steps (int): Number of warmup steps for learning rate scheduler
+        max_samples (int): Maximum number of training samples to use
+        learning_rate (float): Learning rate for the optimizer
+        eval_split (float): Fraction of data to use for evaluation
+        seed (int): Random seed for reproducibility
+        device (str): Device to use for training ('cpu', 'cuda', etc.)
+        dataset_path (str): Path to the dataset file
+        df (pd.DataFrame): The loaded dataset
+        output_path (str): Path where the fine-tuned model will be saved
+        synopsis_cols (List[str]): Columns containing synopsis information
+        id_col (str): Column containing the ID for anime/manga entries
+
+    Example:
+        ```python
+        # Initialize a trainer for anime dataset
+        trainer = BaseModelTrainer(
+            dataset_type="anime",
+            model_name="cross-encoder/ms-marco-MiniLM-L-6-v2",
+            epochs=3,
+            batch_size=16
+        )
+
+        # Train the model
+        output_path = trainer.train(loss_type="mse")
+
+        # Create labeled data for inspection
+        trainer.create_and_save_labeled_data(
+            output_file="labeled_anime_data.csv",
+            n_samples=5000
+        )
+        ```
+
+    Notes:
+        - The trainer requires merged datasets to be available. If not found, it will
+          suggest running the merge_datasets.py script first.
+        - For best results, ensure the dataset contains adequate synopsis information
+          and relevant metadata like genres and themes.
+        - The trainer automatically handles text truncation to fit within model token
+          limits, prioritizing the query (title) over the document (synopsis).
+    """
 
     def __init__(
         self,
@@ -72,21 +161,64 @@ class BaseModelTrainer:
         dataset_path: Optional[str] = None,
     ):
         """
-        Initialize the trainer with specified parameters.
+        Initialize the trainer with configuration parameters for model fine-tuning.
+
+        This constructor sets up the training environment, loads the appropriate dataset,
+        and prepares internal state for the training process. It validates inputs,
+        sets up random seeds for reproducibility, configures the device, and establishes
+        the model output path.
 
         Args:
-            dataset_type: Type of dataset to use ('anime' or 'manga')
-            model_name: Name of the base cross-encoder model to fine-tune
-            epochs: Number of training epochs
-            batch_size: Training batch size
-            eval_steps: Steps between evaluations
-            warmup_steps: Warmup steps for learning rate scheduler
-            max_samples: Maximum number of training samples to use
-            learning_rate: Learning rate for optimizer
-            eval_split: Fraction of data to use for evaluation
-            seed: Random seed for reproducibility
-            device: Device to use for training ('cpu', 'cuda', or None for auto-detect)
-            dataset_path: Path to the dataset file (if None, will use default based on dataset_type)
+            dataset_type: The type of dataset to use for training. Must be either 'anime'
+                or 'manga'. This determines which dataset is loaded and how certain
+                processing steps are performed. Default is 'anime'.
+
+            model_name: The name or path of the base cross-encoder model to fine-tune.
+                Can be a HuggingFace model identifier or a local path. Default is the
+                value from MODEL_NAME constant.
+
+            epochs: Number of complete passes through the training dataset. Higher values
+                may improve performance but risk overfitting. Default is DEFAULT_EPOCHS (3).
+
+            batch_size: Number of examples processed in each training step. Larger batches
+                provide more stable gradients but require more memory. Default is
+                DEFAULT_BATCH_SIZE (16).
+
+            eval_steps: Number of training steps between model evaluations. If not specified,
+                a reasonable value will be calculated based on dataset size. Default is
+                DEFAULT_EVAL_STEPS (500).
+
+            warmup_steps: Number of steps for learning rate warm-up. During warm-up, the
+                learning rate gradually increases from 0 to the specified rate. Default
+                is DEFAULT_WARMUP_STEPS (500).
+
+            max_samples: Maximum number of training samples to use from the dataset. Useful
+                for limiting training time or for testing. Set to None to use all available
+                data. Default is DEFAULT_MAX_SAMPLES (10000).
+
+            learning_rate: Learning rate for the optimizer. Controls how quickly model
+                weights are updated during training. Default is DEFAULT_LEARNING_RATE (2e-6).
+
+            eval_split: Fraction of data to use for evaluation instead of training. Must
+                be between 0 and 1. Default is 0.1 (10% for evaluation).
+
+            seed: Random seed for reproducibility. Ensures the same training/evaluation
+                split and data sampling across runs. Default is 42.
+
+            device: Device to use for training ('cpu', 'cuda', 'cuda:0', etc.). If None,
+                automatically selects GPU if available, otherwise CPU. Default is None.
+
+            dataset_path: Path to the dataset file. If None, uses the default path based
+                on dataset_type. Default is None.
+
+        Raises:
+            ValueError: If dataset_type is not 'anime' or 'manga'
+            FileNotFoundError: If the dataset file doesn't exist
+
+        Notes:
+            - The method automatically creates the output directory if it doesn't exist
+            - The output path is constructed from the model name and dataset type
+            - After initialization, the dataset is prepared by calling _prepare_dataset()
         """
         self.dataset_type = dataset_type.lower()
         if self.dataset_type not in ["anime", "manga"]:
@@ -149,7 +281,33 @@ class BaseModelTrainer:
 
     @handle_exceptions(log_exceptions=True, include_exc_info=True)
     def _prepare_dataset(self) -> None:
-        """Prepare the dataset for training by extracting and combining synopses."""
+        """
+        Prepare the dataset for training by extracting and combining synopsis data.
+
+        This method performs the following preparation steps:
+
+        1. Identifies all columns containing synopsis information
+        2. Combines multiple synopsis columns into a single 'combined_synopsis' column
+        3. Filters out entries with empty synopses
+        4. Validates that all required columns exist in the dataset
+
+        The method modifies the DataFrame in-place, adding a 'combined_synopsis' column
+        and potentially reducing the number of rows if empty synopses are found.
+
+        Returns:
+            None: The method modifies the self.df attribute in-place rather than
+                returning a value.
+
+        Raises:
+            ValueError: If required columns are missing from the dataset
+
+        Notes:
+            - The method uses a case-insensitive search to find all synopsis columns
+            - Synopsis columns are combined with spaces between each synopsis
+            - Empty or whitespace-only synopses are removed to avoid training on
+              unhelpful examples
+            - The method is decorated with handle_exceptions for error handling
+        """
         # Extract synopsis columns
         self.synopsis_cols = [
             col for col in self.df.columns if "synopsis" in col.lower()
@@ -185,14 +343,50 @@ class BaseModelTrainer:
     @handle_exceptions(log_exceptions=True, include_exc_info=True)
     def create_synthetic_training_data(self) -> List[InputExample]:
         """
-        Create synthetic training data for cross-encoder training.
+        Create synthetic training data pairs for cross-encoder model fine-tuning.
 
-        This function creates positive and negative training pairs:
-        - Positive pairs: Original synopsis with title as query
-        - Negative pairs: Random synopses with unrelated titles
+        This method generates a balanced dataset of positive and negative examples:
+
+        - **Positive examples**: Pairs of titles with their matching synopses (label 1.0)
+        - **Negative examples**: Pairs of titles with randomly selected unrelated
+          synopses (label 0.0)
+
+        For each positive example, the method creates 3 negative examples, resulting
+        in a 1:3 ratio of positive to negative examples. This ratio helps the model
+        learn to distinguish relevant from irrelevant content.
+
+        The method samples up to max_samples entries from the dataset and applies
+        randomization with the configured seed for reproducibility. Examples with
+        empty titles or synopses are skipped.
 
         Returns:
-            List of InputExample objects for training
+            List[InputExample]: A list of InputExample objects ready for training,
+                where each example contains:
+                - texts[0]: A title (query)
+                - texts[1]: A synopsis (document)
+                - label: 1.0 for positive pairs, 0.0 for negative pairs
+
+        Example:
+            ```python
+            # Create synthetic training data
+            trainer = BaseModelTrainer(dataset_type="anime")
+            examples = trainer.create_synthetic_training_data()
+
+            # Examine the first few examples
+            for i, example in enumerate(examples[:5]):
+                print(f"Example {i}:")
+                print(f"  Query: {example.texts[0][:50]}...")
+                print(f"  Document: {example.texts[1][:50]}...")
+                print(f"  Label: {example.label}")
+            ```
+
+        Notes:
+            - The method is decorated with handle_exceptions for error handling
+            - Results are shuffled before returning to randomize the training order
+            - If max_samples is smaller than the dataset size, a random subset is used
+            - The 1:3 positive-to-negative ratio is a common practice in information
+              retrieval tasks to handle the natural imbalance of relevant vs. irrelevant
+              documents
         """
         logger.info("Creating synthetic training data")
 
@@ -254,13 +448,58 @@ class BaseModelTrainer:
         self, labeled_file: str
     ) -> List[InputExample]:
         """
-        Create training data from a labeled CSV file.
+        Create training data from a pre-labeled CSV file instead of synthetic generation.
+
+        This method allows for using custom or human-labeled data for training. The
+        labeled file should be a CSV containing at least three columns:
+
+        - **query**: The search query or title
+        - **text**: The document or synopsis text
+        - **score**: A numerical score/label (typically 0-1) indicating relevance
+
+        Using labeled data gives more control over the training examples and can
+        incorporate domain expertise about what constitutes good matches. It's especially
+        useful for fine-grained relevance levels beyond just binary classification.
 
         Args:
-            labeled_file: Path to the labeled CSV file
+            labeled_file: Path to the CSV file containing labeled examples. The file
+                must include 'query', 'text', and 'score' columns.
 
         Returns:
-            List of InputExample objects for training
+            List[InputExample]: A list of InputExample objects created from the labeled
+                file, where each example contains:
+                - texts[0]: The query from the 'query' column
+                - texts[1]: The document from the 'text' column
+                - label: The float score from the 'score' column
+
+        Raises:
+            FileNotFoundError: If the labeled_file doesn't exist
+            ValueError: If the required columns are missing from the file
+
+        Example:
+            ```python
+            # Create training data from labeled file
+            trainer = BaseModelTrainer(dataset_type="anime")
+            examples = trainer.create_training_data_from_labeled_file(
+                "path/to/labeled_data.csv"
+            )
+
+            # Print distribution of scores
+            score_counts = {}
+            for example in examples:
+                score = example.label
+                score_counts[score] = score_counts.get(score, 0) + 1
+
+            for score, count in sorted(score_counts.items()):
+                print(f"Score {score}: {count} examples")
+            ```
+
+        Notes:
+            - The method is decorated with handle_exceptions for error handling
+            - No shuffling is performed as the labeled file may already have a
+              specific order
+            - Empty values in the CSV are converted to empty strings
+            - The scores are converted to float values
         """
         logger.info("Loading labeled data from %s", labeled_file)
         if not os.path.exists(labeled_file):
@@ -298,14 +537,53 @@ class BaseModelTrainer:
         self, base_queries: List[str], n_variations: int = 7
     ) -> List[str]:
         """
-        Create variations of base queries to increase training data diversity.
+        Create natural language variations of base queries to enhance training robustness.
+
+        This method generates conversational and alternative phrasings of the base queries
+        to help the model recognize the same intent expressed in different ways. For each
+        base query, it creates variations using templates like "I'm looking for {query}"
+        or "Find me {query}".
+
+        Query variations are important for training more robust models that can handle
+        real-world search inputs, which often contain conversational phrases and different
+        formulations of the same information need.
 
         Args:
-            base_queries: List of original query strings
-            n_variations: Number of variations to create per query
+            base_queries: List of original query strings (typically anime/manga titles)
+                that will be used as the basis for generating variations.
+
+            n_variations: Number of variations to create for each base query. The actual
+                number may be less if there aren't enough templates. Default is 7.
 
         Returns:
-            List of query variations
+            List[str]: A combined list containing both the original queries and their
+                variations. The length will be approximately len(base_queries) * (1 + n_variations),
+                but may be less if n_variations exceeds the number of available templates.
+
+        Example:
+            ```python
+            # Create variations of anime titles
+            titles = ["Naruto", "One Piece", "Attack on Titan"]
+            trainer = BaseModelTrainer(dataset_type="anime")
+            variations = trainer.create_query_variations(titles, n_variations=3)
+
+            # Print all variations
+            for var in variations:
+                print(var)
+            # Example output:
+            # Naruto
+            # I'm looking for Naruto
+            # Can you recommend Naruto?
+            # Find me Naruto
+            # One Piece
+            # ...etc.
+            ```
+
+        Notes:
+            - The method always includes the original queries in the returned list
+            - Templates are selected randomly for each query
+            - The method is designed for English language variations
+            - The method is decorated with handle_exceptions for error handling
         """
         templates = [
             "I'm looking for {query}",
@@ -346,13 +624,73 @@ class BaseModelTrainer:
         """
         Train the cross-encoder model with the prepared dataset.
 
+        This method executes the full training pipeline:
+
+        1. Prepares training data (synthetic or from labeled file)
+        2. Splits data into training and evaluation sets
+        3. Truncates text pairs to fit model token limits
+        4. Configures the model, loss function, and training arguments
+        5. Executes the training process
+        6. Saves the fine-tuned model
+
+        The method supports various loss functions and learning rate schedulers to
+        optimize different aspects of model performance. It automatically handles
+        device placement, batching, and evaluation during training.
+
         Args:
-            labeled_file: Optional path to labeled data CSV file
-            loss_type: Type of loss function to use ('mse' or other supported types)
-            scheduler: Learning rate scheduler type ('linear', 'cosine', etc.)
+            labeled_file: Optional path to a pre-labeled CSV file containing training
+                examples. If provided, uses this file instead of generating synthetic
+                data. Default is None (generate synthetic data).
+
+            loss_type: Type of loss function to use for training. Supported options:
+                - 'mse' (default): Mean Squared Error loss
+                - 'binary_cross_entropy': Binary Cross Entropy loss
+                - 'cross_entropy': Cross Entropy loss
+                - 'lambda': LambdaLoss for LambdaRank-style learning to rank
+                - 'list_mle', 'p_list_mle': ListMLE/PListMLE losses for listwise learning
+                - 'list_net': ListNet loss for listwise learning
+                - 'multiple_negatives_ranking': Multiple Negatives Ranking loss
+                - 'cached_multiple_negatives_ranking': Cached version of MNR loss
+                - 'margin_mse': Margin MSE loss
+                - 'rank_net': RankNet loss for pairwise learning
+
+            scheduler: Learning rate scheduler type. Options include:
+                - 'linear' (default): Linear decay from initial value to 0
+                - 'cosine': Cosine decay schedule
+                - 'cosine_with_restarts': Cosine decay with periodic restarts
+                - 'polynomial': Polynomial decay
+                - 'constant': Constant learning rate
+                - 'constant_with_warmup': Constant learning rate after warmup
 
         Returns:
-            Path to the saved fine-tuned model
+            str: Path to the saved fine-tuned model, which can be loaded later for
+                inference or additional training.
+
+        Example:
+            ```python
+            # Train a model with default settings
+            trainer = BaseModelTrainer(
+                dataset_type="anime",
+                model_name="cross-encoder/ms-marco-MiniLM-L-6-v2",
+                epochs=3
+            )
+            model_path = trainer.train()
+            print(f"Model saved to: {model_path}")
+
+            # Train with custom loss and scheduler
+            trainer2 = BaseModelTrainer(dataset_type="manga")
+            model_path = trainer2.train(
+                loss_type="binary_cross_entropy",
+                scheduler="cosine"
+            )
+            ```
+
+        Notes:
+            - The method automatically calculates reasonable evaluation and warmup steps
+              if they weren't explicitly specified during initialization
+            - Training progress is logged using tqdm progress bars and the logger
+            - The model with the best evaluation performance is automatically saved
+            - The method is decorated with handle_exceptions for error handling
         """
         logger.info("Starting training with %s", self.model_name)
 
@@ -549,14 +887,34 @@ class BaseModelTrainer:
 
     def _calculate_similarity_score(self, row1, row2):
         """
-        Calculate similarity score between two entries based on genres and themes.
+        Calculate a similarity score between two dataset entries based on genres and themes.
+
+        This internal method computes a content-based similarity score by comparing the
+        genres and themes between two anime/manga entries. It uses the Jaccard similarity
+        coefficient (intersection over union) for both genres and themes, then combines
+        them with appropriate weighting.
+
+        The method prioritizes theme matching over genre matching since themes tend to be
+        more specific indicators of content similarity. The final score is capped at 0.8
+        to reserve perfect scores (1.0) for exact matches.
 
         Args:
-            row1: First DataFrame row
-            row2: Second DataFrame row
+            row1: First DataFrame row containing genre and theme information
+            row2: Second DataFrame row to compare against
 
         Returns:
-            Float score between 0.0 and 0.8
+            float: A similarity score between 0.0 and 0.8, where:
+                - 0.0 indicates no similarity in genres or themes
+                - 0.1-0.3 indicates minimal genre/theme overlap
+                - 0.4-0.6 indicates moderate content similarity
+                - 0.7-0.8 indicates high content similarity
+
+        Notes:
+            - The method handles missing genre/theme data gracefully
+            - Themes are weighted more heavily (0.6) than genres (0.4) when both exist
+            - If only genres match, the maximum possible score is 0.7
+            - If only themes match, the maximum possible score is 0.8
+            - The method uses parse_list_column to handle various list formats
         """
         # Parse genres and themes from both rows
         genres1 = set(parse_list_column(row1.get("genres", [])))
@@ -606,14 +964,60 @@ class BaseModelTrainer:
         include_partial_matches: bool = True,
     ) -> None:
         """
-        Create and save synthetic labeled data to a CSV file.
+        Create and save synthetic labeled data to a CSV file for inspection or custom training.
 
-        This can be useful for inspecting the training data or further modification.
+        This method generates a rich dataset of labeled examples with various levels of
+        relevance between queries and documents. Unlike the synthetic training data used
+        directly for training (which uses binary labels), this method creates examples with
+        graded relevance scores between 0.0 and 1.0, capturing partial matches based on
+        content similarity.
+
+        The generated CSV file includes:
+
+        - **Perfect matches**: Title paired with its own synopsis (score 1.0)
+        - **Partial matches**: Title paired with synopses of similar content based on
+          genres and themes (scores 0.1-0.8)
+        - **Query variations**: Conversational variations of titles (e.g., "Looking for X")
+          paired with matching synopses (score 1.0)
 
         Args:
-            output_file: Path to save the labeled data CSV
-            n_samples: Number of labeled samples to create
-            include_partial_matches: Whether to include partial matches based on genres/themes
+            output_file: Path to save the labeled data CSV file. If the directory doesn't
+                exist, it will be created. If writing fails due to permissions, the file
+                will be saved to the current directory.
+
+            n_samples: Number of base entries to sample from the dataset for creating
+                labeled examples. The actual number of examples in the output will be
+                larger due to variations and partial matches. Default is 10000.
+
+            include_partial_matches: Whether to include examples with partial relevance
+                based on genre/theme similarity. When True, the dataset will include
+                examples with scores between 0.1 and 0.8. When False, only perfect
+                matches (1.0) and variations will be included. Default is True.
+
+        Returns:
+            None: The method saves the labeled data to a file but doesn't return a value.
+
+        Example:
+            ```python
+            # Create labeled data with default settings
+            trainer = BaseModelTrainer(dataset_type="anime")
+            trainer.create_and_save_labeled_data("data/labeled_anime.csv")
+
+            # Create a smaller dataset without partial matches
+            trainer.create_and_save_labeled_data(
+                "data/simple_labeled_anime.csv",
+                n_samples=5000,
+                include_partial_matches=False
+            )
+            ```
+
+        Notes:
+            - The output CSV includes an 'example_type' column indicating the type of each
+              example (positive, variation_positive, or similarity-based)
+            - Similarity-based scores are rounded to the nearest 0.1 for cleaner values
+            - Query variations are added to approximately 50% of the titles
+            - The method handles permission errors by falling back to the current directory
+            - The method logs a distribution of scores in the final dataset
         """
         logger.info("Creating %d labeled examples for inspection", n_samples)
 
