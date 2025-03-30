@@ -5,7 +5,13 @@ This script implements a cross-encoder model to match user-provided descriptions
 anime/manga entries in the merged dataset. It enables semantic search capabilities
 by computing relevance scores between queries and entries in the dataset.
 
+The application has two main modes:
+
+1. **Search Mode**: For finding anime/manga that match a description
+2. **Training Mode**: For fine-tuning cross-encoder models on anime/manga data
+
 Usage:
+    ```bash
     # Search mode:
     python src/main.py search --type anime --query "A story about pirates searching for treasure"
     python src/main.py search --type manga --query "A story about a boy who becomes a hero"
@@ -16,8 +22,12 @@ Usage:
     python src/main.py train --type anime --model "cross-encoder/ms-marco-MiniLM-L-6-v2" --epochs 3
     python src/main.py train --type manga --model "cross-encoder/ms-marco-MiniLM-L-6-v2" --epochs 3
     python src/main.py train --type anime --create-labeled-data "data/labeled_anime.csv"
+    ```
 
 The script will return the top matching anime/manga titles based on the query.
+
+Attributes:
+    logger: Logger instance for the main module
 """
 
 # pylint: disable=import-outside-toplevel
@@ -25,6 +35,7 @@ The script will return the top matching anime/manga titles based on the query.
 import logging
 import os
 import sys
+from typing import List, Dict, Any, Union, Optional
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -36,14 +47,31 @@ from src.utils.logging_config import setup_logging
 logger = logging.getLogger(__name__)
 
 
-def handle_model_listing(args):
+def handle_model_listing(args: Any) -> None:
     """
     Handle listing models without loading any ML frameworks.
 
     This is a lightweight function that doesn't import TensorFlow or PyTorch.
+    It displays available pre-trained models for search, and optionally
+    fine-tuned models if requested.
 
     Args:
-        args: Command-line arguments
+        args: Command-line arguments namespace containing at least the following:
+
+            - list_fine_tuned (bool): Whether to include fine-tuned models in the listing
+
+    Notes:
+        This function calls sys.exit(0) after displaying the models to prevent
+        loading heavy ML frameworks unnecessarily.
+
+    Example:
+        ```python
+        # List all pre-trained models
+        handle_model_listing(args_with_list_models=True)
+
+        # List both pre-trained and fine-tuned models
+        handle_model_listing(args_with_list_fine_tuned=True)
+        ```
     """
     from src.utils.display import display_available_models, list_fine_tuned_models
 
@@ -58,17 +86,36 @@ def handle_model_listing(args):
 
 def get_search_model(
     dataset_type: str, model_name: str, include_light_novels: bool = False
-):
+) -> Any:
     """
     Create and return the appropriate search model based on dataset type.
 
+    This factory function initializes either an AnimeSearchModel or
+    MangaSearchModel based on the specified dataset type. For manga
+    models, it optionally includes light novels in the dataset.
+
     Args:
-        dataset_type: The type of dataset to search ('anime' or 'manga')
-        model_name: The name of the model to use
-        include_light_novels: Whether to include light novels in manga search results
+        dataset_type: The type of dataset to search. Must be either 'anime' or 'manga'.
+        model_name: The name of the model to use, either a pre-trained model name
+            or path to a fine-tuned model.
+        include_light_novels: Whether to include light novels in manga search results.
+            Only applicable when dataset_type is 'manga'. Defaults to False.
 
     Returns:
-        An instance of the appropriate search model
+        An instance of either AnimeSearchModel or MangaSearchModel.
+
+    Raises:
+        ValueError: If dataset_type is not 'anime' or 'manga'.
+
+    Example:
+        ```python
+        # Create an anime search model
+        anime_model = get_search_model('anime', 'cross-encoder/ms-marco-MiniLM-L-6-v2')
+
+        # Create a manga search model with light novels included
+        manga_model = get_search_model('manga', 'cross-encoder/ms-marco-MiniLM-L-6-v2',
+                                      include_light_novels=True)
+        ```
     """
     from src.models.anime_search_model import AnimeSearchModel
     from src.models.manga_search_model import MangaSearchModel
@@ -84,19 +131,59 @@ def get_search_model(
     )
 
 
-def handle_search_command(args) -> None:
+def handle_search_command(args: Any) -> None:
     """
     Handle the search command functionality.
 
+    This function processes the search command, initializing the appropriate search model
+    and executing either interactive search or one-time query search based on arguments.
+
+    The function supports:
+
+    - Interactive mode for continuous querying
+    - One-time query with formatted results
+    - Customizable number of results and batch size
+
     Args:
-        args: Parsed command-line arguments for search
+        args: Parsed command-line arguments for search, containing at least:
+
+            - type (str): Dataset type ('anime' or 'manga')
+            - model (str): Model name or path
+            - include_light_novels (bool): Whether to include light novels (manga only)
+            - interactive (bool): Whether to run in interactive mode
+            - query (str, optional): The search query text
+            - results (int): Number of results to return
+            - batch_size (int): Batch size for processing
+
+    Raises:
+        Various exceptions might be raised but are handled by the decorator:
+
+            - ValueError: For invalid arguments
+            - ImportError: For missing dependencies
+            - RuntimeError: For execution failures
+
+    Example:
+        ```python
+        # Handle a search for anime with a specific query
+        args = ArgNamespace(type='anime', model='default_model', query='pirates',
+                           interactive=False, results=5, batch_size=32,
+                           include_light_novels=False)
+        handle_search_command(args)
+        ```
     """
     from src.cli.interactive import interactive_mode
     from src.utils.display import format_score
     from src.utils.error_handling import handle_exceptions
 
     @handle_exceptions(log_exceptions=True, include_exc_info=True, reraise=True)
-    def execute_search():
+    def execute_search() -> None:
+        """
+        Execute the search operation with error handling.
+
+        This inner function is decorated with error handling and performs
+        the actual search operation, either in interactive mode or for a
+        one-time query.
+        """
         # Initialize the appropriate search model based on dataset type
         search_model = get_search_model(
             args.type, args.model, include_light_novels=args.include_light_novels
@@ -132,12 +219,55 @@ def handle_search_command(args) -> None:
     execute_search()
 
 
-def handle_train_command(args) -> None:
+def handle_train_command(args: Any) -> None:
     """
     Handle the train command functionality.
 
+    This function processes the training command, initializing the appropriate model trainer
+    and executing either model training or labeled data creation based on arguments.
+
+    The function supports:
+
+    - Training anime or manga models with customizable parameters
+    - Creating labeled data without training
+    - Using custom labeled data for training
+    - Including light novels in manga training
+
     Args:
-        args: Parsed command-line arguments for training
+        args: Parsed command-line arguments for training, containing at least:
+
+            - type (str): Dataset type ('anime' or 'manga')
+            - model (str): Base model name for fine-tuning
+            - epochs (int): Number of training epochs
+            - batch_size (int): Training batch size
+            - eval_steps (int): Steps between evaluations
+            - max_samples (int): Maximum number of training samples
+            - learning_rate (float): Learning rate for optimizer
+            - seed (int): Random seed for reproducibility
+            - include_light_novels (bool): Whether to include light novels (manga only)
+            - create_labeled_data (str, optional): Path to save labeled data
+            - labeled_data (str, optional): Path to custom labeled data
+            - loss (str): Loss type ('mse' or 'cosine')
+            - scheduler (str): Learning rate scheduler type
+
+    Raises:
+        Various exceptions might be raised but are handled by the decorator:
+
+            - ValueError: For invalid arguments
+            - ImportError: For missing dependencies
+            - RuntimeError: For execution failures
+            - FileNotFoundError: For missing files or directories
+
+    Example:
+        ```python
+        # Handle training an anime model with specified parameters
+        args = ArgNamespace(type='anime', model='cross-encoder/ms-marco-MiniLM-L-6-v2',
+                           epochs=3, batch_size=16, eval_steps=250, max_samples=10000,
+                           learning_rate=2e-5, seed=42, include_light_novels=False,
+                           create_labeled_data=None, labeled_data=None, loss='mse',
+                           scheduler='linear')
+        handle_train_command(args)
+        ```
     """
     from src.training.anime_trainer import AnimeModelTrainer
     from src.training.manga_trainer import MangaModelTrainer
@@ -145,7 +275,14 @@ def handle_train_command(args) -> None:
     from src.utils.error_handling import handle_exceptions
 
     @handle_exceptions(log_exceptions=True, include_exc_info=True, reraise=True)
-    def execute_training():
+    def execute_training() -> None:
+        """
+        Execute the training operation with error handling.
+
+        This inner function is decorated with error handling and performs
+        the actual training operation, either for creating labeled data
+        or for model training.
+        """
         # Initialize appropriate trainer based on dataset type
         trainer: BaseModelTrainer
 
@@ -203,6 +340,30 @@ def handle_train_command(args) -> None:
 def main() -> None:
     """
     Main function to run the search model or trainer.
+
+    This is the entry point for the application. It:
+
+    1. Sets up logging
+    2. Parses command-line arguments
+    3. Dispatches to the appropriate handler based on command
+
+    The function handles three primary commands:
+
+    - `search`: For finding anime/manga matching a description
+    - `train`: For training custom models on anime/manga data
+    - Implicit model listing via --list-models or --list-fine-tuned flags
+
+    Returns:
+        None
+
+    Raises:
+        SystemExit: With code 1 if an unknown command is provided
+
+    Example:
+        ```python
+        if __name__ == "__main__":
+            main()
+        ```
     """
     # Configure logging
     setup_logging()
