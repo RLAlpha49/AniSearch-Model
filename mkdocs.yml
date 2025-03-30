@@ -44,6 +44,23 @@ extra:
 
 plugins:
   - search
+  - open-in-new-tab
+  - mermaid2
+  - minify:
+      minify_html: true
+  - panzoom:
+      full_screen: True
+      always_show_hint: True
+  # - git-authors:
+  #     show_contribution: true
+  #     show_line_count: true
+  #     count_empty_lines: true
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: datetime
+  - git-committers:
+      repository: RLAlpha49/AniSearch-Model
+      branch: main
   - mkdocstrings:
       handlers:
         python:
@@ -61,12 +78,6 @@ plugins:
             separate_signature: true
             docstring_options:
               ignore_init_summary: true
-  - git-revision-date-localized:
-      enable_creation_date: true
-      type: datetime
-  - git-committers:
-      repository: RLAlpha49/AniSearch-Model
-      branch: main
 
 nav:
   - Home: index.md
@@ -156,7 +167,11 @@ markdown_extensions:
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
   - pymdownx.smartsymbols
   - pymdownx.snippets
   - pymdownx.tabbed:

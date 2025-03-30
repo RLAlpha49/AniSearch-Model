@@ -19,3 +19,15 @@ datasets
 
 # Logging and utilities
 tensorboard
+
+# mkdocs
+mkdocs
+mkdocs-git-authors-plugin
+mkdocs-git-committers-plugin-2
+mkdocs-git-revision-date-localized-plugin
+mkdocs-material
+mkdocs-mermaid2-plugin
+mkdocs-minify-plugin
+mkdocs-open-in-new-tab
+mkdocs-panzoom-plugin
+mkdocstrings

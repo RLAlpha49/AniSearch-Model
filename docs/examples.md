@@ -163,4 +163,29 @@ This page provides practical examples of using AniSearch Model for various scena
     Creating labeled dataset...
     Generated 50000 labeled examples
     Labeled data created and saved to: data/labeled_manga.csv
-    ``` 
+    ```
+
+## Query Variation Process
+
+The search system improves results by generating variations of the original query:
+
+```mermaid
+flowchart LR
+    A[Base Queries] --> B[Create Empty Variations List]
+    B --> C[Add Original Queries]
+    C --> D[Select Random Templates]
+    D --> E[Format Templates with Queries]
+    E --> F[Return Combined Variations]
+
+    style A fill:#e1f5fe,stroke:#0288d1
+    style F fill:#e8f5e9,stroke:#4caf50
+```
+
+For example, a simple query like "time travel" might be expanded to:
+
+- time travel
+- Looking for anime about time travel
+- I want to watch anime with time travel
+- Find me anime where time travel
+
+This makes the search more robust to different ways of expressing the same information need.
