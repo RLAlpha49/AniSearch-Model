@@ -1,27 +1,88 @@
 """
-Merges multiple anime or manga datasets into a single dataset.
+# Anime and Manga Dataset Merger
 
-This script provides functionality to merge and preprocess multiple anime or manga datasets
-from various sources. It handles data cleaning, deduplication, and consolidation of
-information across datasets.
+Utility for merging, cleaning and consolidating multiple anime or manga datasets into comprehensive training datasets.
 
-Key features:
-    - Loads datasets from CSV files and Hugging Face datasets library
-    - Cleans and preprocesses text fields like titles and synopses
-    - Merges datasets based on common identifiers while handling duplicates
-    - Consolidates information from multiple sources while preserving data quality
-    - Removes inappropriate content based on genres/demographics
-    - Saves the final merged dataset with progress tracking
+This module provides a robust processing pipeline for combining and standardizing anime and manga datasets
+from various sources. It handles data loading, cleaning, deduplication, and consolidation
+to create high-quality datasets suitable for training ML models.
 
-The script can be run from the command line with a required --type argument
-specifying either 'anime' or 'manga'.
+## Features
 
-Example:
+- Loads datasets from multiple sources (CSV files, JSON, Parquet, Hugging Face datasets)
+- Applies advanced text preprocessing to titles and synopses
+- Performs deduplication using multiple matching strategies
+- Filters out inappropriate or unwanted content (adult, kids' content, music videos)
+- Consolidates information across datasets while preserving provenance
+- Handles multilingual titles and cross-referencing between sources
+- Saves the final merged dataset with progress tracking
+
+## Processing Pipeline
+
+The module implements separate processing pipelines for anime and manga datasets:
+
+1. **Data Loading**: Imports data from local files and Hugging Face
+2. **Preprocessing**: Cleans text fields and standardizes formats
+3. **Content Filtering**: Removes unwanted content categories
+4. **Deduplication**: Removes duplicate entries within and across datasets
+5. **Merging**: Combines datasets using ID and title-based matching
+6. **Consolidation**: Creates comprehensive entries from multiple sources
+7. **Export**: Saves the final dataset with progress tracking
+
+## Usage
+
+The script can be run from the command line with a required `--type` argument
+specifying either 'anime' or 'manga':
+
+```bash
+python src/merge_datasets.py --type anime
+python src/merge_datasets.py --type manga
 ```
-python merge_datasets.py --type anime
-```
 
-The merged dataset will be saved to model/merged_[type]_dataset.csv
+## Output
+
+The merged datasets will be saved to:
+
+- `model/merged_anime_dataset.csv` (for anime)
+- `model/merged_manga_dataset.csv` (for manga)
+
+These datasets contain standardized fields including:
+- title: Consolidated primary title
+- synopsis: Cleaned and merged synopsis text
+- genres: List of genres in consistent format
+- score: Average rating score
+- type: Media type (TV, Movie, Manga, etc.)
+- status: Current status (Airing, Completed, etc.)
+
+## Dataset Sources
+
+### Anime Datasets
+The following datasets are processed for anime:
+
+- **MyAnimeList Dataset** (`anime.csv`) - Primary source with core metadata
+- **Anime Dataset 2023** (`anime-dataset-2023.csv`) - Recent releases and updates
+- **Animes Dataset** (`animes.csv`) - Additional descriptive content
+- **Anime 4500** (`anime4500.csv`) - Curated collection of popular titles
+- **Anime 2022** (`Anime-2022.csv`) - Recent releases from 2022
+- **Anime Data** (`Anime_data.csv`) - Additional metadata
+- **Anime2** (`Anime2.csv`) - Supplementary data
+- **MAL Anime** (`mal_anime.csv`) - Additional MyAnimeList data
+- **Hugging Face Datasets**:
+  - `johnidouglas/anime_270` - Curated anime collection
+  - `wykonos/anime` - Additional anime metadata
+
+### Manga Datasets
+The following datasets are processed for manga:
+
+- **MyAnimeList Manga Dataset** (`manga.csv`) - Primary source with core metadata
+- **Jikan API Data** (`jikan.csv`) - Data from the Jikan API (MyAnimeList)
+- **Manga, Manhwa and Manhua Dataset** (`data.csv`) - Diverse manga types
+
+## Notes
+
+- Processing large datasets can be memory-intensive
+- Runtime varies based on dataset sizes and available resources
+- Consider available disk space for the output files
 """
 
 import ast
@@ -31,7 +92,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import sys
 import re
-from typing import Any, Optional
+from typing import Any, Optional, List
 import pandas as pd
 from tqdm import tqdm
 from datasets import load_dataset
@@ -75,14 +136,29 @@ logging.basicConfig(
 )
 
 
-# Parse command-line arguments
 def parse_args() -> argparse.Namespace:
     """
     Parse command line arguments for dataset type selection.
 
+    This function sets up an argument parser to accept a single required argument
+    `--type`, which specifies whether to merge anime or manga datasets. The
+    validation of the argument is handled by the choices parameter to ensure
+    only valid dataset types are accepted.
+
     Returns:
-        argparse.Namespace: Parsed arguments containing:
-            type (str): Either 'anime' or 'manga' to specify dataset type to merge
+        argparse.Namespace: Parsed command-line arguments containing:
+            - type (str): Either 'anime' or 'manga' to specify dataset type to merge
+
+    Example:
+        ```python
+        args = parse_args()
+        dataset_type = args.type  # 'anime' or 'manga'
+        ```
+
+    Command-line usage:
+        ```bash
+        python src/merge_datasets.py --type anime
+        ```
     """
     parser = argparse.ArgumentParser(
         description="Merge anime or manga datasets into a single dataset."
@@ -97,17 +173,33 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-# Function to clean synopses
-def clean_synopsis(df: pd.DataFrame, synopsis_col: str, unwanted_phrases: list) -> None:
+def clean_synopsis(
+    df: pd.DataFrame, synopsis_col: str, unwanted_phrases: List[str]
+) -> None:
     """
     Clean synopsis text by removing entries containing unwanted phrases.
 
+    This function identifies and removes invalid synopsis entries that contain
+    specific unwanted phrases (like "No synopsis" or "Music video"). This helps
+    ensure the dataset contains only meaningful synopsis content.
+
     Args:
-        df: DataFrame containing the synopsis column
+        df: DataFrame containing the synopsis column to clean
         synopsis_col: Name of the column containing synopsis text
         unwanted_phrases: List of phrases that indicate invalid synopsis content
+            (e.g., ["No synopsis", "Music video", "Short film"])
 
-    The function modifies the DataFrame in-place, setting matching synopses to empty strings.
+    Notes:
+        - The function modifies the DataFrame in-place
+        - Empty synopses are represented as empty strings
+        - The function logs the column being cleaned
+
+    Example:
+        ```python
+        # Remove common non-synopsis entries
+        unwanted = ["No synopsis", "Music video", "This entry has no synopsis"]
+        clean_synopsis(anime_df, "description", unwanted)
+        ```
     """
     logging.info("Cleaning synopses in column: %s", synopsis_col)
     for index, row in df.iterrows():
@@ -117,16 +209,31 @@ def clean_synopsis(df: pd.DataFrame, synopsis_col: str, unwanted_phrases: list) 
                     df.at[index, synopsis_col] = ""
 
 
-def remove_numbered_list_synopsis(df: pd.DataFrame, synopsis_cols: list[str]) -> None:
+def remove_numbered_list_synopsis(df: pd.DataFrame, synopsis_cols: List[str]) -> None:
     """
     Remove synopsis entries that are formatted as numbered lists.
 
-    Args:
-        df: DataFrame containing the synopsis columns
-        synopsis_cols: List of column names containing synopsis text
+    Some synopsis entries consist only of numbered lists (e.g., "1. Character introduction
+    2. Plot outline...") which typically don't provide a cohesive description. This
+    function identifies such entries using regex pattern matching and removes them.
 
-    The function modifies the DataFrame in-place, setting numbered list synopses to empty strings.
-    Uses regex pattern matching to identify numbered list formats.
+    Args:
+        df: DataFrame containing the synopsis columns to clean
+        synopsis_cols: List of column names containing synopsis text to process
+
+    Notes:
+        - The function modifies the DataFrame in-place
+        - Numbered list synopses are replaced with empty strings
+        - The regex pattern identifies entries that predominantly consist of
+          numbered points (e.g., "1.", "2.", etc.)
+        - The function logs which columns are being processed
+
+    Example:
+        ```python
+        # Remove numbered list synopses from multiple columns
+        columns_to_clean = ["synopsis", "description", "plot_summary"]
+        remove_numbered_list_synopsis(df, columns_to_clean)
+        ```
     """
     logging.info("Removing numbered list synopses in columns: %s", synopsis_cols)
     numbered_list_pattern = re.compile(
@@ -140,20 +247,34 @@ def remove_numbered_list_synopsis(df: pd.DataFrame, synopsis_cols: list[str]) ->
         )
 
 
-# Function to consolidate titles into a single 'title' column
-def consolidate_titles(df: pd.DataFrame, title_columns: list) -> pd.Series:
+def consolidate_titles(df: pd.DataFrame, title_columns: List[str]) -> pd.Series:
     """
     Consolidate multiple title columns into a single title column.
+
+    When working with multiple datasets, titles for the same content may be stored
+    in different columns. This function creates a single consolidated title column
+    by taking the first available non-null title from the specified columns.
 
     Args:
         df: DataFrame containing multiple title columns
         title_columns: List of column names containing titles to consolidate
+            (e.g., ["title_english", "title_japanese", "original_title"])
 
     Returns:
         pd.Series: Consolidated titles, using first non-null value found across columns
 
-    The function prioritizes existing 'title' column if present, then fills missing values
-    from other title columns in order. Empty strings and 'unknown title' are treated as null.
+    Notes:
+        - Prioritizes existing 'title' column if present in the DataFrame
+        - Fills missing values from other title columns in the order they're provided
+        - Empty strings and 'unknown title' are treated as null values
+        - Logs warnings for entries with missing titles after consolidation
+
+    Example:
+        ```python
+        # Consolidate titles from multiple sources
+        title_cols = ["title_english", "japanese_title", "alt_title"]
+        df["title"] = consolidate_titles(df, title_cols)
+        ```
     """
     logging.info("Consolidating titles into a single 'title' column.")
     if "title" in df.columns:
@@ -183,26 +304,39 @@ def consolidate_titles(df: pd.DataFrame, title_columns: list) -> pd.Series:
     return consolidated_title
 
 
-# Basic text preprocessing
 def preprocess_text(text: Any) -> Any:
     """
     Preprocess text data by applying various cleaning and normalization steps.
 
-    Steps include:
-        - Converting to lowercase
-        - Expanding contractions
-        - Removing accents
-        - Removing extra whitespace
-        - Removing URLs
-        - Removing source citations
-        - Removing stopwords
-        - Lemmatizing words
+    This function implements a comprehensive text preprocessing pipeline that
+    normalizes and cleans textual data, making it more suitable for analysis
+    and matching operations.
+
+    Preprocessing steps:
+
+    1. Converting to lowercase
+    2. Expanding contractions (e.g., "don't" → "do not")
+    3. Removing accents and special characters
+    4. Removing extra whitespace
+    5. Removing URLs and web references
+    6. Removing source citations and attributions
+    7. Removing stopwords (common words like "the", "and", etc.)
+    8. Lemmatizing words (converting to base forms)
 
     Args:
         text (Any): Input text to preprocess. Can be string or other type.
 
     Returns:
         Any: Preprocessed text if input was string, otherwise returns input unchanged.
+            Returns empty string for None inputs.
+
+    Example:
+        ```python
+        # Preprocess a synopsis text
+        clean_text = preprocess_text("The protagonist's journey begins when he doesn't
+                                     find the treasure... (Source: MyAnimeList)")
+        # Result: "protagonist journey begin find treasure"
+        ```
     """
     if text is None:
         return ""
@@ -243,19 +377,30 @@ def preprocess_text(text: Any) -> Any:
     return text
 
 
-# Preprocess names by converting to lowercase and stripping whitespace
 def preprocess_name(name: Any) -> str:
     """
     Preprocess a name string for consistent matching.
 
+    This function standardizes name strings to ensure consistent comparison and
+    matching across different datasets. It handles various input types and
+    normalizes names to lowercase with consistent whitespace.
+
     Args:
         name: Input name value of any type
+            Can be string, number, or other types including None/NaN
 
     Returns:
         str: Preprocessed name in lowercase with whitespace stripped
             Returns empty string if input is null/NaN
 
-    Used to standardize names across datasets before matching/merging.
+    Example:
+        ```python
+        # Standardize different forms of the same name
+        standard_name1 = preprocess_name("  Full Metal Alchemist  ")
+        standard_name2 = preprocess_name("Full Metal Alchemist")
+        standard_name3 = preprocess_name("FULL METAL ALCHEMIST")
+        # All three will result in "full metal alchemist"
+        ```
     """
     if pd.isna(name):
         return ""
@@ -417,20 +562,38 @@ def merge_anime_datasets() -> pd.DataFrame:
     """
     Merge multiple anime datasets into a single comprehensive dataset.
 
-    Returns:
-        pd.DataFrame: Merged and cleaned anime dataset
+    This function orchestrates the entire process of merging anime datasets
+    from multiple sources into a single cohesive dataset. It handles loading,
+    preprocessing, merging, and saving the final dataset.
 
-    Performs the following operations:
-        - Loads multiple anime datasets from files and Hugging Face
-        - Cleans and standardizes text fields
-        - Removes adult content and kids' content
-        - Merges datasets based on IDs and titles
-        - Consolidates synopsis information
-        - Removes duplicates
-        - Saves final dataset to CSV with progress tracking
+    Processing steps:
+
+    1. Loading datasets from CSV files and Hugging Face datasets
+    2. Preprocessing datasets (cleaning, standardizing, removing duplicates)
+    3. Removing inappropriate content (adult, kids' content)
+    4. Merging datasets based on IDs and titles
+    5. Consolidating information (synopsis, ratings, genres)
+    6. Removing duplicates from the merged dataset
+    7. Saving the final dataset to disk with progress tracking
+
+    Returns:
+        pd.DataFrame: Merged and cleaned anime dataset containing:
+            - title: Standardized title
+            - synopsis: Consolidated synopsis text
+            - genres: List of genres
+            - score: Average rating score
+            - type: Anime type (TV, Movie, OVA, etc.)
+            - status: Airing status
+            - episodes: Number of episodes
+            - And other relevant columns
 
     Raises:
-        Exception: If any error occurs during merging process
+        Exception: If any error occurs during the merging process
+
+    Notes:
+        - The process can be memory-intensive for large datasets
+        - Progress is logged at each major step
+        - The final dataset is saved to 'data/anime/merged_anime_dataset.csv'
     """
     logging.info("Starting to merge anime datasets.")
     try:
@@ -746,9 +909,7 @@ def merge_anime_datasets() -> pd.DataFrame:
         )
         return final_merged_df
     except Exception as e:
-        logging.error(
-            "An error occurred while merging anime datasets: %s", e, exc_info=True
-        )
+        logging.error("Error merging anime datasets: %s", str(e))
         raise
 
 
@@ -757,20 +918,40 @@ def merge_manga_datasets() -> pd.DataFrame:
     """
     Merge multiple manga datasets into a single comprehensive dataset.
 
-    Returns:
-        pd.DataFrame: Merged and cleaned manga dataset
+    This function orchestrates the process of merging manga datasets from
+    multiple sources into a unified dataset. Similar to the anime merging
+    process, it handles loading, preprocessing, merging, and saving the
+    final manga dataset.
 
-    Performs the following operations:
-        - Loads manga datasets from multiple CSV files
-        - Removes adult content
-        - Cleans and standardizes text fields
-        - Merges datasets based on IDs and titles
-        - Consolidates synopsis information
-        - Removes duplicates
-        - Saves final dataset to CSV with progress tracking
+    Processing steps:
+
+    1. Loading manga datasets from CSV files
+    2. Preprocessing datasets (cleaning, standardizing)
+    3. Removing inappropriate or low-quality content
+    4. Merging datasets based on IDs and titles
+    5. Consolidating information from multiple sources
+    6. Removing duplicates from the merged dataset
+    7. Saving the final dataset to disk
+
+    Returns:
+        pd.DataFrame: Merged and cleaned manga dataset containing:
+            - title: Standardized manga title
+            - synopsis: Consolidated synopsis text
+            - genres: List of genres
+            - score: Average rating score
+            - type: Manga type (Manga, Manhwa, One-shot, etc.)
+            - status: Publication status
+            - chapters: Number of chapters
+            - volumes: Number of volumes
+            - And other relevant columns
 
     Raises:
-        Exception: If any error occurs during merging process
+        Exception: If any error occurs during the merging process
+
+    Notes:
+        - Progress is logged at each major step
+        - The final dataset is saved to 'data/manga/merged_manga_dataset.csv'
+        - The manga merging process handles fewer sources compared to anime
     """
     logging.info("Starting to merge manga datasets.")
     try:
@@ -943,35 +1124,57 @@ def merge_manga_datasets() -> pd.DataFrame:
 
 def main() -> None:
     """
-    Main function to parse command-line arguments and merge datasets.
+    Main entry point for the dataset merging script.
 
-    This function serves as the entry point for the dataset merging process. It parses
-    command-line arguments to determine whether to merge anime or manga datasets, then
-    calls the appropriate merging function.
+    This function serves as the entry point for running the dataset merging process.
+    It parses command-line arguments to determine whether to merge anime or manga
+    datasets, executes the appropriate merging function, and handles any exceptions
+    that may occur during the process.
 
-    The function expects a single command-line argument --type which must be either
-    'anime' or 'manga'. It will:
-    1. Parse the command-line arguments
-    2. Log the specified dataset type
-    3. Call merge_anime_datasets() or merge_manga_datasets() based on the type
-    4. Log an error if an invalid type is specified
+    Command-line arguments:
 
-    Returns:
-        None
+    --type: Specifies the type of dataset to merge ('anime' or 'manga')
 
-    Raises:
-        No exceptions are raised directly, but underlying merge functions may raise exceptions
+    The function will:
+
+    1. Parse command-line arguments
+    2. Call the appropriate merging function based on the specified type
+    3. Handle exceptions and log errors if they occur
+    4. Display a success message upon completion
+
+    Example usage:
+        ```
+        # Merge anime datasets
+        python merge_datasets.py --type anime
+
+        # Merge manga datasets
+        python merge_datasets.py --type manga
+        ```
+
+    Notes:
+        - The merging process can be memory-intensive and might take some time
+        - Progress is logged to the console during execution
+        - Requires the appropriate datasets to be available in the expected paths
     """
-    args = parse_args()
-    dataset_type: str = args.type
-    logging.info("Dataset type specified: '%s'.", dataset_type)
-
-    if dataset_type == "anime":
-        merge_anime_datasets()
-    elif dataset_type == "manga":
-        merge_manga_datasets()
-    else:
-        logging.error("Invalid type specified. Use 'anime' or 'manga'.")
+    try:
+        args = parse_args()
+        if args.type == "anime":
+            logging.info("Starting anime dataset merging process")
+            merge_anime_datasets()
+            logging.info("Anime dataset merging completed successfully")
+        elif args.type == "manga":
+            logging.info("Starting manga dataset merging process")
+            merge_manga_datasets()
+            logging.info("Manga dataset merging completed successfully")
+        else:
+            logging.error(
+                "Invalid dataset type: %s (must be 'anime' or 'manga')", args.type
+            )
+    except Exception as e:
+        logging.error(
+            "An error occurred during dataset merging: %s", str(e), exc_info=True
+        )
+        raise
 
 
 if __name__ == "__main__":
