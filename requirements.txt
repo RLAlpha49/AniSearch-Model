@@ -7,7 +7,6 @@ tqdm
 # NLP and machine learning
 sentence-transformers
 transformers
-scikit-learn
 
 # Text processing
 nltk
@@ -17,12 +16,8 @@ unidecode
 # Data handling
 datasets
 
-# Logging and utilities
-tensorboard
-
 # mkdocs
 mkdocs
-mkdocs-git-authors-plugin
 mkdocs-git-committers-plugin-2
 mkdocs-git-revision-date-localized-plugin
 mkdocs-material
@@ -31,3 +26,8 @@ mkdocs-minify-plugin
 mkdocs-open-in-new-tab
 mkdocs-panzoom-plugin
 mkdocstrings
+mkdocstrings-python
+
+# Code formatting
+black
+ruff
