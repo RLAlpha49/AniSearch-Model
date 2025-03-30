@@ -91,7 +91,7 @@ def search_and_display_results(
             search_model.normalize_scores,
             search_model.model_name,
         )
-        print(f"\n{i+1}. {result['title']} ({score_display})")
+        print(f"\n{i + 1}. {result['title']} ({score_display})")
         print(f"   ID: {result['id']}")
         print(f"   Synopsis excerpt: {synopsis_excerpt}")
 
