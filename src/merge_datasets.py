@@ -35,11 +35,14 @@ from typing import Any, Optional
 import pandas as pd
 from tqdm import tqdm
 from datasets import load_dataset
+import contractions
+from unidecode import unidecode
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
 
-# Add the project root to the Python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from src import common  # pylint: disable=wrong-import-position
+# Initialize stopwords and lemmatizer
+stop_words = set(stopwords.words("english"))
+lemmatizer = WordNetLemmatizer()
 
 FILE_LOGGING_LEVEL = logging.DEBUG
 CONSOLE_LOGGING_LEVEL = logging.INFO
@@ -180,6 +183,66 @@ def consolidate_titles(df: pd.DataFrame, title_columns: list) -> pd.Series:
     return consolidated_title
 
 
+# Basic text preprocessing
+def preprocess_text(text: Any) -> Any:
+    """
+    Preprocess text data by applying various cleaning and normalization steps.
+
+    Steps include:
+        - Converting to lowercase
+        - Expanding contractions
+        - Removing accents
+        - Removing extra whitespace
+        - Removing URLs
+        - Removing source citations
+        - Removing stopwords
+        - Lemmatizing words
+
+    Args:
+        text (Any): Input text to preprocess. Can be string or other type.
+
+    Returns:
+        Any: Preprocessed text if input was string, otherwise returns input unchanged.
+    """
+    if text is None:
+        return ""
+
+    try:
+        if isinstance(text, str):
+            text = text.strip()  # Strip whitespace
+            text = contractions.fix(text)  # Expand contractions
+            text = unidecode(text)  # Remove accents
+            text = re.sub(
+                r"\s+", " ", text
+            )  # Replace multiple spaces with a single space
+            # Remove wrapping quotes
+            if (text.startswith('"') and text.endswith('"')) or (
+                text.startswith("'") and text.endswith("'")
+            ):
+                text = text[1:-1]
+            text = re.sub(
+                r"http\S+|www\S+|https\S+", "", text, flags=re.MULTILINE
+            )  # Remove URLs
+            # Remove specific patterns
+            text = re.sub(r"\[Written by .*?\].*$", "", text, flags=re.IGNORECASE)
+            text = re.sub(
+                r"<br><br>\s*\(source:.*?\).*$", "", text, flags=re.IGNORECASE
+            )
+            text = re.sub(r"\(source:.*?\).*$", "", text, flags=re.IGNORECASE)
+            # Tokenize and remove stopwords
+            words = text.split()
+            words = [word for word in words if word not in stop_words]
+            # Apply lemmatization
+            words = [lemmatizer.lemmatize(word) for word in words]
+            text = " ".join(words)
+        else:
+            return text
+    except Exception:  # pylint: disable=broad-except
+        return text
+
+    return text
+
+
 # Preprocess names by converting to lowercase and stripping whitespace
 def preprocess_name(name: Any) -> str:
     """
@@ -208,14 +271,14 @@ def preprocess_synopsis_columns(df: pd.DataFrame, synopsis_cols: list[str]) -> N
         synopsis_cols: List of column names containing synopsis text
 
     Applies common text preprocessing to each synopsis column in-place.
-    Uses common.preprocess_text() for standardization.
+    Uses preprocess_text() for standardization.
     Logs warning if specified column not found.
     """
     logging.info("Preprocessing synopsis columns: %s", synopsis_cols)
     for col in synopsis_cols:
         if col in df.columns:
             logging.info("Preprocessing column: %s", col)
-            df[col] = df[col].apply(common.preprocess_text)
+            df[col] = df[col].apply(preprocess_text)
         else:
             logging.warning("Synopsis column '%s' not found in DataFrame.", col)
 

@@ -1,18 +1,22 @@
-tensorflow
-pandas
-scikit-learn
+# Core dependencies
 numpy
+pandas
 torch
-transformers
-sentence-transformers
 tqdm
+matplotlib
+
+# NLP and machine learning
+sentence-transformers
+transformers
+scikit-learn
+
+# Text processing
+nltk
+contractions
+unidecode
+
+# Data handling
 datasets
-gunicorn
-waitress
-flask
-tf-keras
-pytest
-pytest-order
-flask_limiter
-flask_cors
-concurrent-log-handler
+
+# Logging and utilities
+tensorboard
