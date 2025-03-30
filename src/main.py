@@ -7,10 +7,10 @@ by computing relevance scores between queries and entries in the dataset.
 
 Usage:
     # Search mode:
-    python src/main.py search --type anime --query "An adventure about pirates searching for treasure"
+    python src/main.py search --type anime --query "A story about pirates searching for treasure"
     python src/main.py search --type manga --query "A story about a boy who becomes a hero"
     python src/main.py search --type anime --interactive  # For interactive mode
-    python src/main.py search --type manga --query "Fantasy adventure" --include-light-novels  # Include light novels
+    python src/main.py search --type manga --query "Fantasy adventure" --include-light-novels
 
     # Training mode:
     python src/main.py train --type anime --model "cross-encoder/ms-marco-MiniLM-L-6-v2" --epochs 3
@@ -65,7 +65,12 @@ def get_search_model(
 
 
 def display_models(args):
-    """Display available pre-trained cross-encoder models."""
+    """
+    Display available models based on arguments.
+
+    Args:
+        args: Parsed command-line arguments
+    """
     from src.utils.display import display_available_models
     from src.models.base_search_model import BaseSearchModel
 
@@ -86,13 +91,15 @@ def handle_search_command(args) -> None:
     """
     from src.cli.interactive import interactive_mode
     from src.utils.display import format_score
+    from src.utils.error_handling import handle_exceptions
 
     # Display available models if requested
     if args.list_models or args.list_fine_tuned:
         display_models(args)
         return
 
-    try:
+    @handle_exceptions(log_exceptions=True, include_exc_info=True, reraise=True)
+    def execute_search():
         # Initialize the appropriate search model based on dataset type
         search_model = get_search_model(
             args.type, args.model, include_light_novels=args.include_light_novels
@@ -124,11 +131,11 @@ def handle_search_command(args) -> None:
                 print(f"   Synopsis excerpt: {synopsis_excerpt}")
         else:
             print(
-                "Error: Either --query, --interactive, --list-models, or --list-fine-tuned must be specified"
+                "Error: Either --query, --interactive, --list-models, "
+                "or --list-fine-tuned must be specified"
             )
-    except Exception as e:
-        logger.error("Error during search: %s", str(e))
-        raise
+
+    execute_search()
 
 
 def handle_train_command(args) -> None:
@@ -138,17 +145,21 @@ def handle_train_command(args) -> None:
     Args:
         args: Parsed command-line arguments for training
     """
-    from src.training.utils import list_available_models
     from src.training.anime_trainer import AnimeModelTrainer
     from src.training.manga_trainer import MangaModelTrainer
+    from src.training.base_trainer import BaseModelTrainer
+    from src.utils.error_handling import handle_exceptions
 
     # Display available models if requested
-    if args.list_models:
-        list_available_models()
+    if args.list_models or args.list_fine_tuned:
+        display_models(args)
         return
 
-    try:
+    @handle_exceptions(log_exceptions=True, include_exc_info=True, reraise=True)
+    def execute_training():
         # Initialize appropriate trainer based on dataset type
+        trainer: BaseModelTrainer
+
         if args.type == "anime":
             trainer = AnimeModelTrainer(
                 model_name=args.model,
@@ -196,9 +207,8 @@ def handle_train_command(args) -> None:
         )
         print("=" * 50)
 
-    except Exception as e:
-        logger.error("Error during training: %s", str(e), exc_info=True)
-        raise
+    # Execute training with error handling
+    execute_training()
 
 
 def main() -> None:

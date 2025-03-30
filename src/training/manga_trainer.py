@@ -18,6 +18,7 @@ from src.training.utils import (
     DEFAULT_MAX_SAMPLES,
     DEFAULT_LEARNING_RATE,
 )
+from src.utils.error_handling import handle_exceptions
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -82,6 +83,7 @@ class MangaModelTrainer(BaseModelTrainer):
         if not self.include_light_novels:
             self._filter_light_novels()
 
+    @handle_exceptions(log_exceptions=True, include_exc_info=True)
     def _filter_light_novels(self) -> None:
         """Filter out light novels from the manga dataset."""
         if "genres" not in self.df.columns:
@@ -119,6 +121,7 @@ class MangaModelTrainer(BaseModelTrainer):
         else:
             logger.info("No light novels found in the dataset")
 
+    @handle_exceptions(log_exceptions=True, include_exc_info=True)
     def create_query_variations(
         self, base_queries: List[str], n_variations: int = 7
     ) -> List[str]:

@@ -23,6 +23,7 @@ from src.utils.constants import (
     DEFAULT_BATCH_SIZE,
     ALTERNATIVE_MODELS,
 )
+from src.utils.error_handling import handle_exceptions
 
 logger = logging.getLogger(__name__)
 
@@ -67,21 +68,36 @@ class BaseSearchModel:
 
         # Load the cross-encoder model
         logger.info("Loading cross-encoder model: %s", model_name)
+        self._load_model()
+
+        # Load the dataset
+        self._load_dataset()
+
+    @handle_exceptions(log_exceptions=True, include_exc_info=True)
+    def _load_model(self) -> None:
+        """
+        Load the cross-encoder model.
+
+        This method handles the loading of the model and sets up the normalization
+        behavior based on the model type.
+        """
         try:
             # Check if this is an MS Marco model or fine-tuned from one
             # MS Marco models return logits by default
-            is_ms_marco = "ms-marco" in model_name.lower()
-            is_fine_tuned = os.path.isdir(model_name) and os.path.exists(
-                os.path.join(model_name, "config.json")
+            is_ms_marco = "ms-marco" in self.model_name.lower()
+            is_fine_tuned = os.path.isdir(self.model_name) and os.path.exists(
+                os.path.join(self.model_name, "config.json")
             )
 
             # Special case for fine-tuned models
             if is_fine_tuned:
-                logger.info("Loading fine-tuned model from local path: %s", model_name)
-                self.model = CrossEncoder(model_name, device=self.device)
+                logger.info(
+                    "Loading fine-tuned model from local path: %s", self.model_name
+                )
+                self.model = CrossEncoder(self.model_name, device=self.device)
 
                 # Check if this was fine-tuned from an MS Marco model
-                if "ms-marco" in os.path.basename(model_name).lower():
+                if "ms-marco" in os.path.basename(self.model_name).lower():
                     logger.info(
                         "Fine-tuned MS Marco model detected, assuming normalized scores (0-1)"
                     )
@@ -94,17 +110,18 @@ class BaseSearchModel:
             elif is_ms_marco:
                 # Use sigmoid activation for MS Marco models to get scores between 0 and 1
                 self.model = CrossEncoder(
-                    model_name,
+                    self.model_name,
                     device=self.device,
                     activation_fn=torch.nn.Sigmoid(),
                 )
                 logger.info(
-                    "MS Marco model detected, using sigmoid activation to normalize scores between 0 and 1"
+                    "MS Marco model detected, using sigmoid activation "
+                    "to normalize scores between 0 and 1"
                 )
                 self.normalize_scores = True
             else:
                 # For other models (like NLI models), use their natural output scale
-                self.model = CrossEncoder(model_name, device=self.device)
+                self.model = CrossEncoder(self.model_name, device=self.device)
                 logger.info("Non-MS Marco model detected, using natural model outputs")
                 self.normalize_scores = False
 
@@ -126,7 +143,7 @@ class BaseSearchModel:
                         "Your transformers version is %s. "
                         "Try updating with: pip install --upgrade transformers",
                         model_type,
-                        model_name,
+                        self.model_name,
                         transformers_version,
                     )
 
@@ -148,27 +165,27 @@ class BaseSearchModel:
                     logger.error(
                         "Unsupported model architecture in '%s'. "
                         "Try updating transformers: pip install --upgrade transformers",
-                        model_name,
+                        self.model_name,
                     )
                     raise ValueError(
-                        f"Unsupported model architecture in '{model_name}'"
+                        f"Unsupported model architecture in '{self.model_name}'"
                     ) from exc
             else:
                 # For other value errors, just log and re-raise
-                logger.error("Failed to load model '%s': %s", model_name, error_message)
+                logger.error(
+                    "Failed to load model '%s': %s", self.model_name, error_message
+                )
                 raise ValueError(
-                    f"Could not load model '{model_name}'. Error: {error_message}"
+                    f"Could not load model '{self.model_name}'. Error: {error_message}"
                 ) from e
         except Exception as e:
             # Handle other types of exceptions
-            logger.error("Failed to load model '%s': %s", model_name, str(e))
+            logger.error("Failed to load model '%s': %s", self.model_name, str(e))
             raise ValueError(
-                f"Could not load model '{model_name}'. Error: {str(e)}"
+                f"Could not load model '{self.model_name}'. Error: {str(e)}"
             ) from e
 
-        # Load the dataset
-        self._load_dataset()
-
+    @handle_exceptions(log_exceptions=True, include_exc_info=True)
     def _load_dataset(self) -> None:
         """
         Load and prepare the dataset.
@@ -214,6 +231,7 @@ class BaseSearchModel:
         if missing_cols:
             raise ValueError(f"Missing required columns in dataset: {missing_cols}")
 
+    @handle_exceptions(log_exceptions=True, include_exc_info=True)
     def search(
         self,
         query: str,
@@ -298,6 +316,7 @@ class BaseSearchModel:
         return results
 
     @staticmethod
+    @handle_exceptions(log_exceptions=True, include_exc_info=True)
     def list_available_models() -> Mapping[str, Dict[str, str]]:
         """
         List available cross-encoder models that can be used with this search model.
@@ -308,6 +327,7 @@ class BaseSearchModel:
         return ALTERNATIVE_MODELS
 
     @staticmethod
+    @handle_exceptions(log_exceptions=True, include_exc_info=True)
     def list_fine_tuned_models() -> Dict[str, str]:
         """
         List available fine-tuned models in the model directory.
