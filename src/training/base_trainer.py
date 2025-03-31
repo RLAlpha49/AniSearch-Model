@@ -36,7 +36,7 @@ with HuggingFace's training utilities for efficient fine-tuning.
 import os
 import logging
 import random
-from typing import List, Optional
+from typing import List, Optional, Any
 
 import pandas as pd
 from datasets import Dataset as HFDataset
@@ -814,7 +814,7 @@ class BaseModelTrainer:
 
         # Set up loss function
         if loss_type == "binary_cross_entropy":
-            loss = BinaryCrossEntropyLoss(model)
+            loss: Any = BinaryCrossEntropyLoss(model)
         elif loss_type == "cross_entropy":
             loss = CrossEntropyLoss(model)
         elif loss_type == "lambda":

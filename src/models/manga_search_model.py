@@ -42,7 +42,8 @@ for result in results:
 """
 
 import logging
-from typing import List, Dict, Optional, Any
+import os
+from typing import List, Dict, Optional, Any, Union
 from tqdm import tqdm
 import numpy as np
 
@@ -243,7 +244,7 @@ class MangaSearchModel(BaseSearchModel):
         logger.info(
             "Computing relevance scores with cross-encoder (batch size: %d)", batch_size
         )
-        scores = []
+        scores: List[Any] = []
 
         with tqdm(
             total=total_pairs,
@@ -262,10 +263,10 @@ class MangaSearchModel(BaseSearchModel):
 
                 pbar.update(len(batch))
 
-        scores = np.array(scores)
+        scores_array = np.array(scores)
 
         # Get indices of top scores
-        top_indices = scores.argsort()[-num_results:][::-1]
+        top_indices = scores_array.argsort()[-num_results:][::-1]
 
         # Prepare results
         results = []
@@ -276,7 +277,7 @@ class MangaSearchModel(BaseSearchModel):
                 {
                     "id": entry[self.id_col],
                     "title": entry["title"],
-                    "score": float(scores[idx]),
+                    "score": float(scores_array[idx]),
                     "synopsis": (
                         synopsis[:500] + "..." if len(synopsis) > 500 else synopsis
                     ),

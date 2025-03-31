@@ -46,7 +46,7 @@ The implementation includes comprehensive error handling for common issues:
 import os
 import logging
 import re
-from typing import List, Dict, Optional, Any, Mapping
+from typing import List, Dict, Optional, Any, Mapping, Tuple, Union, Set
 
 import numpy as np
 import pandas as pd
@@ -446,7 +446,7 @@ class BaseSearchModel:
         logger.info(
             "Computing relevance scores with cross-encoder (batch size: %d)", batch_size
         )
-        scores = []
+        scores: List[Any] = []
 
         # Use tqdm to display progress for all datasets
         with tqdm(
@@ -467,10 +467,10 @@ class BaseSearchModel:
                 pbar.update(len(batch))
 
         # Convert scores to numpy array
-        scores = np.array(scores)
+        scores_array = np.array(scores)
 
         # Get indices of top scores
-        top_indices = scores.argsort()[-num_results:][::-1]
+        top_indices = scores_array.argsort()[-num_results:][::-1]
 
         # Prepare results
         results = []
@@ -481,7 +481,7 @@ class BaseSearchModel:
                 {
                     "id": entry[self.id_col],
                     "title": entry["title"],
-                    "score": float(scores[idx]),
+                    "score": float(scores_array[idx]),
                     "synopsis": (
                         synopsis[:500] + "..." if len(synopsis) > 500 else synopsis
                     ),
@@ -553,7 +553,7 @@ class BaseSearchModel:
                 print("No fine-tuned models found.")
             ```
         """
-        fine_tuned_models = {}
+        fine_tuned_models: Dict[str, str] = {}
         model_dir = "model/fine-tuned"
 
         if not os.path.exists(model_dir):
