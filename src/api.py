@@ -55,14 +55,16 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 You can then specify `device=cuda` in your API requests to utilize GPU acceleration.
 """
 
+# pylint: disable=too-many-lines
+
 import logging
 import os
 import sys
 from typing import Dict, List, Optional, Union
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from fastapi import FastAPI, HTTPException, Query  # pylint: disable=import-error
+from fastapi.middleware.cors import CORSMiddleware  # pylint: disable=import-error
+from pydantic import BaseModel, Field  # pylint: disable=import-error
 
 # Add project root to path to allow importing from src
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -94,11 +96,11 @@ app.add_middleware(
 )
 
 # Cache for search models to avoid reloading
-model_cache = {}
+model_cache: Dict[str, BaseSearchModel] = {}
 
 
 # Models for request/response data
-class SearchRequest(BaseModel):
+class SearchRequest(BaseModel):  # pylint: disable=too-few-public-methods
     """
     Request model for anime and manga search endpoints.
 
@@ -126,7 +128,7 @@ class SearchRequest(BaseModel):
     batch_size: int = Field(32, description="Batch size for processing", ge=8, le=512)
 
 
-class SearchResult(BaseModel):
+class SearchResult(BaseModel):  # pylint: disable=too-few-public-methods
     """
     Individual search result item returned by the search endpoints.
 
@@ -156,7 +158,7 @@ class SearchResult(BaseModel):
     synopsis: str = Field(..., description="Synopsis text (may be truncated)")
 
 
-class SearchResponse(BaseModel):
+class SearchResponse(BaseModel):  # pylint: disable=too-few-public-methods
     """
     Response model for anime and manga search endpoints.
 
@@ -187,7 +189,7 @@ class SearchResponse(BaseModel):
     device_used: str = Field(..., description="Device used for computation (CPU/CUDA)")
 
 
-class HealthResponse(BaseModel):
+class HealthResponse(BaseModel):  # pylint: disable=too-few-public-methods
     """
     Response model for the health check endpoint.
 
@@ -219,7 +221,7 @@ class HealthResponse(BaseModel):
     )
 
 
-class ModelsResponse(BaseModel):
+class ModelsResponse(BaseModel):  # pylint: disable=too-few-public-methods
     """
     Response model for the models endpoint.
 
@@ -454,7 +456,7 @@ async def search_anime(
     ## Example
     
     ```bash
-    curl -X POST "http://localhost:8000/search/anime?model_name=cross-encoder/ms-marco-MiniLM-L-6-v2&device=cuda" \\
+    curl -X POST "http://localhost:8000/search/anime?device=cuda" \\
       -H "Content-Type: application/json" \\
       -d '{"query": "A story about robots and AI"}'
     ```
@@ -587,7 +589,7 @@ async def search_manga(
 
 
 if __name__ == "__main__":
-    import uvicorn
+    import uvicorn  # pylint: disable=import-error
     import multiprocessing
     import argparse
     import tempfile
@@ -775,7 +777,7 @@ if __name__ == "__main__":
 
             # Add the anime search endpoint
             @restricted_app.post("/search/anime", response_model=SearchResponse)
-            async def restricted_search_anime(*args, **kwargs):
+            async def restricted_search_anime(*fn_args, **kwargs):
                 """
                 Search for anime endpoint for the restricted API mode.
 
@@ -787,11 +789,11 @@ if __name__ == "__main__":
                 Returns:
                     SearchResponse: The search results with relevant anime matches
                 """
-                return await search_anime(*args, **kwargs)
+                return await search_anime(*fn_args, **kwargs)
 
             # Add the manga search endpoint
             @restricted_app.post("/search/manga", response_model=SearchResponse)
-            async def restricted_search_manga(*args, **kwargs):
+            async def restricted_search_manga(*fn_args, **kwargs):
                 """
                 Search for manga endpoint for the restricted API mode.
 
@@ -803,7 +805,7 @@ if __name__ == "__main__":
                 Returns:
                     SearchResponse: The search results with relevant manga matches
                 """
-                return await search_manga(*args, **kwargs)
+                return await search_manga(*fn_args, **kwargs)
 
         # For multiple workers with restricted routes, create a temp module file
         if num_workers > 1:
@@ -820,36 +822,13 @@ if __name__ == "__main__":
 
                 # Write the module code
                 with open(temp_module_path, "w", encoding="utf-8") as f:
-                    # Import necessary dependencies
                     f.write("from fastapi import FastAPI\n")
                     f.write("from fastapi.middleware.cors import CORSMiddleware\n\n")
-                    f.write("# The restricted FastAPI app\n")
                     f.write("app = None\n\n")
                     f.write("def init_app():\n")
-                    f.write('    """\n')
-                    f.write(
-                        "    Initialize the FastAPI application for the restricted routes mode.\n"
-                    )
-                    f.write("    \n")
-                    f.write(
-                        "    This function is called once when the module is loaded to create and\n"
-                    )
-                    f.write(
-                        "    configure the FastAPI application with only the enabled routes.\n"
-                    )
-                    f.write(
-                        "    It handles importing necessary dependencies, setting up CORS,\n"
-                    )
-                    f.write("    and registering the route handlers.\n")
-                    f.write('    """\n')
                     f.write("    global app\n")
-                    f.write("    # Create the app only once\n")
                     f.write("    if app is None:\n")
-                    f.write(
-                        "        # Import all dependencies needed by the app here\n"
-                    )
                     f.write("        import sys\n")
-                    # Fix path escaping by replacing backslashes with forward slashes
                     safe_path = os.path.dirname(
                         os.path.dirname(os.path.abspath(__file__))
                     ).replace("\\", "/")
@@ -866,14 +845,12 @@ if __name__ == "__main__":
                     f.write(
                         "        from src.api import ModelsResponse, get_available_models\n\n"
                     )
-                    f.write("        # Configure logging\n")
-                    f.write("        setup_logging()\n\n")
-                    f.write("        # Create the app\n")
+                    f.write("        setup_logging()\n")
                     f.write(
-                        f"        app = FastAPI(title='{app.title}', description='{app.description}', "
-                        f"version='{app.version}')\n\n"
+                        f"        app = FastAPI(title='{app.title}', "
+                        f"description='{app.description}', "
+                        f"version='{app.version}')\n"
                     )
-                    f.write("        # Add CORS middleware\n")
                     f.write("        app.add_middleware(\n")
                     f.write("            CORSMiddleware,\n")
                     f.write(f"            allow_origins={origins},\n")
@@ -884,124 +861,44 @@ if __name__ == "__main__":
 
                     # Add enabled routes
                     if "health" in enabled_routes:
-                        f.write("        # Health check endpoint\n")
                         f.write(
                             "        @app.get('/', response_model=HealthResponse)\n"
                         )
                         f.write("        async def restricted_health_check():\n")
-                        f.write('            """\n')
-                        f.write(
-                            "            Health check endpoint for the restricted API mode.\n"
-                        )
-                        f.write("            \n")
-                        f.write(
-                            "            This endpoint verifies that the API server is operational in restricted mode\n"
-                        )
-                        f.write(
-                            "            and provides information about the status of different components.\n"
-                        )
-                        f.write("            \n")
-                        f.write("            Returns:\n")
-                        f.write(
-                            "                HealthResponse: The health status of the API\n"
-                        )
-                        f.write('            """\n')
                         f.write("            return await health_check()\n\n")
 
                     if "models" in enabled_routes:
-                        f.write("        # Models endpoint\n")
                         f.write(
                             "        @app.get('/models', response_model=ModelsResponse)\n"
                         )
                         f.write("        async def restricted_get_models():\n")
-                        f.write('            """\n')
-                        f.write(
-                            "            List available models endpoint for the restricted API mode.\n"
-                        )
-                        f.write("            \n")
-                        f.write(
-                            "            This endpoint returns information about models that can be used with\n"
-                        )
-                        f.write(
-                            "            the search endpoints in restricted mode.\n"
-                        )
-                        f.write("            \n")
-                        f.write("            Returns:\n")
-                        f.write(
-                            "                ModelsResponse: Available models and their descriptions\n"
-                        )
-                        f.write('            """\n')
                         f.write("            return await get_available_models()\n\n")
 
                     if "search" in enabled_routes:
-                        f.write("        # Search endpoints\n")
                         f.write(
                             "        @app.post('/search/anime', response_model=SearchResponse)\n"
                         )
                         f.write(
-                            "        async def restricted_search_anime(*args, **kwargs):\n"
-                        )
-                        f.write('            """\n')
-                        f.write(
-                            "            Search for anime endpoint for the restricted API mode.\n"
-                        )
-                        f.write("            \n")
-                        f.write(
-                            "            This endpoint performs semantic search against the anime dataset\n"
+                            "        async def restricted_search_anime(*fn_args, **kwargs):\n"
                         )
                         f.write(
-                            "            using the specified model in restricted mode.\n"
-                        )
-                        f.write("            \n")
-                        f.write(
-                            "            Parameters are the same as the regular search_anime endpoint.\n"
-                        )
-                        f.write("            \n")
-                        f.write("            Returns:\n")
-                        f.write(
-                            "                SearchResponse: The search results with relevant anime matches\n"
-                        )
-                        f.write('            """\n')
-                        f.write(
-                            "            return await search_anime(*args, **kwargs)\n\n"
+                            "            return await search_anime(*fn_args, **kwargs)\n\n"
                         )
 
                         f.write(
                             "        @app.post('/search/manga', response_model=SearchResponse)\n"
                         )
                         f.write(
-                            "        async def restricted_search_manga(*args, **kwargs):\n"
-                        )
-                        f.write('            """\n')
-                        f.write(
-                            "            Search for manga endpoint for the restricted API mode.\n"
-                        )
-                        f.write("            \n")
-                        f.write(
-                            "            This endpoint performs semantic search against the manga dataset\n"
+                            "        async def restricted_search_manga(*fn_args, **kwargs):\n"
                         )
                         f.write(
-                            "            using the specified model in restricted mode.\n"
-                        )
-                        f.write("            \n")
-                        f.write(
-                            "            Parameters are the same as the regular search_manga endpoint.\n"
-                        )
-                        f.write("            \n")
-                        f.write("            Returns:\n")
-                        f.write(
-                            "                SearchResponse: The search results with relevant manga matches\n"
-                        )
-                        f.write('            """\n')
-                        f.write(
-                            "            return await search_manga(*args, **kwargs)\n\n"
+                            "            return await search_manga(*fn_args, **kwargs)\n\n"
                         )
 
                 # Add the app initialization
                 with open(
                     os.path.join(temp_dir, "temp_api.py"), "a", encoding="utf-8"
                 ) as f:
-                    f.write("\n# Initialize the app\n")
                     f.write("init_app()\n")
 
                 # Add the sys.path so Python can find our temporary module

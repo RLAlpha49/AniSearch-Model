@@ -1,7 +1,8 @@
 """
 # Anime Model Trainer
 
-Specialized trainer class for fine-tuning cross-encoder models specifically for anime search applications.
+Specialized trainer class for fine-tuning cross-encoder models specifically
+for anime search applications.
 
 This module extends the base trainer framework with anime-specific functionality, including
 anime-focused query variations and optimizations tailored for anime datasets. It simplifies
