@@ -42,8 +42,7 @@ for result in results:
 """
 
 import logging
-import os
-from typing import List, Dict, Optional, Any, Union
+from typing import List, Dict, Optional, Any
 from tqdm import tqdm
 import numpy as np
 
