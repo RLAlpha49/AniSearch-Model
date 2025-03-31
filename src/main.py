@@ -35,7 +35,7 @@ Attributes:
 import logging
 import os
 import sys
-from typing import Any
+from typing import Any, Optional
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -85,7 +85,10 @@ def handle_model_listing(args: Any) -> None:
 
 
 def get_search_model(
-    dataset_type: str, model_name: str, include_light_novels: bool = False
+    dataset_type: str,
+    model_name: str,
+    device: Optional[str] = None,
+    include_light_novels: bool = False,
 ) -> Any:
     """
     Create and return the appropriate search model based on dataset type.
@@ -98,6 +101,8 @@ def get_search_model(
         dataset_type: The type of dataset to search. Must be either 'anime' or 'manga'.
         model_name: The name of the model to use, either a pre-trained model name
             or path to a fine-tuned model.
+        device: Device to run the model on ('cpu', 'cuda', 'cuda:0', etc.).
+            If None, automatically selects the best available device.
         include_light_novels: Whether to include light novels in manga search results.
             Only applicable when dataset_type is 'manga'. Defaults to False.
 
@@ -121,10 +126,12 @@ def get_search_model(
     from src.models.manga_search_model import MangaSearchModel
 
     if dataset_type.lower() == "anime":
-        return AnimeSearchModel(model_name=model_name)
+        return AnimeSearchModel(model_name=model_name, device=device)
     if dataset_type.lower() == "manga":
         return MangaSearchModel(
-            model_name=model_name, include_light_novels=include_light_novels
+            model_name=model_name,
+            device=device,
+            include_light_novels=include_light_novels,
         )
     raise ValueError(
         f"Invalid dataset type: {dataset_type}. Must be 'anime' or 'manga'."

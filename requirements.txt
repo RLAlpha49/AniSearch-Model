@@ -31,3 +31,8 @@ mkdocstrings-python
 # Code formatting
 black
 ruff
+
+# API server
+fastapi
+uvicorn[standard]
+pydantic
