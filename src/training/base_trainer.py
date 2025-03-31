@@ -33,6 +33,8 @@ The trainer uses SentenceTransformers' CrossEncoder implementation and integrate
 with HuggingFace's training utilities for efficient fine-tuning.
 """
 
+# pylint: disable=too-many-lines
+
 import os
 import logging
 import random
@@ -42,7 +44,7 @@ import pandas as pd
 from datasets import Dataset as HFDataset
 from sentence_transformers import InputExample
 from sentence_transformers.cross_encoder import CrossEncoder
-from sentence_transformers.cross_encoder.losses import (
+from sentence_transformers.cross_encoder.losses import (  # pylint: disable=no-name-in-module,import-error
     BinaryCrossEntropyLoss,
     CrossEntropyLoss,
     LambdaLoss,
@@ -55,8 +57,10 @@ from sentence_transformers.cross_encoder.losses import (
     MarginMSELoss,
     RankNetLoss,
 )
-from sentence_transformers.cross_encoder.trainer import CrossEncoderTrainer
-from sentence_transformers.cross_encoder.training_args import (
+from sentence_transformers.cross_encoder.trainer import (  # pylint: disable=no-name-in-module,import-error
+    CrossEncoderTrainer,
+)
+from sentence_transformers.cross_encoder.training_args import (  # pylint: disable=no-name-in-module,import-error
     CrossEncoderTrainingArguments,
 )
 from tqdm import tqdm

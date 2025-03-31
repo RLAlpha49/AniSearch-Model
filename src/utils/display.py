@@ -81,9 +81,8 @@ def format_score(score: float, normalize_scores: bool, model_name: str) -> str:
     if normalize_scores or "ms-marco" in model_name.lower():
         # For MS Marco models or normalized scores, display as percentage
         return f"{score:.1%} relevance"
-    else:
-        # For other models, just show the raw score
-        return f"score: {score:.3f}"
+    # For other models, just show the raw score
+    return f"score: {score:.3f}"
 
 
 def list_fine_tuned_models() -> Dict[str, str]:
@@ -179,10 +178,12 @@ def display_available_models(
           ...
 
         Usage example:
-          python src/main.py search --type anime --query "Your query" --model "cross-encoder/ms-marco-MiniLM-L-6-v2"
+          python src/main.py search --type anime --query "Your query" \
+          --model "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
         To use a fine-tuned model:
-          python src/main.py search --type anime --query "Your query" --model "model/fine-tuned/your-model-name"
+          python src/main.py search --type anime --query "Your query" \
+          --model "model/fine-tuned/your-model-name"
 
         Model selection guide:
         - TinyBERT models: Smallest and fastest, good for low-resource environments

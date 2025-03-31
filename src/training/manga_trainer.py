@@ -1,7 +1,8 @@
 """
 # Manga Model Trainer
 
-Specialized trainer class for fine-tuning cross-encoder models specifically for manga search applications.
+Specialized trainer class for fine-tuning cross-encoder models specifically for
+manga search applications.
 
 This module extends the base trainer framework with manga-specific functionality, including
 manga-focused query variations and optimizations tailored for manga datasets. It simplifies
@@ -259,7 +260,7 @@ class MangaModelTrainer(BaseModelTrainer):
             if isinstance(genres, str):
                 genres_lower = genres.lower()
                 return "light novel" in genres_lower or "novel" in genres_lower
-            elif isinstance(genres, list):
+            if isinstance(genres, list):
                 genres_lower = [g.lower() if isinstance(g, str) else "" for g in genres]
                 return any("light novel" in g or "novel" in g for g in genres_lower)
 

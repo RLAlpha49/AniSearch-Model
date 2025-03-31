@@ -1,10 +1,11 @@
 """
 # Anime and Manga Dataset Merger
 
-Utility for merging, cleaning and consolidating multiple anime or manga datasets into comprehensive training datasets.
+Utility for merging, cleaning and consolidating multiple anime or manga datasets into
+comprehensive training datasets.
 
-This module provides a robust processing pipeline for combining and standardizing anime and manga datasets
-from various sources. It handles data loading, cleaning, deduplication, and consolidation
+This module provides a robust processing pipeline for combining and standardizing anime and manga
+datasets from various sources. It handles data loading, cleaning, deduplication, and consolidation
 to create high-quality datasets suitable for training ML models.
 
 ## Features
@@ -85,6 +86,8 @@ The following datasets are processed for manga:
 - Consider available disk space for the output files
 """
 
+# pylint: disable=too-many-lines
+
 import ast
 import os
 import argparse
@@ -96,8 +99,8 @@ from typing import Any, Optional, List
 import pandas as pd
 from tqdm import tqdm
 from datasets import load_dataset
-import contractions
-from unidecode import unidecode
+import contractions  # pylint: disable=import-error
+from unidecode import unidecode  # pylint: disable=import-error
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 

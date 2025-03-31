@@ -220,7 +220,7 @@ class BaseSearchModel:
                     self.normalize_scores = False
             elif is_ms_marco:
                 # Use sigmoid activation for MS Marco models to get scores between 0 and 1
-                self.model = CrossEncoder(
+                self.model = CrossEncoder(  # pylint: disable=unexpected-keyword-arg
                     self.model_name,
                     device=self.device,
                     activation_fn=torch.nn.Sigmoid(),
