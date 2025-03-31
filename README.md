@@ -13,6 +13,7 @@ A semantic search engine that matches natural language descriptions with anime a
   - [Search for Anime](#search-for-anime)
   - [Search for Manga](#search-for-manga)
   - [List Available Models](#list-available-models)
+  - [API Server](#api-server)
 - [Models](#models)
   - [Pre-trained Models](#pre-trained-models)
   - [Fine-tuned Models](#fine-tuned-models)
@@ -36,6 +37,7 @@ This project implements a cross-encoder-based search system that allows users to
 - **Support for Both Anime and Manga**: Specialized models for each content type
 - **Interactive Mode**: Continuous search functionality for exploration
 - **Fine-tuning Support**: Train custom models on anime/manga data
+- **API Server**: FastAPI-based REST API with multi-worker support for high concurrency
 
 ## Installation
 
@@ -43,27 +45,44 @@ This project implements a cross-encoder-based search system that allows users to
 
 - Python 3.8+
 - pip
+- NVIDIA GPU with CUDA support (optional, for GPU acceleration)
 
 ### Setup
 
 1. Clone the repository:
 
-   ```bash
-   git clone https://github.com/RLAlpha49/AniSearch-Model.git
-   cd anime-search-model
-   ```
+    ```bash
+    git clone https://github.com/RLAlpha49/AniSearch-Model.git
+    cd anime-search-model
+    ```
 
 2. Install dependencies:
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+    > **Note for GPU Acceleration**: If you want to use your NVIDIA GPU for faster processing, install PyTorch with CUDA support:
+    >
+    > ```bash
+    > # For CUDA 12.6
+    > pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+    >
+    > # For other CUDA versions, visit: https://pytorch.org/get-started/locally/
+    > ```
+    >
+    > After installation, you can verify CUDA is available with:
+    >
+    > ```python
+    > import torch
+    > print(f"CUDA available: {torch.cuda.is_available()}")
+    > ```
 
 3. Download and prepare the datasets:
 
-   ```bash
-   python src/merge_datasets.py
-   ```
+    ```bash
+    python src/merge_datasets.py
+    ```
 
 ## Usage
 
@@ -99,6 +118,57 @@ python src/main.py search --list-models
 # List both pre-trained and fine-tuned models
 python src/main.py search --list-fine-tuned
 ```
+
+### API Server
+
+The project includes a FastAPI-based REST API server that exposes the search functionality through HTTP endpoints. This allows you to integrate the search capability into other applications or build a web frontend.
+
+```bash
+# Start the API server with default settings
+python -m src.api
+
+# Start the API server with custom CORS settings
+python -m src.api --cors-origins="http://localhost:3000,https://yourdomain.com" --cors-methods="GET,POST"
+
+# Configure server performance
+python -m src.api --workers=4 --limit-concurrency=100 --timeout=60
+
+# Production mode: Enable only search endpoints for security
+python -m src.api --enable-routes=search
+
+# Production mode with high concurrency (4 workers, search endpoints only)
+python -m src.api --enable-routes=search --workers=4
+```
+
+Available configuration options:
+
+- `--host`: Host to bind the server to (default: "0.0.0.0")
+- `--port`: Port to bind the server to (default: 8000)
+- `--cors-origins`: Comma-separated list of allowed origins for CORS (default: "*")
+- `--cors-methods`: Comma-separated list of allowed HTTP methods for CORS (default: "*")
+- `--cors-headers`: Comma-separated list of allowed HTTP headers for CORS (default: "*")
+- `--workers`: Number of worker processes (default: half of CPU cores)
+- `--limit-concurrency`: Maximum number of concurrent connections (default: 50)
+- `--timeout`: Timeout for keep-alive connections in seconds (default: 30)
+- `--enable-routes`: Comma-separated list of routes to enable (options: "all", "search", "health", "models"; default: "all")
+
+The server will start at <http://localhost:8000> and automatically use multiple workers based on your CPU cores for handling concurrent requests. You can access the interactive API documentation at <http://localhost:8000/docs>.
+
+Example API request:
+
+```bash
+# Search for anime with GPU acceleration (if available)
+curl -X POST "http://localhost:8000/search/anime" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "A story about robots and AI"}'
+
+# Search for manga with cpu
+curl -X POST "http://localhost:8000/search/manga?device=cpu" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "A fantasy adventure in a magical world"}'
+```
+
+The API includes built-in error handling, request validation, and performance tracking. For GPU acceleration, make sure you've installed PyTorch with CUDA support as described in the setup section.
 
 ## Models
 

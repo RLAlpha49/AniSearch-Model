@@ -84,10 +84,12 @@ nav:
   - Concepts:
     - Models & Architecture: models.md
     - Datasets: datasets.md
+  - API Server: api_server.md
   - API Reference:
     - Main Module: api/main.md
     - Models: api/models.md
     - Training: api/training.md
+    - API Server: api/api_server.md
     - CLI Components: api/cli.md 
     - Utilities: api/utils.md
     - Dataset Merging: api/merge_datasets.md
