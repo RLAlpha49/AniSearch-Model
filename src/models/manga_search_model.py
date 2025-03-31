@@ -42,16 +42,17 @@ for result in results:
 """
 
 import logging
-from typing import List, Dict, Optional, Any
-from tqdm import tqdm
+from typing import Any, Dict, List, Optional
+
 import numpy as np
+from tqdm import tqdm
 
 from src.models.base_search_model import BaseSearchModel
 from src.utils.constants import (
+    DEFAULT_BATCH_SIZE,
     MANGA_DATASET_PATH,
     MODEL_NAME,
     NUM_RESULTS,
-    DEFAULT_BATCH_SIZE,
 )
 
 logger = logging.getLogger(__name__)

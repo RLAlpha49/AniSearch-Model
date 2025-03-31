@@ -16,23 +16,6 @@ unidecode
 # Data handling
 datasets
 
-# mkdocs
-mkdocs
-mkdocs-git-committers-plugin-2
-mkdocs-git-revision-date-localized-plugin
-mkdocs-material
-mkdocs-mermaid2-plugin
-mkdocs-minify-plugin
-mkdocs-open-in-new-tab
-mkdocs-panzoom-plugin
-mkdocstrings
-mkdocstrings-python
-
-# Code formatting
-black
-ruff
-mypy
-
 # API server
 fastapi
 uvicorn[standard]

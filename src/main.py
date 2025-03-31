@@ -277,8 +277,8 @@ def handle_train_command(args: Any) -> None:
         ```
     """
     from src.training.anime_trainer import AnimeModelTrainer
-    from src.training.manga_trainer import MangaModelTrainer
     from src.training.base_trainer import BaseModelTrainer
+    from src.training.manga_trainer import MangaModelTrainer
     from src.utils.error_handling import handle_exceptions
 
     @handle_exceptions(log_exceptions=True, include_exc_info=True, reraise=True)

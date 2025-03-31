@@ -62,18 +62,19 @@ import os
 import sys
 from typing import Dict, List, Optional, Union
 
-from fastapi import FastAPI, HTTPException, Query  # pylint: disable=import-error
-from fastapi.middleware.cors import CORSMiddleware  # pylint: disable=import-error
-from pydantic import BaseModel, Field  # pylint: disable=import-error
+from fastapi import HTTPException
+from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 
 # Add project root to path to allow importing from src
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # pylint: disable=wrong-import-position
-from src.utils.logging_config import setup_logging
 from src.main import get_search_model
 from src.models.base_search_model import BaseSearchModel
 from src.training.utils import get_device
+from src.utils.logging_config import setup_logging
 
 # Configure logging
 setup_logging()
@@ -589,10 +590,11 @@ async def search_manga(
 
 
 if __name__ == "__main__":
-    import uvicorn  # pylint: disable=import-error
-    import multiprocessing
     import argparse
+    import multiprocessing
     import tempfile
+
+    import uvicorn  # pylint: disable=import-error
 
     # Setup command line arguments
     parser = argparse.ArgumentParser(description="AniSearch API Server")

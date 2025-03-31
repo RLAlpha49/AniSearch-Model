@@ -35,53 +35,53 @@ with HuggingFace's training utilities for efficient fine-tuning.
 
 # pylint: disable=too-many-lines
 
-import os
 import logging
+import os
 import random
-from typing import List, Optional, Any
+from typing import Any, List, Optional
 
 import pandas as pd
+import transformers
 from datasets import Dataset as HFDataset
 from sentence_transformers import InputExample
 from sentence_transformers.cross_encoder import CrossEncoder
 from sentence_transformers.cross_encoder.losses import (  # pylint: disable=no-name-in-module,import-error
     BinaryCrossEntropyLoss,
+    CachedMultipleNegativesRankingLoss,
     CrossEntropyLoss,
     LambdaLoss,
     ListMLELoss,
-    PListMLELoss,
     ListNetLoss,
-    MultipleNegativesRankingLoss,
-    CachedMultipleNegativesRankingLoss,
-    MSELoss,
     MarginMSELoss,
+    MSELoss,
+    MultipleNegativesRankingLoss,
+    PListMLELoss,
     RankNetLoss,
 )
-from sentence_transformers.cross_encoder.trainer import (  # pylint: disable=no-name-in-module,import-error
+from sentence_transformers.cross_encoder.trainer import (
     CrossEncoderTrainer,
-)
-from sentence_transformers.cross_encoder.training_args import (  # pylint: disable=no-name-in-module,import-error
+)  # pylint: disable=no-name-in-module,import-error
+from sentence_transformers.cross_encoder.training_args import (
     CrossEncoderTrainingArguments,
-)
+)  # pylint: disable=no-name-in-module,import-error
 from tqdm import tqdm
-import transformers
 
-from src.utils.constants import MODEL_NAME
+from src.models.anime_search_model import ANIME_DATASET_PATH
+from src.models.manga_search_model import MANGA_DATASET_PATH
 from src.training.utils import (
-    DEFAULT_EPOCHS,
     DEFAULT_BATCH_SIZE,
+    DEFAULT_EPOCHS,
     DEFAULT_EVAL_STEPS,
-    DEFAULT_WARMUP_STEPS,
-    DEFAULT_MAX_SAMPLES,
     DEFAULT_LEARNING_RATE,
+    DEFAULT_MAX_SAMPLES,
+    DEFAULT_WARMUP_STEPS,
     MODEL_SAVE_PATH,
     batch_truncate_text_pairs,
     get_device,
     parse_list_column,
     setup_random_seeds,
 )
-from src.models.anime_search_model import ANIME_DATASET_PATH
-from src.models.manga_search_model import MANGA_DATASET_PATH
+from src.utils.constants import MODEL_NAME
 from src.utils.error_handling import handle_exceptions
 
 # Configure logging
@@ -149,7 +149,7 @@ class BaseModelTrainer:  # pylint: disable=too-many-instance-attributes
           limits, prioritizing the query (title) over the document (synopsis).
     """
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(  # pylint: disable=too-many-arguments, too-many-positional-arguments
         self,
         dataset_type: str = "anime",
         model_name: str = MODEL_NAME,

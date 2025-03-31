@@ -29,8 +29,8 @@ ensuring that examples are properly formatted and accessible to the model.
 
 from typing import List
 
-from torch.utils.data import Dataset
 from sentence_transformers import InputExample
+from torch.utils.data import Dataset
 
 
 class InputExampleDataset(Dataset):
