@@ -24,11 +24,14 @@ Thank you for your interest in contributing to AniSearch Model! This guide will 
     # On macOS/Linux:
     source venv/bin/activate
     
-    # Install dependencies
+    # Install core dependencies
     pip install -r requirements.txt
     
     # Install development dependencies
-    pip install pytest mypy ruff
+    pip install -r requirements-dev.txt
+    
+    # If you'll be updating documentation
+    pip install -r requirements-docs.txt
     ```
 
 ## Code Style

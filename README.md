@@ -59,7 +59,14 @@ This project implements a cross-encoder-based search system that allows users to
 2. Install dependencies:
 
     ```bash
+    # Install core dependencies needed for running the application
     pip install -r requirements.txt
+    
+    # Optional: Install documentation dependencies (only needed for building docs)
+    pip install -r requirements-docs.txt
+    
+    # Optional: Install development tools for formatting and linting
+    pip install -r requirements-dev.txt
     ```
 
     > **Note for GPU Acceleration**: If you want to use your NVIDIA GPU for faster processing, install PyTorch with CUDA support:
@@ -204,7 +211,10 @@ You can also train your own custom models optimized for anime/manga search. Fine
 │   ├── utils/           # Utility functions
 │   ├── main.py          # Entry point script
 │   └── merge_datasets.py # Dataset processing
-└── requirements.txt     # Project dependencies
+├── docs/                # Documentation
+├── requirements.txt     # Core dependencies
+├── requirements-docs.txt # Documentation dependencies
+└── requirements-dev.txt # Development dependencies
 ```
 
 ## Datasets Used
@@ -260,9 +270,12 @@ Contributions are welcome! Here's how you can contribute:
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b new-feature`
-3. Make your changes
-4. Run tests to ensure everything works
-5. Submit a pull request
+3. Install development dependencies: `pip install -r requirements-dev.txt`
+4. Make your changes
+5. Run tests to ensure everything works
+6. Submit a pull request
+
+See [CONTRIBUTING.md](docs/contributing.md) for more detailed instructions.
 
 ## License
 

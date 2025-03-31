@@ -10,14 +10,14 @@ throughout the application. It includes:
 """
 
 from src.utils.constants import (
+    ALTERNATIVE_MODELS,
     ANIME_DATASET_PATH,
+    DEFAULT_BATCH_SIZE,
     MANGA_DATASET_PATH,
     MODEL_NAME,
     NUM_RESULTS,
-    DEFAULT_BATCH_SIZE,
-    ALTERNATIVE_MODELS,
 )
-from src.utils.display import list_fine_tuned_models, display_available_models
+from src.utils.display import display_available_models, list_fine_tuned_models
 from src.utils.error_handling import handle_exceptions
 from src.utils.logging_config import setup_logging
 

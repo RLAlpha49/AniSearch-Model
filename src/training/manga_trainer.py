@@ -37,16 +37,16 @@ from typing import List, Optional
 
 import pandas as pd
 
-from src.utils.constants import MODEL_NAME
 from src.training.base_trainer import BaseModelTrainer
 from src.training.utils import (
-    DEFAULT_EPOCHS,
     DEFAULT_BATCH_SIZE,
+    DEFAULT_EPOCHS,
     DEFAULT_EVAL_STEPS,
-    DEFAULT_WARMUP_STEPS,
-    DEFAULT_MAX_SAMPLES,
     DEFAULT_LEARNING_RATE,
+    DEFAULT_MAX_SAMPLES,
+    DEFAULT_WARMUP_STEPS,
 )
+from src.utils.constants import MODEL_NAME
 from src.utils.error_handling import handle_exceptions
 
 # Configure logging
@@ -112,7 +112,7 @@ class MangaModelTrainer(BaseModelTrainer):
         - Light novels can be excluded from training to create more manga-specific models
     """
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(  # pylint: disable=too-many-arguments, too-many-positional-arguments
         self,
         model_name: str = MODEL_NAME,
         epochs: int = DEFAULT_EPOCHS,

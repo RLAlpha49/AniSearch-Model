@@ -19,8 +19,14 @@ This project implements a sophisticated search system that allows users to find 
 ## Quick Start
 
 ```bash
-# Install dependencies
+# Install core dependencies
 pip install -r requirements.txt
+
+# Optional: For documentation building
+pip install -r requirements-docs.txt
+
+# Optional: For development and linting
+pip install -r requirements-dev.txt
 
 # Download and prepare datasets
 python src/merge_datasets.py

@@ -38,7 +38,7 @@ For backward compatibility, if no command is specified, the system defaults to '
 import argparse
 import sys
 
-from src.utils.constants import MODEL_NAME, NUM_RESULTS, DEFAULT_BATCH_SIZE
+from src.utils.constants import DEFAULT_BATCH_SIZE, MODEL_NAME, NUM_RESULTS
 
 
 def validate_args(args: argparse.Namespace) -> argparse.Namespace:

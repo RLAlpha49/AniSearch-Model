@@ -43,10 +43,10 @@ The implementation includes comprehensive error handling for common issues:
 - Empty search queries
 """
 
-import os
 import logging
+import os
 import re
-from typing import List, Dict, Optional, Any, Mapping
+from typing import Any, Dict, List, Mapping, Optional
 
 import numpy as np
 import pandas as pd
@@ -56,10 +56,10 @@ from sentence_transformers import CrossEncoder
 from tqdm import tqdm
 
 from src.utils.constants import (
+    ALTERNATIVE_MODELS,
+    DEFAULT_BATCH_SIZE,
     MODEL_NAME,
     NUM_RESULTS,
-    DEFAULT_BATCH_SIZE,
-    ALTERNATIVE_MODELS,
 )
 from src.utils.error_handling import handle_exceptions
 
@@ -91,7 +91,7 @@ class BaseSearchModel:  # pylint: disable=too-many-instance-attributes
         normalize_scores (bool): Whether model scores need normalization
     """
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(  # pylint: disable=too-many-arguments, too-many-positional-arguments
         self,
         dataset_path: str,
         id_column: str,

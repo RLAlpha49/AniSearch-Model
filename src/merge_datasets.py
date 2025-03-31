@@ -88,21 +88,22 @@ The following datasets are processed for manga:
 
 # pylint: disable=too-many-lines
 
-import ast
-import os
 import argparse
+import ast
 import logging
-from logging.handlers import RotatingFileHandler
-import sys
+import os
 import re
-from typing import Any, Optional, List
-import pandas as pd
-from tqdm import tqdm
-from datasets import load_dataset
+import sys
+from logging.handlers import RotatingFileHandler
+from typing import Any, List, Optional
+
 import contractions  # pylint: disable=import-error
-from unidecode import unidecode  # pylint: disable=import-error
+import pandas as pd
+from datasets import load_dataset
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+from tqdm import tqdm
+from unidecode import unidecode  # pylint: disable=import-error
 
 # Initialize stopwords and lemmatizer
 stop_words = set(stopwords.words("english"))
