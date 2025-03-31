@@ -66,7 +66,7 @@ from src.utils.error_handling import handle_exceptions
 logger = logging.getLogger(__name__)
 
 
-class BaseSearchModel:
+class BaseSearchModel:  # pylint: disable=too-many-instance-attributes
     """
     Base class for cross-encoder powered semantic search models.
 
@@ -91,7 +91,7 @@ class BaseSearchModel:
         normalize_scores (bool): Whether model scores need normalization
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         dataset_path: str,
         id_column: str,

@@ -88,7 +88,7 @@ from src.utils.error_handling import handle_exceptions
 logger = logging.getLogger(__name__)
 
 
-class BaseModelTrainer:
+class BaseModelTrainer:  # pylint: disable=too-many-instance-attributes
     """
     Base trainer class for fine-tuning cross-encoder models on anime/manga datasets.
 
@@ -149,7 +149,7 @@ class BaseModelTrainer:
           limits, prioritizing the query (title) over the document (synopsis).
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         dataset_type: str = "anime",
         model_name: str = MODEL_NAME,

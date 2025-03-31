@@ -104,7 +104,7 @@ class AnimeModelTrainer(BaseModelTrainer):
           on anime data
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         model_name: str = MODEL_NAME,
         epochs: int = DEFAULT_EPOCHS,
